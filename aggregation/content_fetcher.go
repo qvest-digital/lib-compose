@@ -16,12 +16,6 @@ type FetchDefinition struct {
 	//FallbackURL string
 }
 
-type FetchResult struct {
-	def     *FetchDefinition
-	err     error
-	content Content
-}
-
 func NewFetchDefinition(url string) *FetchDefinition {
 	return &FetchDefinition{
 		URL:            url,
@@ -31,17 +25,27 @@ func NewFetchDefinition(url string) *FetchDefinition {
 	}
 }
 
+type FetchResult struct {
+	def     *FetchDefinition
+	err     error
+	content Content
+}
+
 type ContentFetcher struct {
 	allDone sync.WaitGroup
 	r       struct {
 		results []FetchResult
 		mutex   sync.Mutex
 	}
+	contentLoaderForDefinition func(*FetchDefinition) ContentLoader
 }
 
 func NewContentFetcher() *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]FetchResult, 0, 0)
+	f.contentLoaderForDefinition = func(*FetchDefinition) ContentLoader {
+		return &HtmlContentLoader{}
+	}
 	return f
 }
 
@@ -50,9 +54,10 @@ func NewContentFetcher() *ContentFetcher {
 // Do we need to return the Results in a special order????
 func (fetcher *ContentFetcher) WaitForResults() []FetchResult {
 	fetcher.allDone.Wait()
-	fetcher.r.mutex.Lock()
 
+	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
+
 	return fetcher.r.results
 }
 
@@ -61,7 +66,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) *ContentFetcher {
 	fetcher.allDone.Add(1)
 	go func() {
 		defer fetcher.allDone.Done()
-		loader := &HtmlContentLoader{}
+		loader := fetcher.contentLoaderForDefinition(d)
 
 		result := FetchResult{def: d}
 		result.content, result.err = loader.Load(d.URL, d.Timeout)

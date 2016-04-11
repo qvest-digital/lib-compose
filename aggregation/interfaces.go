@@ -1,5 +1,8 @@
 package aggregation
 
+//go:generate go get github.com/golang/mock/mockgen
+//go:generate mockgen -self_package aggregation -package aggregation -destination interface_mocks_test.go lib-ui-service/aggregation Fragment,ContentLoader,Content
+//go:generate sed -ie "s/aggregation .lib-ui-service\\/aggregation.//g;s/aggregation\\.//g" interface_mocks_test.go
 import (
 	"io"
 	"time"
