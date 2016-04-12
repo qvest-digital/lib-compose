@@ -18,12 +18,12 @@ func (agg *Aggregator) doAggregation(w http.ResponseWriter, r *http.Request) {
 	// fetch all contents
 	results := fetcher.WaitForResults()
 	for _, res := range results {
-		if res.err != nil && res.def.Required {
-			http.Error(w, res.err.Error(), 500)
+		if res.Err != nil && res.Def.Required {
+			http.Error(w, res.Err.Error(), 500)
 			return
 		}
 
-		mergeContext.AddContent(res.content)
+		mergeContext.AddContent(res.Content)
 	}
 
 	agg.writeHeaders(w, mergeContext)
