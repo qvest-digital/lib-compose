@@ -54,14 +54,18 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 
-	// TODO: Should we do error checking on all writes?
-	io.WriteString(w, "<html>\n  <head>\n")
+	if _, err := io.WriteString(w, "<html>\n  <head>\n"); err != nil {
+		return err
+	}
+
 	for _, f := range cntx.Head {
 		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
 			return err
 		}
 	}
-	io.WriteString(w, "  </head>\n  <body>\n")
+	if _, err := io.WriteString(w, "  </head>\n  <body>\n"); err != nil {
+		return err
+	}
 
 	if err := executeFragment("main"); err != nil {
 		return err
@@ -72,7 +76,10 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 			return err
 		}
 	}
-	io.WriteString(w, "  </body>\n</html>\n")
+
+	if _, err := io.WriteString(w, "  </body>\n</html>\n"); err != nil {
+		return err
+	}
 
 	return nil
 }
