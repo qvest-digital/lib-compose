@@ -6,7 +6,7 @@ import (
 
 type StringFragment string
 
-func (f StringFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string)) error {
+func (f StringFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
 	w.Write([]byte(f))
 	return nil
 }

@@ -1,7 +1,13 @@
 package aggregation
 
 import (
+	"bytes"
+	"errors"
 	"io"
+)
+
+const (
+	DefaultBufferSize = 1024 * 100
 )
 
 // ContentMerge is a helper type for creation of a combined html document
@@ -11,40 +17,64 @@ type ContentMerge struct {
 	Head     []Fragment
 	Body     map[string]Fragment
 	Tail     []Fragment
+	Buffered bool
 }
 
+// NewContentMerge creates a new buffered ContentMerge
 func NewContentMerge() *ContentMerge {
 	return &ContentMerge{
 		MetaJSON: make(map[string]interface{}),
 		Head:     make([]Fragment, 0, 0),
 		Body:     make(map[string]Fragment),
 		Tail:     make([]Fragment, 0, 0),
+		Buffered: true,
 	}
 }
 
-func (cntx *ContentMerge) writeHtml(w io.Writer) {
-	var executeFragment func(fragmentName string)
-	executeFragment = func(fragmentName string) {
+func (cntx *ContentMerge) WriteHtml(w io.Writer) error {
+	if cntx.Buffered {
+		buff := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+		if err := cntx.WriteHtmlUnbuffered(buff); err != nil {
+			return err
+		}
+		_, err := buff.WriteTo(w)
+		return err
+	} else {
+		return cntx.WriteHtmlUnbuffered(w)
+	}
+}
+
+func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
+	var executeFragment func(fragmentName string) error
+	executeFragment = func(fragmentName string) error {
 		f, exist := cntx.Body[fragmentName]
 		if !exist {
-			// TODO: How to handle non existing fragments!
-			panic("Fragment does not exist: " + fragmentName)
+			return errors.New("Fragment does not exist: " + fragmentName)
 		}
-		f.Execute(w, cntx.MetaJSON, executeFragment)
+		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 
+	// TODO: Should we do error checking on all writes?
 	io.WriteString(w, "<html>\n  <head>\n")
 	for _, f := range cntx.Head {
-		f.Execute(w, cntx.MetaJSON, executeFragment)
+		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
+			return err
+		}
 	}
 	io.WriteString(w, "  </head>\n  <body>\n")
 
-	executeFragment("main")
+	if err := executeFragment("main"); err != nil {
+		return err
+	}
 
 	for _, f := range cntx.Tail {
-		f.Execute(w, cntx.MetaJSON, executeFragment)
+		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
+			return err
+		}
 	}
 	io.WriteString(w, "  </body>\n</html>\n")
+
+	return nil
 }
 
 func (cntx *ContentMerge) AddContent(content Content) {

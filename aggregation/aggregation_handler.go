@@ -10,13 +10,13 @@ type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 
 type AggregationHandler struct {
 	contentFetcherFactory ContentFetcherFactory
-	contentMergeFactory   func() *ContentMerge
+	contentMergerFactory  func() ContentMerger
 }
 
 func NewAggregationHandler(contentFetcherFactory ContentFetcherFactory) *AggregationHandler {
 	return &AggregationHandler{
 		contentFetcherFactory: contentFetcherFactory,
-		contentMergeFactory: func() *ContentMerge {
+		contentMergerFactory: func() ContentMerger {
 			return NewContentMerge()
 		},
 	}
@@ -25,13 +25,13 @@ func NewAggregationHandler(contentFetcherFactory ContentFetcherFactory) *Aggrega
 func (agg *AggregationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fetcher := agg.contentFetcherFactory(r)
-	mergeContext := agg.contentMergeFactory()
+	mergeContext := agg.contentMergerFactory()
 
 	// fetch all contents
 	results := fetcher.WaitForResults()
 	for _, res := range results {
 		if res.Err != nil && res.Def.Required {
-			http.Error(w, res.Err.Error(), 500)
+			http.Error(w, "Bad Gateway: "+res.Err.Error(), 502)
 			return
 		}
 
@@ -39,5 +39,11 @@ func (agg *AggregationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 
 	// TODO: also writeHeaders
-	mergeContext.writeHtml(w)
+
+	err := mergeContext.WriteHtml(w)
+	if err != nil {
+		http.Error(w, "Internal Server Error: "+err.Error(), 500)
+		return
+	}
+
 }
