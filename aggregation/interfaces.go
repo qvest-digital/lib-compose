@@ -18,6 +18,11 @@ type ContentLoader interface {
 	Load(url string, timeout time.Duration) (Content, error)
 }
 
+type FetchResultSupplier interface {
+	// WaitForResults returns all results of a fetch job in a blocking manger.
+	WaitForResults() []FetchResult
+}
+
 type Content interface {
 
 	// RequiredContent returns a list of Content Elements to load
