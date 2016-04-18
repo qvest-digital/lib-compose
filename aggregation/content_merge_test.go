@@ -57,7 +57,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a.Equal(expected, buff.String())
 }
 
-func Test_ContentMerge_MetadataIsMerged_And_Supplied_To_Fragments(t *testing.T) {
+func Test_ContentMerge_MetadataIsMerged_And_SuppliedToFragments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
