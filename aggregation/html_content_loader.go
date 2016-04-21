@@ -49,7 +49,6 @@ func (loader *HtmlContentLoader) parse(in io.Reader) (Content, error) {
 	c := NewMemoryContent()
 	for {
 		tt := z.Next()
-
 		switch {
 		case tt == html.ErrorToken:
 			if z.Err() == io.EOF {
@@ -72,126 +71,8 @@ func (loader *HtmlContentLoader) parse(in io.Reader) (Content, error) {
 	}
 }
 
-func (loader *HtmlContentLoader) parseBody(z *html.Tokenizer, c *MemoryContent) error {
-	attrs := make([]html.Attribute, 0, 10)
-
-forloop:
-	for {
-		tt := z.Next()
-		tag, _ := z.TagName()
-		attrs = readAttributes(z, attrs)
-
-		switch {
-		case tt == html.ErrorToken:
-			if z.Err() != io.EOF {
-				return z.Err()
-			}
-			break forloop
-		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
-				continue
-			}
-
-			if a, exists := getAttr(attrs, UiaFragment); exists {
-				if f, deps, err := parseFragment(z); err != nil {
-					return err
-				} else {
-					c.body[a.Val] = f
-					for _, dep := range deps {
-						c.requiredContent[dep.URL] = dep
-					}
-				}
-			}
-
-			if _, exists := getAttr(attrs, UiaTail); exists {
-				if f, deps, err := parseFragment(z); err != nil {
-					return err
-				} else {
-					c.tail = f
-					for _, dep := range deps {
-						c.requiredContent[dep.URL] = dep
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func parseFragment(z *html.Tokenizer) (f Fragment, dependencies []*FetchDefinition, err error) {
-	attrs := make([]html.Attribute, 0, 10)
-	depth := 0
-	dependencies = make([]*FetchDefinition, 0, 0)
-
-	buff := bytes.NewBuffer(z.Raw())
-forloop:
-	for {
-		tt := z.Next()
-		tag, _ := z.TagName()
-		attrs = readAttributes(z, attrs)
-
-		switch {
-		case tt == html.ErrorToken:
-			if z.Err() != io.EOF {
-				return nil, nil, z.Err()
-			}
-			break forloop
-		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if string(tag) == UiaInclude {
-				fd := &FetchDefinition{}
-				if url, hasUrl := getAttr(attrs, "src"); !hasUrl {
-					return nil, nil, fmt.Errorf("include definition withour src %s", z.Raw())
-				} else {
-					fd.URL = url.Val
-				}
-
-				if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
-					if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
-						return nil, nil, fmt.Errorf("error parsing timeout in %s: %s", z.Raw(), err.Error())
-					} else {
-						fd.Timeout = time.Millisecond * time.Duration(timeoutInt)
-					}
-				}
-
-				if required, hasRequired := getAttr(attrs, "required"); hasRequired {
-					if requiredBool, err := strconv.ParseBool(required.Val); err != nil {
-						return nil, nil, fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
-					} else {
-						fd.Required = requiredBool
-					}
-				}
-
-				dependencies = append(dependencies, fd)
-
-				fmt.Fprintf(buff, "§[> %s]§", fd.URL)
-				continue
-			}
-
-			if tt != html.SelfClosingTagToken {
-				depth++
-			}
-
-			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
-				continue
-			}
-
-		case tt == html.EndTagToken:
-			if depth--; depth < 0 {
-				buff.Write(z.Raw())
-				break forloop
-			}
-		}
-
-		buff.Write(z.Raw())
-	}
-
-	return StringFragment(buff.String()), dependencies, nil
-}
-
 func (loader *HtmlContentLoader) parseHead(z *html.Tokenizer, c *MemoryContent) error {
 	attrs := make([]html.Attribute, 0, 10)
-	depth := 0
 	headBuff := bytes.NewBuffer(nil)
 
 forloop:
@@ -207,26 +88,20 @@ forloop:
 			}
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if tt != html.SelfClosingTagToken {
-				depth++
-			}
 			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
 				continue
 			}
-
 			if string(tag) == "script" && attrHasValue(attrs, "type", ScriptTypeMeta) {
 				if err := parseMetaJson(z, c); err != nil {
 					return err
 				}
 				continue
 			}
-
 		case tt == html.EndTagToken:
-			if depth--; depth <= 0 {
+			if string(tag) == "head" {
 				break forloop
 			}
 		}
-
 		headBuff.Write(z.Raw())
 	}
 
@@ -236,6 +111,146 @@ forloop:
 		c.head = StringFragment(st)
 	}
 	return nil
+}
+
+func (loader *HtmlContentLoader) parseBody(z *html.Tokenizer, c *MemoryContent) error {
+	attrs := make([]html.Attribute, 0, 10)
+	bodyBuff := bytes.NewBuffer(nil)
+
+forloop:
+	for {
+		tt := z.Next()
+		tag, _ := z.TagName()
+		attrs = readAttributes(z, attrs)
+
+		switch {
+		case tt == html.ErrorToken:
+			if z.Err() != io.EOF {
+				return z.Err()
+			}
+			break forloop
+		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
+			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
+				continue
+			}
+			if string(tag) == UiaFragment {
+				if f, deps, err := parseFragment(z); err != nil {
+					return err
+				} else {
+					c.body[getFragmentName(attrs)] = f
+					for _, dep := range deps {
+						c.requiredContent[dep.URL] = dep
+					}
+				}
+				continue
+			}
+			if string(tag) == UiaTail {
+				if f, deps, err := parseFragment(z); err != nil {
+					return err
+				} else {
+					c.tail = f
+					for _, dep := range deps {
+						c.requiredContent[dep.URL] = dep
+					}
+				}
+				continue
+			}
+			if string(tag) == UiaInclude {
+				if fd, replaceText, err := getInclude(z, attrs); err != nil {
+					return err
+				} else {
+					c.requiredContent[fd.URL] = fd
+					bodyBuff.WriteString(replaceText)
+					continue
+				}
+			}
+
+		case tt == html.EndTagToken:
+			if string(tag) == "body" {
+				break forloop
+			}
+		}
+		bodyBuff.Write(z.Raw())
+	}
+
+	s := bodyBuff.String()
+	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
+		if st := strings.Trim(s, " \n"); len(st) > 0 {
+			c.body[""] = StringFragment(st)
+		}
+	}
+
+	return nil
+}
+
+func parseFragment(z *html.Tokenizer) (f Fragment, dependencies []*FetchDefinition, err error) {
+	attrs := make([]html.Attribute, 0, 10)
+	dependencies = make([]*FetchDefinition, 0, 0)
+
+	buff := bytes.NewBuffer(nil)
+forloop:
+	for {
+		tt := z.Next()
+		tag, _ := z.TagName()
+		attrs = readAttributes(z, attrs)
+
+		switch {
+		case tt == html.ErrorToken:
+			if z.Err() != io.EOF {
+				return nil, nil, z.Err()
+			}
+			break forloop
+		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
+			if string(tag) == UiaInclude {
+				if fd, replaceText, err := getInclude(z, attrs); err != nil {
+					return nil, nil, err
+				} else {
+					dependencies = append(dependencies, fd)
+					fmt.Fprintf(buff, replaceText)
+					continue
+				}
+			}
+
+			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
+				continue
+			}
+
+		case tt == html.EndTagToken:
+			if string(tag) == UiaFragment || string(tag) == UiaTail {
+				break forloop
+			}
+		}
+		buff.Write(z.Raw())
+	}
+
+	return StringFragment(buff.String()), dependencies, nil
+}
+
+func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, string, error) {
+	fd := &FetchDefinition{}
+	if url, hasUrl := getAttr(attrs, "src"); !hasUrl {
+		return nil, "", fmt.Errorf("include definition withour src %s", z.Raw())
+	} else {
+		fd.URL = url.Val
+	}
+
+	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
+		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
+			return nil, "", fmt.Errorf("error parsing timeout in %s: %s", z.Raw(), err.Error())
+		} else {
+			fd.Timeout = time.Millisecond * time.Duration(timeoutInt)
+		}
+	}
+
+	if required, hasRequired := getAttr(attrs, "required"); hasRequired {
+		if requiredBool, err := strconv.ParseBool(required.Val); err != nil {
+			return nil, "", fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
+		} else {
+			fd.Required = requiredBool
+		}
+	}
+
+	return fd, fmt.Sprintf("§[> %s]§", fd.URL), nil
 }
 
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {
@@ -265,18 +280,19 @@ func skipSubtreeIfUiaRemove(z *html.Tokenizer, tt html.TokenType, tagName string
 		return false
 	}
 
-	if tt == html.SelfClosingTagToken {
+	if isSelfClosingTag(tagName, tt) {
 		return true
 	}
 
 	depth := 0
 	for {
 		tt := z.Next()
+		tag, _ := z.TagName()
 
 		switch {
 		case tt == html.ErrorToken:
 			return true
-		case tt == html.StartTagToken:
+		case tt == html.StartTagToken && !isSelfClosingTag(string(tag), tt):
 			depth++
 		case tt == html.EndTagToken:
 			depth--
@@ -296,6 +312,16 @@ func getAttr(attrs []html.Attribute, name string) (attr html.Attribute, found bo
 	return html.Attribute{}, false
 }
 
+// getFragmentName returns the name attribute, or "" if none was given
+func getFragmentName(attrs []html.Attribute) string {
+	for _, a := range attrs {
+		if a.Key == "name" {
+			return a.Val
+		}
+	}
+	return ""
+}
+
 func attrHasValue(attrs []html.Attribute, name string, value string) (found bool) {
 	a, found := getAttr(attrs, name)
 	return found && a.Val == value
@@ -313,4 +339,29 @@ func readAttributes(z *html.Tokenizer, buff []html.Attribute) []html.Attribute {
 			return buff
 		}
 	}
+}
+
+func isSelfClosingTag(tagname string, token html.TokenType) bool {
+	return token == html.SelfClosingTagToken || voidElements[tagname]
+}
+
+// HTML Section 12.1.2, "Elements", gives this list of void elements. Void elements
+// are those that can't have any contents.
+var voidElements = map[string]bool{
+	"area":    true,
+	"base":    true,
+	"br":      true,
+	"col":     true,
+	"command": true,
+	"embed":   true,
+	"hr":      true,
+	"img":     true,
+	"input":   true,
+	"keygen":  true,
+	"link":    true,
+	"meta":    true,
+	"param":   true,
+	"source":  true,
+	"track":   true,
+	"wbr":     true,
 }
