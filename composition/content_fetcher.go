@@ -3,6 +3,8 @@ package composition
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
+	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"sync"
 	"time"
@@ -50,7 +52,7 @@ type FetchResult struct {
 type ContentFetcher struct {
 	activeJobs sync.WaitGroup
 	r          struct {
-		results []FetchResult
+		results []*FetchResult
 		mutex   sync.Mutex
 	}
 	contentLoader ContentLoader
@@ -61,7 +63,7 @@ type ContentFetcher struct {
 // independent of the actual response times of the fetch jobs.
 func NewContentFetcher() *ContentFetcher {
 	f := &ContentFetcher{}
-	f.r.results = make([]FetchResult, 0, 0)
+	f.r.results = make([]*FetchResult, 0, 0)
 	f.contentLoader = &HtmlContentLoader{}
 
 	return f
@@ -70,12 +72,14 @@ func NewContentFetcher() *ContentFetcher {
 // Wait blocks until all jobs are done,
 // eighter sucessful or with an error result and returns the content and errors.
 // Do we need to return the Results in a special order????
-func (fetcher *ContentFetcher) WaitForResults() []FetchResult {
+func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
+	log.Infof("wait now")
 	fetcher.activeJobs.Wait()
 
 	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
 
+	log.Infof("return results")
 	return fetcher.r.results
 }
 
@@ -88,17 +92,28 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	if fetcher.isAlreadySheduled(hash) {
 		return
 	}
-	fetchResult := FetchResult{Def: d, Hash: hash}
-	fetcher.r.results = append(fetcher.r.results, fetchResult)
 
 	fetcher.activeJobs.Add(1)
+
+	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched")}
+	fetcher.r.results = append(fetcher.r.results, fetchResult)
+
 	go func() {
 		defer fetcher.activeJobs.Done()
 
+		start := time.Now()
 		fetchResult.Content, fetchResult.Err = fetcher.contentLoader.Load(d.URL, d.Timeout)
 
-		for _, dependency := range fetchResult.Content.RequiredContent() {
-			fetcher.AddFetchJob(dependency)
+		if fetchResult.Err == nil {
+			log.WithField("duration", time.Since(start)).Infof("fetched %v", d.URL)
+			for _, dependency := range fetchResult.Content.RequiredContent() {
+				fetcher.AddFetchJob(dependency)
+			}
+		} else {
+			log.WithField("duration", time.Since(start)).
+				WithField("error", fetchResult.Err).
+				WithField("fetchDefinition", d).
+				Warnf("failed fetching %v", d.URL)
 		}
 
 	}()

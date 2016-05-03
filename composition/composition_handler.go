@@ -1,6 +1,7 @@
 package composition
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"net/http"
 )
 
@@ -30,12 +31,17 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	// fetch all contents
 	results := fetcher.WaitForResults()
 	for _, res := range results {
-		if res.Err != nil && res.Def.Required {
+		if res.Err == nil && res.Content != nil {
+
+			mergeContext.AddContent(res.Content)
+
+		} else if res.Def.Required {
+			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
 			http.Error(w, "Bad Gateway: "+res.Err.Error(), 502)
 			return
+		} else {
+			log.WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
 		}
-
-		mergeContext.AddContent(res.Content)
 	}
 
 	// TODO: also writeHeaders

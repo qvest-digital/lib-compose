@@ -152,7 +152,6 @@ Example: Contains two fragments *headline* and *headline*
 
 Where: body
 
-
 ### Templating
 All fragments (except the Head Fragment) may contain minimal templating directives which has to be resolved by the UI-Service.
 There are two forms of includes and a syntax for variable replacement.

@@ -16,13 +16,13 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 
 	content := &MemoryContent{
 		body: map[string]Fragment{
-			"main": StringFragment("Hello World\n"),
+			"": StringFragment("Hello World\n"),
 		},
 	}
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
-			FetchResult{
+			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
 				Content: content,
 			},
@@ -52,7 +52,7 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
-			FetchResult{
+			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
 				Content: &MemoryContent{},
 				Err:     nil,
@@ -82,7 +82,7 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	errorString := "some error while fetching"
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
-			FetchResult{
+			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
 				Content: nil,
 				Err:     errors.New(errorString),
@@ -98,8 +98,8 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	a.Equal(502, resp.Code)
 }
 
-type MockFetchResultSupplier []FetchResult
+type MockFetchResultSupplier []*FetchResult
 
-func (m MockFetchResultSupplier) WaitForResults() []FetchResult {
-	return []FetchResult(m)
+func (m MockFetchResultSupplier) WaitForResults() []*FetchResult {
+	return []*FetchResult(m)
 }
