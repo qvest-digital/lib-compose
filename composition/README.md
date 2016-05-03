@@ -32,6 +32,8 @@ This may case not demerninistic behaviour, if the contain equal named fragments 
 ### Caching
 At a later point, the ContentFetcher may provide Caching of FetchDefinitions.
 
+
+
 ## HTML Composition Vocabulary
 
 ### Attribute `uic-remove`
@@ -65,6 +67,7 @@ Example:
 ```
 
 Where: head
+
 
 ### Fragments
 The UI-Service interpretes an html page as a set of fragments. All those fragments are optional.
@@ -148,6 +151,7 @@ Example: Contains two fragments *headline* and *headline*
 ```
 
 Where: body
+
 
 ### Templating
 All fragments (except the Head Fragment) may contain minimal templating directives which has to be resolved by the UI-Service.
