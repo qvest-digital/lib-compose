@@ -1,18 +1,7 @@
 package aggregation
 
-import (
-	"io"
-)
-
-type StringFragment string
-
-func (f StringFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
-	w.Write([]byte(f))
-	return nil
-}
-
 type MemoryContent struct {
-	requiredContent []*FetchDefinition
+	requiredContent map[string]*FetchDefinition // key ist the url
 	meta            map[string]interface{}
 	head            Fragment
 	body            map[string]Fragment
@@ -21,7 +10,7 @@ type MemoryContent struct {
 
 func NewMemoryContent() *MemoryContent {
 	return &MemoryContent{
-		requiredContent: make([]*FetchDefinition, 0, 0),
+		requiredContent: make(map[string]*FetchDefinition),
 		meta:            make(map[string]interface{}),
 		head:            nil,
 		body:            make(map[string]Fragment),
@@ -30,7 +19,11 @@ func NewMemoryContent() *MemoryContent {
 }
 
 func (c *MemoryContent) RequiredContent() []*FetchDefinition {
-	return c.requiredContent
+	deps := make([]*FetchDefinition, 0, len(c.requiredContent))
+	for _, dep := range c.requiredContent {
+		deps = append(deps, dep)
+	}
+	return deps
 }
 
 func (c *MemoryContent) Meta() map[string]interface{} {
