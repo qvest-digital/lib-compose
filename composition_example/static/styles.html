@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/static/stylesheet.css">
+  </head>
+  <body>
+    <h1 uic-remove>This file only defines some styles and generic javascript for the head.</h1>
+    <uia-tail>
+      <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+      <script>
+       $(function() {
+         $('<div>some dynamic text at the end</div>').appendTo('body');
+       })    
+      </script>
+    </uia-tail>
+  </body>
+</html>
