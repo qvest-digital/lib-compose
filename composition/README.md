@@ -2,13 +2,33 @@
 
 This library contains code for the composition of html pages out of multiple html page containing fragments.
 
-## Key Concept
+### Key Concept
 Every Service deliveres a functional html user inteface in form of complete html pages in the way, that a service can be developed and tested
 by it's own. A UI-Service can request multimple pages from different services and compose them to one html page. To support this, the html pages
 from the services contain a special html vocabular.
 
-## Composition Process
-### Loading order
+### Composition Process
+The composition is done in the following steps:
+1. The UI-Service has a `CompositionHandler` in it's handler chain, which answers these which need composition.
+2. The `CompositionHandler` has a callback from the UI-Service. This callback gets a `http.Request` object as argument and returns a List of FetchResult.
+3. For each request this callback is triggered. So the UI-Service can add a `ContentFetcher` for this request and adds FetchDefinitions for Page using `ContentFetcher.AddFetchJob()`.
+4. The ContentFetchter loads the Pages and recursively it's dependencies in parallel. For the actual loading and parsing, it uses the `HtmlContentLoader`.
+5. When all `Content` objects are loaded, the `CompositionHandler` merges them together, using `ContentMerge`.
+
+### Mearging
+The it self is very simple:
+- The MetaJSON is calculated by adding all fields of the loaded MetaJSON to one global map.
+- All Head fragments are concatenated within the `<head>`.
+- The Default Body Fragment of the first Content object is executed and may recursively include other Fragments Content objects.
+- All Tail fragments are concatenated at hte end of the `<body>`.
+
+### Execution Order
+**Attention**: The execution order of the Content Objects is determined by the order in which they are returned from the `ContentFetcher`.
+Currently this is only deterministic within the FetchDefinitions added by `ContentFetcher.AddFetchJob()`. The recursive dependencies are loaded from them are in a random order.
+This may case not demerninistic behaviour, if the contain equal named fragments or provide the same MetaJSON attributes.
+
+### Caching
+At a later point, the ContentFetcher may provide Caching of FetchDefinitions.
 
 ## HTML Composition Vocabulary
 
