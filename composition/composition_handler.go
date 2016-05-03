@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"net/http"
@@ -8,13 +8,13 @@ import (
 // which can return the fetch results.
 type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 
-type AggregationHandler struct {
+type CompositionHandler struct {
 	contentFetcherFactory ContentFetcherFactory
 	contentMergerFactory  func() ContentMerger
 }
 
-func NewAggregationHandler(contentFetcherFactory ContentFetcherFactory) *AggregationHandler {
-	return &AggregationHandler{
+func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
+	return &CompositionHandler{
 		contentFetcherFactory: contentFetcherFactory,
 		contentMergerFactory: func() ContentMerger {
 			return NewContentMerge()
@@ -22,7 +22,7 @@ func NewAggregationHandler(contentFetcherFactory ContentFetcherFactory) *Aggrega
 	}
 }
 
-func (agg *AggregationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fetcher := agg.contentFetcherFactory(r)
 	mergeContext := agg.contentMergerFactory()

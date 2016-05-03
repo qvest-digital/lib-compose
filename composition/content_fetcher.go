@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"crypto/md5"

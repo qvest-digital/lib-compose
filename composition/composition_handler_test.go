@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func Test_AggregationHandler_PositiveCase(t *testing.T) {
+func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
@@ -28,7 +28,7 @@ func Test_AggregationHandler_PositiveCase(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewAggregationHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	aggregator.ServeHTTP(resp, &http.Request{})
@@ -45,7 +45,7 @@ Hello World
 	a.Equal(200, resp.Code)
 }
 
-func Test_AggregationHandler_ErrorInMerging(t *testing.T) {
+func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
@@ -59,7 +59,7 @@ func Test_AggregationHandler_ErrorInMerging(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewAggregationHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 	aggregator.contentMergerFactory = func() ContentMerger {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any())
@@ -74,7 +74,7 @@ func Test_AggregationHandler_ErrorInMerging(t *testing.T) {
 	a.Equal(500, resp.Code)
 }
 
-func Test_AggregationHandler_ErrorInFetching(t *testing.T) {
+func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
@@ -89,7 +89,7 @@ func Test_AggregationHandler_ErrorInFetching(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewAggregationHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	aggregator.ServeHTTP(resp, &http.Request{})
