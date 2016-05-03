@@ -18,7 +18,8 @@ An UI-Service has to remove the element marked with this attribute and all its s
 Where: Everywhere (head, body, within framents)
 
 Example:
-```
+
+```html
 <link uic-remove rel="stylesheet" type="text/css" href="testing.css"/>
 ```
 
@@ -29,7 +30,8 @@ The UI-Service has to add the contents of the JSON object to its global meta dat
 Where: head
 
 Example:
-```
+
+```html
 <script type="text/uic-meta">
   {
    "foo": "bar",
