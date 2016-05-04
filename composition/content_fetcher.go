@@ -41,6 +41,12 @@ func (def *FetchDefinition) Hash() string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
+// IsFetchable returs, wether the fetch definition refers to a fetchable resource
+// or is a local name only.
+func (def *FetchDefinition) IsFetchable() bool {
+	return len(def.URL) > 0
+}
+
 type FetchResult struct {
 	Def     *FetchDefinition
 	Err     error
@@ -73,13 +79,11 @@ func NewContentFetcher() *ContentFetcher {
 // eighter sucessful or with an error result and returns the content and errors.
 // Do we need to return the Results in a special order????
 func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
-	log.Infof("wait now")
 	fetcher.activeJobs.Wait()
 
 	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
 
-	log.Infof("return results")
 	return fetcher.r.results
 }
 
@@ -107,7 +111,9 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		if fetchResult.Err == nil {
 			log.WithField("duration", time.Since(start)).Infof("fetched %v", d.URL)
 			for _, dependency := range fetchResult.Content.RequiredContent() {
-				fetcher.AddFetchJob(dependency)
+				if dependency.IsFetchable() {
+					fetcher.AddFetchJob(dependency)
+				}
 			}
 		} else {
 			log.WithField("duration", time.Since(start)).
@@ -115,7 +121,6 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 				WithField("fetchDefinition", d).
 				Warnf("failed fetching %v", d.URL)
 		}
-
 	}()
 }
 

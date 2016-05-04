@@ -99,9 +99,9 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 	loaderMock.EXPECT().
 		Load(fd.URL, fd.Timeout).
 		Do(
-		func(url string, timeout time.Duration) {
-			time.Sleep(loaderBlocking)
-		}).
+			func(url string, timeout time.Duration) {
+				time.Sleep(loaderBlocking)
+			}).
 		Return(content, nil)
 
 	return fd

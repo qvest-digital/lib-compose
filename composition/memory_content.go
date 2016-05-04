@@ -1,6 +1,7 @@
 package composition
 
 type MemoryContent struct {
+	url             string
 	requiredContent map[string]*FetchDefinition // key ist the url
 	meta            map[string]interface{}
 	head            Fragment
@@ -12,10 +13,12 @@ func NewMemoryContent() *MemoryContent {
 	return &MemoryContent{
 		requiredContent: make(map[string]*FetchDefinition),
 		meta:            make(map[string]interface{}),
-		head:            nil,
 		body:            make(map[string]Fragment),
-		tail:            nil,
 	}
+}
+
+func (c *MemoryContent) URL() string {
+	return c.url
 }
 
 func (c *MemoryContent) RequiredContent() []*FetchDefinition {

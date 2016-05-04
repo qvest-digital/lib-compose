@@ -144,6 +144,16 @@ func (_mr *_MockContentRecorder) Tail() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Tail")
 }
 
+func (_m *MockContent) URL() string {
+	ret := _m.ctrl.Call(_m, "URL")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) URL() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "URL")
+}
+
 // Mock of ContentMerger interface
 type MockContentMerger struct {
 	ctrl     *gomock.Controller
