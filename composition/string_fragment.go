@@ -26,7 +26,9 @@ func (f StringFragment) Execute(w io.Writer, data map[string]interface{}, execut
 			}
 			io.WriteString(w, t[:start])
 			placeholder := t[start+len(PlaceholderStart) : end]
-			f.writePlaceholder(w, placeholder, data, executeNestedFragment)
+			if err := f.writePlaceholder(w, placeholder, data, executeNestedFragment); err != nil {
+				return err
+			}
 			t = t[end+len(PlaceholderEnd):]
 		} else {
 			io.WriteString(w, t)
@@ -39,7 +41,9 @@ func (f StringFragment) Execute(w io.Writer, data map[string]interface{}, execut
 func (f StringFragment) writePlaceholder(w io.Writer, placeholder string, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
 	if len(placeholder) > 1 && placeholder[0] == byte('>') {
 		placeholder = strings.TrimSpace(placeholder[1:])
-		executeNestedFragment(placeholder)
+		if err := executeNestedFragment(placeholder); err != nil {
+			return err
+		}
 	} else {
 		placeholder = strings.TrimSpace(placeholder)
 		if d, exist := data[placeholder]; exist {
