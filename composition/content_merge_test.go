@@ -31,18 +31,18 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 `
 
 	page1 := NewMemoryContent()
-	page1.head = StringFragment("    <page1-head>\n")
+	page1.head = StringFragment("<page1-head>\n")
 	page1.tail = StringFragment("    <page1-tail>\n")
 	page1.body[""] = MockPage1BodyFragment{}
 
 	page2 := NewMemoryContent()
 	page2.head = StringFragment("    <page2-head>\n")
-	page2.tail = StringFragment("    <page2-tail>\n")
+	page2.tail = StringFragment("    <page2-tail>")
 	page2.body["page2-a"] = StringFragment("      <page2-body-a>\n")
 	page2.body["page2-b"] = StringFragment("      <page2-body-b>\n")
 
 	page3 := NewMemoryContent()
-	page3.head = StringFragment("    <page3-head>\n")
+	page3.head = StringFragment("    <page3-head>")
 	page3.body["page3-a"] = StringFragment("      <page3-body-a>\n")
 
 	cm := NewContentMerge()
@@ -123,7 +123,7 @@ type MockPage1BodyFragment struct {
 }
 
 func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
-	w.Write([]byte("    <page1-body-main>\n"))
+	w.Write([]byte("<page1-body-main>\n"))
 	if err := executeNestedFragment("page2-a"); err != nil {
 		panic(err)
 	}
