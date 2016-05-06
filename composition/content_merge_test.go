@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"bytes"
@@ -33,7 +33,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	page1 := NewMemoryContent()
 	page1.head = StringFragment("    <page1-head>\n")
 	page1.tail = StringFragment("    <page1-tail>\n")
-	page1.body["main"] = MockPage1BodyFragment{}
+	page1.body[""] = MockPage1BodyFragment{}
 
 	page2 := NewMemoryContent()
 	page2.head = StringFragment("    <page2-head>\n")
@@ -71,7 +71,7 @@ func Test_ContentMerge_MetadataIsMerged_And_SuppliedToFragments(t *testing.T) {
 
 	page1 := NewMemoryContent()
 	page1.meta["page1"] = "value1"
-	page1.body["main"] = bodyMock
+	page1.body[""] = bodyMock
 
 	page2 := NewMemoryContent()
 	page2.meta["page2"] = "value2"
@@ -90,7 +90,7 @@ func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	buff := bytes.NewBuffer(nil)
 	err := cm.WriteHtml(buff)
 	a.Error(err)
-	a.Equal("Fragment does not exist: main", err.Error())
+	a.Equal("Fragment does not exist: ", err.Error())
 	// the buffered merger should not write if errors occur
 	a.Equal(0, len(buff.Bytes()))
 }
@@ -99,7 +99,7 @@ func Test_ContentMerge_ErrorOnWrite(t *testing.T) {
 	a := assert.New(t)
 
 	page := NewMemoryContent()
-	page.body["main"] = StringFragment("Hello World\n")
+	page.body[""] = StringFragment("Hello World\n")
 
 	cm := NewContentMerge()
 	cm.AddContent(page)

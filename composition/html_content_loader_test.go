@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"bytes"
@@ -13,43 +13,43 @@ import (
 
 var integratedTestHtml = `<html>
   <head>
-    <link uia-remove rel="stylesheet" type="text/css" href="testing.css"/>
+    <link uic-remove rel="stylesheet" type="text/css" href="testing.css"/>
     <link rel="stylesheet" type="text/css" href="special.css"/>
-    <script type="text/uia-meta">
+    <script type="text/uic-meta">
       {
        "foo": "bar",
        "boo": "bazz",
        "categories": ["animal", "human"]
       }
     </script>
-    <script uia-remove>
+    <script uic-remove>
       va xzw = "some test code""
     </script>
     <script src="myScript.js"></script>
   </head>
   <body>
-    <ul uia-remove>
+    <ul uic-remove>
       <!-- A Navigation for testing -->
     </ul>
-    <uia-fragment name="headline">
+    <uic-fragment name="headline">
       <h1>This is a headline</h1>
-    </uia-fragment>
-    <uia-fragment name="content">
+    </uic-fragment>
+    <uic-fragment name="content">
       Bli Bla blub
-      <uia-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uia-include src="example.com/optional#content" timeout="100" required="false"/>
-      <div uia-remove>
+      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
+      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <div uic-remove>
          Some element for testing
       </div>
       <hr/>
       Bli Bla blub
-    </uia-fragment>
-    <uia-tail>
+    </uic-fragment>
+    <uic-tail>
       <!-- some script tags to insert at the end -->
       <script src="foo.js"></script>
       <script src="bar.js"></script>
-      <script uia-remove src="demo.js"></script>
-    </uia-tail>
+      <script uic-remove src="demo.js"></script>
+    </uic-tail>
   </body>
 </html>
 `
@@ -165,25 +165,25 @@ func Test_HtmlContentLoader_parseHead(t *testing.T) {
 
 	loader := &HtmlContentLoader{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<head>
-  <div uia-remove>
+  <div uic-remove>
     <script>
     sdcsdc
     </script>
   </div>
   <xx/> 
   <foo>xxx</foo>
-  <div uia-remove>
+  <div uic-remove>
     <script>
     sdcsdc
     </script>
   </div> 
   <bar>xxx</bar>
-  <script type="text/uia-meta">
+  <script type="text/uic-meta">
       {
        "foo": "bar"
       }
   </script>
-  <div uia-remove>
+  <div uic-remove>
     <script>
     sdcsdc
     </script>
@@ -206,22 +206,22 @@ func Test_HtmlContentLoader_parseBody(t *testing.T) {
 	loader := &HtmlContentLoader{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
-    <ul uia-remove>
+    <ul uic-remove>
       <!-- A Navigation for testing -->
     </ul>
-    <uia-fragment name="headline">
+    <uic-fragment name="headline">
       <h1>Headline</h1>
-      <uia-include src="example.com/optional#content" timeout="100" required="false"/>
-    </uia-fragment>
-    <uia-fragment name="content">
+      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+    </uic-fragment>
+    <uic-fragment name="content">
       some content
-      <uia-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uia-include src="example.com/optional#content" timeout="100" required="false"/>
-    </uia-fragment>
-    <uia-tail>
+      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
+      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+    </uic-fragment>
+    <uic-tail>
       <!-- tail -->
-      <uia-include src="example.com/tail" timeout="100" required="false"/>
-    </uia-tail>
+      <uic-include src="example.com/tail" timeout="100" required="false"/>
+    </uic-tail>
   </body>`))
 
 	z.Next() // At <body ..
@@ -260,7 +260,7 @@ func Test_HtmlContentLoader_parseBody_OnlyDefaultFragment(t *testing.T) {
 	loader := &HtmlContentLoader{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
-    <uia-include src="example.com/foo#content" timeout="42000" required="true"/>
+    <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
   </body>`))
 
 	z.Next() // At <body ..
@@ -285,9 +285,9 @@ func Test_HtmlContentLoader_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 	loader := &HtmlContentLoader{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
-    <uia-fragment>
+    <uic-fragment>
       Overwritten
-    </uia-fragment>
+    </uic-fragment>
   </body>`))
 
 	z.Next() // At <body ..
@@ -304,7 +304,7 @@ func Test_HtmlContentLoader_parseHead_JsonError(t *testing.T) {
 
 	loader := &HtmlContentLoader{}
 	z := html.NewTokenizer(bytes.NewBufferString(`
-<script type="text/uia-meta">
+<script type="text/uic-meta">
       {
 </script>
 `))
@@ -319,20 +319,20 @@ func Test_HtmlContentLoader_parseHead_JsonError(t *testing.T) {
 func Test_HtmlContentLoader_parseFragment(t *testing.T) {
 	a := assert.New(t)
 
-	z := html.NewTokenizer(bytes.NewBufferString(`<uia-fragment name="content">
+	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
       Bli Bla blub
       <br>
-      <uia-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uia-include src="example.com/optional#content" timeout="100" required="false"/>
-      <div uia-remove>
+      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
+      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <div uic-remove>
          <br>
          Some element for testing
       </div>
       <hr/>     
       Bli Bla §[ aVariable ]§ blub
-    </uia-fragment><testend>`))
+    </uic-fragment><testend>`))
 
-	z.Next() // At <uia-fragment name ..
+	z.Next() // At <uic-fragment name ..
 	f, deps, err := parseFragment(z)
 	a.NoError(err)
 
@@ -366,7 +366,7 @@ func Test_HtmlContentLoader_parseFragment(t *testing.T) {
 func Test_HtmlContentLoader_parseMetaJson(t *testing.T) {
 	a := assert.New(t)
 
-	z := html.NewTokenizer(bytes.NewBufferString(`<script type="text/uia-meta">
+	z := html.NewTokenizer(bytes.NewBufferString(`<script type="text/uic-meta">
       {
        "foo": "bar",
        "boo": "bazz",
@@ -390,15 +390,15 @@ func Test_HtmlContentLoader_parseMetaJson_Errors(t *testing.T) {
 		errorText string
 	}{
 		{
-			html:      `<script type="text/uia-meta"></script>`,
+			html:      `<script type="text/uic-meta"></script>`,
 			errorText: "expected text node for meta",
 		},
 		{
-			html:      `<script type="text/uia-meta">{"sdc":</script>`,
+			html:      `<script type="text/uic-meta">{"sdc":</script>`,
 			errorText: "error while parsing json from meta json",
 		},
 		{
-			html:      `<script type="text/uia-meta">{}`,
+			html:      `<script type="text/uic-meta">{}`,
 			errorText: "Tag not properly ended",
 		},
 	}
@@ -413,10 +413,10 @@ func Test_HtmlContentLoader_parseMetaJson_Errors(t *testing.T) {
 	}
 }
 
-func Test_HtmlContentLoader_skipSubtreeIfUiaRemove(t *testing.T) {
+func Test_HtmlContentLoader_skipSubtreeIfUicRemove(t *testing.T) {
 	a := assert.New(t)
 
-	z := html.NewTokenizer(bytes.NewBufferString(`<a><b uia-remove>
+	z := html.NewTokenizer(bytes.NewBufferString(`<a><b uic-remove>
     sdcsdc
     <hr/>
     <br>
@@ -428,7 +428,7 @@ func Test_HtmlContentLoader_skipSubtreeIfUiaRemove(t *testing.T) {
 	z.Next()
 	tt := z.Next() // at b
 	attrs := readAttributes(z, make([]html.Attribute, 0, 10))
-	skipped := skipSubtreeIfUiaRemove(z, tt, "b", attrs)
+	skipped := skipSubtreeIfUicRemove(z, tt, "b", attrs)
 
 	a.True(skipped)
 	token := z.Next()

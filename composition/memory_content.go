@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 type MemoryContent struct {
 	requiredContent map[string]*FetchDefinition // key ist the url

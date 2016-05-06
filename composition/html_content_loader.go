@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"bytes"
@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	UiaRemove      = "uia-remove"
-	UiaInclude     = "uia-include"
-	UiaFragment    = "uia-fragment"
-	UiaTail        = "uia-tail"
-	ScriptTypeMeta = "text/uia-meta"
+	UicRemove      = "uic-remove"
+	UicInclude     = "uic-include"
+	UicFragment    = "uic-fragment"
+	UicTail        = "uic-tail"
+	ScriptTypeMeta = "text/uic-meta"
 )
 
 type HtmlContentLoader struct {
@@ -88,7 +88,7 @@ forloop:
 			}
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
+			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
 				continue
 			}
 			if string(tag) == "script" && attrHasValue(attrs, "type", ScriptTypeMeta) {
@@ -130,10 +130,10 @@ forloop:
 			}
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
+			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
 				continue
 			}
-			if string(tag) == UiaFragment {
+			if string(tag) == UicFragment {
 				if f, deps, err := parseFragment(z); err != nil {
 					return err
 				} else {
@@ -144,7 +144,7 @@ forloop:
 				}
 				continue
 			}
-			if string(tag) == UiaTail {
+			if string(tag) == UicTail {
 				if f, deps, err := parseFragment(z); err != nil {
 					return err
 				} else {
@@ -155,7 +155,7 @@ forloop:
 				}
 				continue
 			}
-			if string(tag) == UiaInclude {
+			if string(tag) == UicInclude {
 				if fd, replaceText, err := getInclude(z, attrs); err != nil {
 					return err
 				} else {
@@ -201,7 +201,7 @@ forloop:
 			}
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if string(tag) == UiaInclude {
+			if string(tag) == UicInclude {
 				if fd, replaceText, err := getInclude(z, attrs); err != nil {
 					return nil, nil, err
 				} else {
@@ -211,12 +211,12 @@ forloop:
 				}
 			}
 
-			if skipSubtreeIfUiaRemove(z, tt, string(tag), attrs) {
+			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
 				continue
 			}
 
 		case tt == html.EndTagToken:
-			if string(tag) == UiaFragment || string(tag) == UiaTail {
+			if string(tag) == UicFragment || string(tag) == UicTail {
 				break forloop
 			}
 		}
@@ -274,8 +274,8 @@ func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {
 	return nil
 }
 
-func skipSubtreeIfUiaRemove(z *html.Tokenizer, tt html.TokenType, tagName string, attrs []html.Attribute) bool {
-	_, foundRemoveTag := getAttr(attrs, UiaRemove)
+func skipSubtreeIfUicRemove(z *html.Tokenizer, tt html.TokenType, tagName string, attrs []html.Attribute) bool {
+	_, foundRemoveTag := getAttr(attrs, UicRemove)
 	if !foundRemoveTag {
 		return false
 	}

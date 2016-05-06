@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"errors"
@@ -9,26 +9,26 @@ import (
 	"testing"
 )
 
-func Test_AggregationHandler_PositiveCase(t *testing.T) {
+func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
 
 	content := &MemoryContent{
 		body: map[string]Fragment{
-			"main": StringFragment("Hello World\n"),
+			"": StringFragment("Hello World\n"),
 		},
 	}
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
-			FetchResult{
+			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
 				Content: content,
 			},
 		}
 	}
-	aggregator := NewAggregationHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	aggregator.ServeHTTP(resp, &http.Request{})
@@ -45,21 +45,21 @@ Hello World
 	a.Equal(200, resp.Code)
 }
 
-func Test_AggregationHandler_ErrorInMerging(t *testing.T) {
+func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
-			FetchResult{
+			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
 				Content: &MemoryContent{},
 				Err:     nil,
 			},
 		}
 	}
-	aggregator := NewAggregationHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 	aggregator.contentMergerFactory = func() ContentMerger {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any())
@@ -74,7 +74,7 @@ func Test_AggregationHandler_ErrorInMerging(t *testing.T) {
 	a.Equal(500, resp.Code)
 }
 
-func Test_AggregationHandler_ErrorInFetching(t *testing.T) {
+func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
@@ -82,14 +82,14 @@ func Test_AggregationHandler_ErrorInFetching(t *testing.T) {
 	errorString := "some error while fetching"
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
-			FetchResult{
+			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
 				Content: nil,
 				Err:     errors.New(errorString),
 			},
 		}
 	}
-	aggregator := NewAggregationHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	aggregator.ServeHTTP(resp, &http.Request{})
@@ -98,8 +98,8 @@ func Test_AggregationHandler_ErrorInFetching(t *testing.T) {
 	a.Equal(502, resp.Code)
 }
 
-type MockFetchResultSupplier []FetchResult
+type MockFetchResultSupplier []*FetchResult
 
-func (m MockFetchResultSupplier) WaitForResults() []FetchResult {
-	return []FetchResult(m)
+func (m MockFetchResultSupplier) WaitForResults() []*FetchResult {
+	return []*FetchResult(m)
 }

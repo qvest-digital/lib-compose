@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"bytes"
@@ -54,7 +54,7 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 
-	if _, err := io.WriteString(w, "<html>\n  <head>\n"); err != nil {
+	if _, err := io.WriteString(w, "<html>\n  <head>\n    "); err != nil {
 		return err
 	}
 
@@ -63,11 +63,11 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 			return err
 		}
 	}
-	if _, err := io.WriteString(w, "  </head>\n  <body>\n"); err != nil {
+	if _, err := io.WriteString(w, "\n  </head>\n  <body>\n    "); err != nil {
 		return err
 	}
 
-	if err := executeFragment("main"); err != nil {
+	if err := executeFragment(""); err != nil {
 		return err
 	}
 
@@ -77,7 +77,7 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 		}
 	}
 
-	if _, err := io.WriteString(w, "  </body>\n</html>\n"); err != nil {
+	if _, err := io.WriteString(w, "\n  </body>\n</html>\n"); err != nil {
 		return err
 	}
 

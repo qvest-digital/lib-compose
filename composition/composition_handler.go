@@ -1,6 +1,7 @@
-package aggregation
+package composition
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"net/http"
 )
 
@@ -8,13 +9,13 @@ import (
 // which can return the fetch results.
 type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 
-type AggregationHandler struct {
+type CompositionHandler struct {
 	contentFetcherFactory ContentFetcherFactory
 	contentMergerFactory  func() ContentMerger
 }
 
-func NewAggregationHandler(contentFetcherFactory ContentFetcherFactory) *AggregationHandler {
-	return &AggregationHandler{
+func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
+	return &CompositionHandler{
 		contentFetcherFactory: contentFetcherFactory,
 		contentMergerFactory: func() ContentMerger {
 			return NewContentMerge()
@@ -22,7 +23,7 @@ func NewAggregationHandler(contentFetcherFactory ContentFetcherFactory) *Aggrega
 	}
 }
 
-func (agg *AggregationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fetcher := agg.contentFetcherFactory(r)
 	mergeContext := agg.contentMergerFactory()
@@ -30,12 +31,17 @@ func (agg *AggregationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	// fetch all contents
 	results := fetcher.WaitForResults()
 	for _, res := range results {
-		if res.Err != nil && res.Def.Required {
+		if res.Err == nil && res.Content != nil {
+
+			mergeContext.AddContent(res.Content)
+
+		} else if res.Def.Required {
+			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
 			http.Error(w, "Bad Gateway: "+res.Err.Error(), 502)
 			return
+		} else {
+			log.WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
 		}
-
-		mergeContext.AddContent(res.Content)
 	}
 
 	// TODO: also writeHeaders

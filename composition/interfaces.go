@@ -1,8 +1,8 @@
-package aggregation
+package composition
 
 //go:generate go get github.com/golang/mock/mockgen
-//go:generate mockgen -self_package aggregation -package aggregation -destination interface_mocks_test.go lib-ui-service/aggregation Fragment,ContentLoader,Content,ContentMerger
-//go:generate sed -ie "s/aggregation .lib-ui-service\\/aggregation.//g;s/aggregation\\.//g" interface_mocks_test.go
+//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go lib-ui-service/composition Fragment,ContentLoader,Content,ContentMerger
+//go:generate sed -ie "s/composition .lib-ui-service\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
 import (
 	"io"
 	"time"
@@ -20,7 +20,7 @@ type ContentLoader interface {
 
 type FetchResultSupplier interface {
 	// WaitForResults returns all results of a fetch job in a blocking manger.
-	WaitForResults() []FetchResult
+	WaitForResults() []*FetchResult
 }
 
 type Content interface {

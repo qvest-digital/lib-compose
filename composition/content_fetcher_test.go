@@ -1,4 +1,4 @@
-package aggregation
+package composition
 
 import (
 	"github.com/golang/mock/gomock"
