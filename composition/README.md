@@ -1,11 +1,11 @@
 # lib-ui-service: composition
 
-This library contains code for the composition of html pages out of multiple html page containing fragments.
+This library contains code for the composition of HTML pages out of multiple HTML page containing fragments.
 
 ### Key Concept
-Every Service deliveres a functional html user inteface in form of complete html pages in the way, that a service can be developed and tested
-by it's own. A UI-Service can request multimple pages from different services and compose them to one html page. To support this, the html pages
-from the services contain a special html vocabular.
+Every Service delivers a functional HTML user interface in form of complete HTML pages in the way, that a service can be developed and tested
+by it's own. A UI-Service can request multiple pages from different services and compose them to one HTML page. To support this, the HTML pages
+from the services contain a special HTML vocabular.
 
 ### Composition Process
 The composition is done in the following steps:
@@ -22,12 +22,12 @@ The it self is very simple:
 - The MetaJSON is calculated by adding all fields of the loaded MetaJSON to one global map.
 - All Head fragments are concatenated within the `<head>`.
 - The Default Body Fragment of the first Content object is executed and may recursively include other Fragments Content objects.
-- All Tail fragments are concatenated at hte end of the `<body>`.
+- All Tail fragments are concatenated at the end of the `<body>`.
 
 ### Execution Order
 **Attention**: The execution order of the Content Objects is determined by the order in which they are returned from the `ContentFetcher`.
 Currently this is only deterministic within the FetchDefinitions added by `ContentFetcher.AddFetchJob()`. The recursive dependencies are loaded from them are in a random order.
-This may case not demerninistic behaviour, if the contain equal named fragments or provide the same MetaJSON attributes.
+This may cause not deterministic behaviour, if the contain equal named fragments or provide the same MetaJSON attributes.
 
 ### Caching
 At a later point, the ContentFetcher may provide Caching of FetchDefinitions.
@@ -38,25 +38,25 @@ At a later point, the ContentFetcher may provide Caching of FetchDefinitions.
 
 ### Attribute `uic-remove`
 An UI-Service has to remove the element marked with this attribute and all its subelements.
-Be careful to have a correct open and closing structure in the html. The standard selfclosing tags are
+Be careful to have a correct open and closing structure in the HTML. The standard selfclosing tags are
 allowed, e.g. both are working `<br>` and `<br/>`, but if there is a structure error with e.g. a div,
 `uic-remove` may lead to strage behaviour.
 
 Example:
 
-```html
+```HTML
 <link uic-remove rel="stylesheet" type="text/css" href="testing.css"/>
 ```
 
-Where: Everywhere (head, body, within framents)
+Where: Everywhere (head, body, within fragments)
 
 ### Script type `text/uic-meta`
-A html page may contain a script of type `text/uic-meta`, with a JSON object as content.
+A HTML page may contain a script of type `text/uic-meta`, with a JSON object as content.
 The UI-Service has to add the contents of the JSON object to its global meta data object.
 
 Example:
 
-```html
+```HTML
 <script type="text/uic-meta">
   {
    "foo": "bar",
@@ -70,10 +70,11 @@ Where: head
 
 
 ### Fragments
-The UI-Service interpretes an html page as a set of fragments. All those fragments are optional.
-- One __Head Fragement__, identified by the child elements of the html `<head>` tag.
+The UI-Service interpretes an HTML page as a set of fragments. All those fragments are optional.
+
+- One __Head Fragment__, identified by the child elements of the HTML `<head>` tag.
 - One __Body Default Fragement__, identified by the child elements of the `<body>` tag or by a `uic-fragment` without a name attribute.
-- Multiple __Named Body Fragements__, identified by `uic-fragment` tag within the body.
+- Multiple __Named Body Fragments__, identified by `uic-fragment` tag within the body.
 - One __Tail Fragment__, identified by the `uic-tail` tag.
 
 #### Head-Fragment
@@ -83,7 +84,7 @@ it is interpreted as not existing.
 
 Example: The Head Fragment contains `<title>The Title</title>`
 
-```html
+```HTML
 <head>
   <title>The Title</title>
   <link uic-remove rel="stylesheet" type="text/css" href="special.css"/>
@@ -96,11 +97,11 @@ Example: The Head Fragment contains `<title>The Title</title>`
 #### Body Default Fragment 
 All other elements fragments and those elements, marked with `uic-remove`, are removed from the body
 and the remaining fragment is taken as Body Default Fragment. The Body Default Fragment is just a fragment with
-the empthy name (""). If there is a `uic-fragment` tag without the name in the body, this overwrites the default fragment.
+the empty name (""). If there is a `uic-fragment` tag without the name in the body, this overwrites the default fragment.
 
 Example: The Default Fragment contains `<h1>Hello World</h1>`
 
-```html
+```HTML
 <body>
     Hello World
     <ul uic-remove>
@@ -113,12 +114,12 @@ Example: The Default Fragment contains `<h1>Hello World</h1>`
 ```
 
 The complete contents of the body is interpreted as the head fragment. The elements marked with `uic-remove`
-and the `uic-meta` Script are not cleaned out of the head fragment. If the head framents only contains whitespace,
+and the `uic-meta` script are not cleaned out of the head fragment. If the head fragments only contains whitespace,
 it is interpreted as not existing.
 
 Example: The Default Fragment contains `<h1>This is the default</h1>`
 
-```html
+```HTML
 <body>
     <h1>Hello World</h1>
     <uic-fragment>
@@ -128,15 +129,15 @@ Example: The Default Fragment contains `<h1>This is the default</h1>`
 ```
 
 #### Element `uic-fragment`
-The body of an html page may contain multiple `uic-fragment` tags. Which contain the fragments for the page.
-All content withing the tag is taken as fragment content. Nested Fragment tags are not allowed.
+The body of an HTML page may contain multiple `uic-fragment` tags. Which contain the fragments for the page.
+All content within the tag is taken as fragment content. Nested Fragment tags are not allowed.
 
-The Fragment Tag my have a `name` attribute, for named the fragment. I no attribute is given, or the name is empty,
+The Fragment Tag may have a `name` attribute, for named the fragment. If no attribute is given, or the name is empty,
 the Body Default Fragment is overwritten by this fragment.
 
-Example: Contains two fragments *headline* and *headline*
+Example: Contains two fragments *headline* and *w*
 
-```html
+```HTML
 <body>
   <uic-fragment name="headline">
     <h1>This is a headline</h1>
@@ -157,7 +158,7 @@ All fragments (except the Head Fragment) may contain minimal templating directiv
 There are two forms of includes and a syntax for variable replacement.
 
 #### Variables (TODO: Not implemented yet)
-The UI-Service has to replace Variable directires by the corresponding path out of the global meta data.
+The UI-Service has to replace Variable directions by the corresponding path out of the global meta data.
 
 Example:
 
@@ -167,7 +168,7 @@ Example:
 
 
 #### Preloaded Includes 
-On an unspecified include, the UI-Service has to load replace the include by a previusly loaded fragment.
+On an unspecified include, the UI-Service has to load replace the include by a previously loaded fragment.
 
 Example: Will be replaced by the Default Body Fragment of *example.com/foo*.
 
