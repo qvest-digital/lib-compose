@@ -87,7 +87,7 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 func (cntx *ContentMerge) AddContent(content Content) {
 	cntx.addMeta(content.Meta())
 	cntx.addHead(content.Head())
-	cntx.addBody(content.Body())
+	cntx.addBody(content.URL(), content.Body())
 	cntx.addTail(content.Tail())
 }
 
@@ -103,9 +103,11 @@ func (cntx *ContentMerge) addHead(f Fragment) {
 	}
 }
 
-func (cntx *ContentMerge) addBody(bodyFragmentMap map[string]Fragment) {
+func (cntx *ContentMerge) addBody(url string, bodyFragmentMap map[string]Fragment) {
 	for name, f := range bodyFragmentMap {
+		// add twice: local and full qualified name
 		cntx.Body[name] = f
+		cntx.Body[url+"#"+name] = f
 	}
 }
 

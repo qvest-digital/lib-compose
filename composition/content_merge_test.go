@@ -14,36 +14,39 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 
 	expected := `<html>
   <head>
-    <page1-head>
-    <page2-head>
-    <page3-head>
+    <page1-head/>
+    <page2-head/>
+    <page3-head/>
   </head>
   <body>
     <page1-body-main>
-      <page2-body-a>
-      <page2-body-b>
-      <page3-body-a>
+      <page2-body-a/>
+      <page2-body-b/>
+      <page3-body-a/>
     </page1-body-main>
-    <page1-tail>
-    <page2-tail>
+    <page1-tail/>
+    <page2-tail/>
   </body>
 </html>
 `
 
 	page1 := NewMemoryContent()
-	page1.head = StringFragment("    <page1-head>\n")
-	page1.tail = StringFragment("    <page1-tail>\n")
+	page1.url = "example.com"
+	page1.head = StringFragment("<page1-head/>\n")
+	page1.tail = StringFragment("    <page1-tail/>\n")
 	page1.body[""] = MockPage1BodyFragment{}
 
 	page2 := NewMemoryContent()
-	page2.head = StringFragment("    <page2-head>\n")
-	page2.tail = StringFragment("    <page2-tail>\n")
-	page2.body["page2-a"] = StringFragment("      <page2-body-a>\n")
-	page2.body["page2-b"] = StringFragment("      <page2-body-b>\n")
+	page2.url = "example.com"
+	page2.head = StringFragment("    <page2-head/>\n")
+	page2.tail = StringFragment("    <page2-tail/>")
+	page2.body["page2-a"] = StringFragment("      <page2-body-a/>\n")
+	page2.body["page2-b"] = StringFragment("      <page2-body-b/>\n")
 
 	page3 := NewMemoryContent()
-	page3.head = StringFragment("    <page3-head>\n")
-	page3.body["page3-a"] = StringFragment("      <page3-body-a>\n")
+	page3.url = "example.com"
+	page3.head = StringFragment("    <page3-head/>")
+	page3.body["page3-a"] = StringFragment("      <page3-body-a/>\n")
 
 	cm := NewContentMerge()
 	cm.AddContent(page1)
@@ -55,6 +58,24 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 
 	a.NoError(err)
 	a.Equal(expected, buff.String())
+}
+
+type MockPage1BodyFragment struct {
+}
+
+func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
+	w.Write([]byte("<page1-body-main>\n"))
+	if err := executeNestedFragment("page2-a"); err != nil {
+		panic(err)
+	}
+	if err := executeNestedFragment("example.com#page2-b"); err != nil {
+		panic(err)
+	}
+	if err := executeNestedFragment("page3-a"); err != nil {
+		panic(err)
+	}
+	w.Write([]byte("    </page1-body-main>\n"))
+	return nil
 }
 
 func Test_ContentMerge_MetadataIsMerged_And_SuppliedToFragments(t *testing.T) {
@@ -117,24 +138,6 @@ func Test_ContentMerge_ErrorOnWriteUnbuffered(t *testing.T) {
 	err := cm.WriteHtml(closedWriterMock{})
 	a.Error(err)
 	a.Equal("writer closed", err.Error())
-}
-
-type MockPage1BodyFragment struct {
-}
-
-func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
-	w.Write([]byte("    <page1-body-main>\n"))
-	if err := executeNestedFragment("page2-a"); err != nil {
-		panic(err)
-	}
-	if err := executeNestedFragment("page2-b"); err != nil {
-		panic(err)
-	}
-	if err := executeNestedFragment("page3-a"); err != nil {
-		panic(err)
-	}
-	w.Write([]byte("    </page1-body-main>\n"))
-	return nil
 }
 
 type closedWriterMock struct {

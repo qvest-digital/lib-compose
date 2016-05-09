@@ -41,30 +41,31 @@ func (loader *HtmlContentLoader) Load(url string, timeout time.Duration) (Conten
 		ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 	}()
-	return loader.parse(resp.Body)
+	c := NewMemoryContent()
+	c.url = url
+	return c, loader.parse(resp.Body, c)
 }
 
-func (loader *HtmlContentLoader) parse(in io.Reader) (Content, error) {
+func (loader *HtmlContentLoader) parse(in io.Reader, c *MemoryContent) error {
 	z := html.NewTokenizer(in)
-	c := NewMemoryContent()
 	for {
 		tt := z.Next()
 		switch {
 		case tt == html.ErrorToken:
 			if z.Err() == io.EOF {
-				return c, nil
+				return nil
 			}
-			return nil, z.Err()
+			return z.Err()
 		case tt == html.StartTagToken:
 			tag, _ := z.TagName()
 			switch string(tag) {
 			case "head":
 				if err := loader.parseHead(z, c); err != nil {
-					return nil, err
+					return err
 				}
 			case "body":
 				if err := loader.parseBody(z, c); err != nil {
-					return nil, err
+					return err
 				}
 			}
 		}
@@ -228,10 +229,18 @@ forloop:
 
 func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, string, error) {
 	fd := &FetchDefinition{}
+
+	var srcString string
 	if url, hasUrl := getAttr(attrs, "src"); !hasUrl {
-		return nil, "", fmt.Errorf("include definition withour src %s", z.Raw())
+		return nil, "", fmt.Errorf("include definition without src %s", z.Raw())
 	} else {
-		fd.URL = url.Val
+		srcString = strings.TrimSpace(url.Val)
+	}
+
+	if hashPosition := strings.Index(srcString, "#"); hashPosition > -1 {
+		fd.URL = srcString[:hashPosition]
+	} else {
+		fd.URL = srcString
 	}
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
@@ -250,7 +259,12 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 		}
 	}
 
-	return fd, fmt.Sprintf("§[> %s]§", fd.URL), nil
+	placeholder := srcString
+	if strings.HasPrefix(placeholder, "#") {
+		placeholder = placeholder[1:]
+	}
+
+	return fd, fmt.Sprintf("§[> %s]§", placeholder), nil
 }
 
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {

@@ -89,6 +89,7 @@ func Test_HtmlContentLoader_Load(t *testing.T) {
 	a.NoError(err)
 	a.NotNil(c)
 
+	a.Equal(server.URL, c.URL())
 	eqFragment(t, integratedTestHtmlExpectedHead, c.Head())
 	a.Equal(2, len(c.Body()))
 	eqFragment(t, integratedTestHtmlExpectedHeadline, c.Body()["headline"])
@@ -98,16 +99,16 @@ func Test_HtmlContentLoader_Load(t *testing.T) {
 	cMemoryConent := c.(*MemoryContent)
 	a.Equal(2, len(cMemoryConent.RequiredContent()))
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo#content",
+		URL:      "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
-	}, cMemoryConent.requiredContent["example.com/foo#content"])
+	}, cMemoryConent.requiredContent["example.com/foo"])
 
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional#content",
+		URL:      "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
-	}, cMemoryConent.requiredContent["example.com/optional#content"])
+	}, cMemoryConent.requiredContent["example.com/optional"])
 
 }
 
@@ -237,16 +238,16 @@ func Test_HtmlContentLoader_parseBody(t *testing.T) {
 
 	a.Equal(3, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo#content",
+		URL:      "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
-	}, c.requiredContent["example.com/foo#content"])
+	}, c.requiredContent["example.com/foo"])
 
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional#content",
+		URL:      "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
-	}, c.requiredContent["example.com/optional#content"])
+	}, c.requiredContent["example.com/optional"])
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/tail",
 		Timeout:  time.Millisecond * 100,
@@ -273,10 +274,10 @@ func Test_HtmlContentLoader_parseBody_OnlyDefaultFragment(t *testing.T) {
 
 	a.Equal(1, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo#content",
+		URL:      "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
-	}, c.requiredContent["example.com/foo#content"])
+	}, c.requiredContent["example.com/foo"])
 }
 
 func Test_HtmlContentLoader_parseBody_DefaultFragmentOverwritten(t *testing.T) {
@@ -338,13 +339,13 @@ func Test_HtmlContentLoader_parseFragment(t *testing.T) {
 
 	a.Equal(2, len(deps))
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo#content",
+		URL:      "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, deps[0])
 
 	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional#content",
+		URL:      "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, deps[1])

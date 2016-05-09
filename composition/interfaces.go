@@ -25,6 +25,9 @@ type FetchResultSupplier interface {
 
 type Content interface {
 
+	// The URL, from where the content was loaded
+	URL() string
+
 	// RequiredContent returns a list of Content Elements to load
 	RequiredContent() []*FetchDefinition
 
