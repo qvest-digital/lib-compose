@@ -41,7 +41,7 @@ func (def *FetchDefinition) Hash() string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// IsFetchable returs, wether the fetch definition refers to a fetchable resource
+// IsFetchable returns, whether the fetch definition refers to a fetchable resource
 // or is a local name only.
 func (def *FetchDefinition) IsFetchable() bool {
 	return len(def.URL) > 0
@@ -54,7 +54,7 @@ type FetchResult struct {
 	Hash    string // the hash of the FetchDefinition
 }
 
-// ContentFetcher is a type which can fetch a set of Content pages in parallel.
+// ContentFetcher is a type, which can fetch a set of Content pages in parallel.
 type ContentFetcher struct {
 	activeJobs sync.WaitGroup
 	r          struct {
