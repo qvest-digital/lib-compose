@@ -157,15 +157,19 @@ Where: body
 All fragments (except the Head Fragment) may contain minimal templating directives which has to be resolved by the UI-Service.
 There are two forms of includes and a syntax for variable replacement.
 
-#### Variables (TODO: Not implemented yet)
-The UI-Service has to replace Variable directions by the corresponding path out of the global meta data.
+#### Variables
+The UI-Service has to replace Variables by the corresponding path out of the global meta data.
+If the variable name contains a '.', at first, it is tried to match the full path as one string, after that,
+it is tried to travese a tree of maps.
 
 Example:
-
 ```
-§[ foo.bar ]§
+§[ foo ]§
 ```
-
+or
+```
+§[ foo.bar ]§ // tried to match MetaJSON['foo.bar'] and than MetaJSON['foo']['bar']
+```
 
 #### Preloaded Includes 
 On an unspecified include, the UI-Service has to load replace the include by a previously loaded fragment.

@@ -32,6 +32,21 @@ func Test_StringFragment_Variables(t *testing.T) {
 			expected: "bar",
 		},
 		{
+			data:     map[string]interface{}{"foo": map[string]interface{}{"bar": "bazz"}},
+			template: "§[foo.bar]§",
+			expected: "bazz",
+		},
+		{
+			data:     map[string]interface{}{"foo": map[string]interface{}{"bar": "bazz"}, "foo.bar": "overwrite"},
+			template: "§[foo.bar]§",
+			expected: "overwrite",
+		},
+		{
+			data:     map[string]interface{}{"foo": map[string]interface{}{"bar": "bazz"}},
+			template: "§[foo.bar.nothing]§",
+			expected: "",
+		},
+		{
 			data:     map[string]interface{}{"foo": "bar"},
 			template: "§[ foo ]§",
 			expected: "bar",

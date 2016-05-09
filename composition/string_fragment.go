@@ -46,11 +46,36 @@ func (f StringFragment) writePlaceholder(w io.Writer, placeholder string, data m
 		}
 	} else {
 		placeholder = strings.TrimSpace(placeholder)
-		if d, exist := data[placeholder]; exist {
+		if d, exist := getDataFromMap(data, placeholder); exist {
 			io.WriteString(w, fmt.Sprintf("%v", d))
 		}
 	}
 	return nil
+}
+
+// getDataFromMap returns the data defined by a key,
+// where the key may contain multiple path elements separated by a '.'.
+// If the map contains the full key on top-level, this value is preferred.
+func getDataFromMap(data map[string]interface{}, key string) (result interface{}, exist bool) {
+	if d, exist := data[key]; exist {
+		return d, true
+	}
+
+	result = data
+	parts := strings.Split(key, ".")
+	for _, part := range parts {
+		switch resultMap := result.(type) {
+		case map[string]interface{}:
+			if d, exist := resultMap[part]; exist {
+				result = d
+			} else {
+				return nil, false
+			}
+		default:
+			return nil, false
+		}
+	}
+	return result, true
 }
 
 func (f StringFragment) String() string {
