@@ -171,6 +171,16 @@ or
 §[ foo.bar ]§ // tried to match MetaJSON['foo.bar'] and than MetaJSON['foo']['bar']
 ```
 
+#### Predefined Variables
+There are some predefined variables, constructed out of the request.
+```
+{'request': {
+    'base_url': 'http://example.com/' // the base url of the service, calculated out of the request, e.g.
+    'params: {..} // a map with the GET Query parameters of the request.
+  }
+}
+```
+
 #### Preloaded Includes 
 On an unspecified include, the UI-Service has to load replace the include by a previously loaded fragment.
 
