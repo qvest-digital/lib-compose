@@ -48,7 +48,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	page3.head = StringFragment("    <page3-head/>")
 	page3.body["page3-a"] = StringFragment("      <page3-body-a/>\n")
 
-	cm := NewContentMerge()
+	cm := NewContentMerge(nil)
 	cm.AddContent(page1)
 	cm.AddContent(page2)
 	cm.AddContent(page3)
@@ -97,7 +97,7 @@ func Test_ContentMerge_MetadataIsMerged_And_SuppliedToFragments(t *testing.T) {
 	page2 := NewMemoryContent()
 	page2.meta["page2"] = "value2"
 
-	cm := NewContentMerge()
+	cm := NewContentMerge(nil)
 	cm.AddContent(page1)
 	cm.AddContent(page2)
 
@@ -107,7 +107,7 @@ func Test_ContentMerge_MetadataIsMerged_And_SuppliedToFragments(t *testing.T) {
 
 func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	a := assert.New(t)
-	cm := NewContentMerge()
+	cm := NewContentMerge(nil)
 	buff := bytes.NewBuffer(nil)
 	err := cm.WriteHtml(buff)
 	a.Error(err)
@@ -122,7 +122,7 @@ func Test_ContentMerge_ErrorOnWrite(t *testing.T) {
 	page := NewMemoryContent()
 	page.body[""] = StringFragment("Hello World\n")
 
-	cm := NewContentMerge()
+	cm := NewContentMerge(nil)
 	cm.AddContent(page)
 
 	err := cm.WriteHtml(closedWriterMock{})
@@ -133,7 +133,7 @@ func Test_ContentMerge_ErrorOnWrite(t *testing.T) {
 func Test_ContentMerge_ErrorOnWriteUnbuffered(t *testing.T) {
 	a := assert.New(t)
 
-	cm := NewContentMerge()
+	cm := NewContentMerge(nil)
 	cm.Buffered = false
 	err := cm.WriteHtml(closedWriterMock{})
 	a.Error(err)

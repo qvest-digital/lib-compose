@@ -3,6 +3,7 @@ package composition
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"strings"
 )
 
@@ -71,6 +72,8 @@ func getDataFromMap(data map[string]interface{}, key string) (result interface{}
 			} else {
 				return nil, false
 			}
+		case url.Values: // Get parameters from an url
+			result = resultMap.Get(part)
 		default:
 			return nil, false
 		}

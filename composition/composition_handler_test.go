@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 )
 
@@ -28,10 +29,11 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory), nil)
 
 	resp := httptest.NewRecorder()
-	aggregator.ServeHTTP(resp, &http.Request{})
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	aggregator.ServeHTTP(resp, r)
 
 	expected := `<html>
   <head>
@@ -61,16 +63,18 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory), nil)
 	aggregator.contentMergerFactory = func() ContentMerger {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddMetaValue(gomock.Any(), gomock.Any())
 		merger.EXPECT().WriteHtml(gomock.Any()).Return(errors.New("an error"))
 		return merger
 	}
 
 	resp := httptest.NewRecorder()
-	aggregator.ServeHTTP(resp, &http.Request{})
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	aggregator.ServeHTTP(resp, r)
 
 	a.Equal("Internal Server Error: an error\n", string(resp.Body.Bytes()))
 	a.Equal(500, resp.Code)
@@ -91,13 +95,23 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory), nil)
 
 	resp := httptest.NewRecorder()
-	aggregator.ServeHTTP(resp, &http.Request{})
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	aggregator.ServeHTTP(resp, r)
 
 	a.Equal("Bad Gateway: "+errorString+"\n", string(resp.Body.Bytes()))
 	a.Equal(502, resp.Code)
+}
+
+func Test_metadataForReqest(t *testing.T) {
+	a := assert.New(t)
+	r, _ := http.NewRequest("GET", "https://example.com/nothing?foo=bar", nil)
+
+	m := metadataForReqest(r)
+	a.Equal("http://example.com", m["base_url"])
+	a.Equal("bar", m["params"].(url.Values).Get("foo"))
 }
 
 type MockFetchResultSupplier []*FetchResult

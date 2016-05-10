@@ -21,14 +21,18 @@ type ContentMerge struct {
 }
 
 // NewContentMerge creates a new buffered ContentMerge
-func NewContentMerge() *ContentMerge {
-	return &ContentMerge{
-		MetaJSON: make(map[string]interface{}),
+func NewContentMerge(defaultMetaJSON map[string]interface{}) *ContentMerge {
+	cntx := &ContentMerge{
+		MetaJSON: defaultMetaJSON,
 		Head:     make([]Fragment, 0, 0),
 		Body:     make(map[string]Fragment),
 		Tail:     make([]Fragment, 0, 0),
 		Buffered: true,
 	}
+	if cntx.MetaJSON == nil {
+		cntx.MetaJSON = make(map[string]interface{})
+	}
+	return cntx
 }
 
 func (cntx *ContentMerge) WriteHtml(w io.Writer) error {
@@ -95,6 +99,10 @@ func (cntx *ContentMerge) addMeta(data map[string]interface{}) {
 	for k, v := range data {
 		cntx.MetaJSON[k] = v
 	}
+}
+
+func (cntx *ContentMerge) AddMetaValue(prefix string, data interface{}) {
+	cntx.MetaJSON[prefix] = data
 }
 
 func (cntx *ContentMerge) addHead(f Fragment) {

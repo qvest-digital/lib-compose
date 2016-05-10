@@ -54,4 +54,7 @@ type ContentMerger interface {
 
 	// Merge and write all content supplied writer
 	WriteHtml(w io.Writer) error
+
+	// Add a value to the meta data
+	AddMetaValue(key string, data interface{})
 }

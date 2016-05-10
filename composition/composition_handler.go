@@ -3,6 +3,7 @@ package composition
 import (
 	log "github.com/Sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 // A ContentFetcherFactory returns a configured fetch job for a request
@@ -12,14 +13,18 @@ type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 type CompositionHandler struct {
 	contentFetcherFactory ContentFetcherFactory
 	contentMergerFactory  func() ContentMerger
+	defaultMetaJSON       map[string]interface{}
 }
 
-func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
+// NewCompositionHandler creates a new Handler with the supplied defualtData,
+// which is used for each request.
+func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory, defaultMetaJSON map[string]interface{}) *CompositionHandler {
 	return &CompositionHandler{
 		contentFetcherFactory: contentFetcherFactory,
 		contentMergerFactory: func() ContentMerger {
-			return NewContentMerge()
+			return NewContentMerge(defaultMetaJSON)
 		},
+		defaultMetaJSON: defaultMetaJSON,
 	}
 }
 
@@ -44,6 +49,8 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	mergeContext.AddMetaValue("request", metadataForReqest(r))
+
 	// TODO: also writeHeaders
 
 	err := mergeContext.WriteHtml(w)
@@ -51,5 +58,30 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
 		return
 	}
+}
 
+func metadataForReqest(r *http.Request) map[string]interface{} {
+	return map[string]interface{}{
+		"base_url": getBaseUrlFromRequest(r),
+		"params":   r.URL.Query(),
+	}
+}
+
+func getBaseUrlFromRequest(r *http.Request) string {
+	host := r.Host
+	if xffh := r.Header.Get("X-Forwarded-For"); xffh != "" {
+		hostParts := strings.SplitN(xffh, ",", 2)
+		host = hostParts[0]
+	}
+
+	proto := "http"
+	if r.TLS != nil {
+		proto = "https"
+	}
+	if xfph := r.Header.Get("X-Forwarded-Proto"); xfph != "" {
+		protoParts := strings.SplitN(xfph, ",", 2)
+		proto = protoParts[0]
+	}
+
+	return proto + "://" + host
 }

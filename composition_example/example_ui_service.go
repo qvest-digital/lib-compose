@@ -26,7 +26,10 @@ func compositionHandler() http.Handler {
 		fetcher.AddFetchJob(composition.NewFetchDefinition("http://127.0.0.1:8080/static/lorem.html"))
 		return fetcher
 	}
-	return composition.NewCompositionHandler(contentFetcherFactory)
+	defaultMetaJSON := map[string]interface{}{
+		"header_text": "Hello World!",
+	}
+	return composition.NewCompositionHandler(contentFetcherFactory, defaultMetaJSON)
 }
 
 func staticHandler() http.Handler {
