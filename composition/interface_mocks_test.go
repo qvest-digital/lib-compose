@@ -175,20 +175,12 @@ func (_m *MockContentMerger) EXPECT() *_MockContentMergerRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentMerger) AddContent(_param0 Content) {
+func (_m *MockContentMerger) AddContent(_param0 *FetchResult) {
 	_m.ctrl.Call(_m, "AddContent", _param0)
 }
 
 func (_mr *_MockContentMergerRecorder) AddContent(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddContent", arg0)
-}
-
-func (_m *MockContentMerger) AddMetaValue(_param0 string, _param1 interface{}) {
-	_m.ctrl.Call(_m, "AddMetaValue", _param0, _param1)
-}
-
-func (_mr *_MockContentMergerRecorder) AddMetaValue(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddMetaValue", arg0, arg1)
 }
 
 func (_m *MockContentMerger) WriteHtml(_param0 io.Writer) error {

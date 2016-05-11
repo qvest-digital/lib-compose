@@ -259,7 +259,7 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 		}
 	}
 
-	placeholder := srcString
+	placeholder := urlToFragmentName(srcString)
 	if strings.HasPrefix(placeholder, "#") {
 		placeholder = placeholder[1:]
 	}

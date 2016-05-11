@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="/static/stylesheet.css"><link rel="stylesheet" href="/static/basic.css">
+  </head>
+  <body>
+    
+      <div class="header-box">
+        The Header: Hello World!
+      </div>
+    
+    
+      <div class="header-box">
+        The Subheader
+      </div>
+    
+    
+      <p></p>
+      <ul>
+        <li><a href="http://127.0.0.1:8080?text=Something">Set Text: Something</a></li>
+        <li><a href="http://127.0.0.1:8080?text=Else">Set Text: Else</a></li>
+      </ul>
+      Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. 
+    
+    
+      <hr>
+      <small>The footer</small>
+    
+      <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+      <script>
+       $(function() {
+         $('<div>some dynamic text at the end</div>').appendTo('body');
+       })    
+      </script>
+    
+  </body>
+</html>

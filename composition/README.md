@@ -204,6 +204,7 @@ Example: Will be replaced by the *content* fragment of any random choosen page.
 
 #### Loaded Includes 
 On a specified include, the UI-Service has to load the referenced page and has to replace the include with the referenced fragment.
+Within the src attribute, there are also variable replacements possible.
 
 Example: Will be replaced by the Default Body Fragment of *http://example.com/foo*.
 

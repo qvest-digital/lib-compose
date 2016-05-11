@@ -3,7 +3,6 @@ package composition
 import (
 	"bytes"
 	"errors"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"testing"
@@ -49,9 +48,9 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	page3.body["page3-a"] = StringFragment("      <page3-body-a/>\n")
 
 	cm := NewContentMerge(nil)
-	cm.AddContent(page1)
-	cm.AddContent(page2)
-	cm.AddContent(page3)
+	cm.AddContent(asFetchResult(page1))
+	cm.AddContent(asFetchResult(page2))
+	cm.AddContent(asFetchResult(page3))
 
 	buff := bytes.NewBuffer(nil)
 	err := cm.WriteHtml(buff)
@@ -78,33 +77,6 @@ func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{},
 	return nil
 }
 
-func Test_ContentMerge_MetadataIsMerged_And_SuppliedToFragments(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	a := assert.New(t)
-
-	expectedMeta := map[string]interface{}{
-		"page1": "value1",
-		"page2": "value2",
-	}
-	bodyMock := NewMockFragment(ctrl)
-	bodyMock.EXPECT().Execute(gomock.Any(), expectedMeta, gomock.Any())
-
-	page1 := NewMemoryContent()
-	page1.meta["page1"] = "value1"
-	page1.body[""] = bodyMock
-
-	page2 := NewMemoryContent()
-	page2.meta["page2"] = "value2"
-
-	cm := NewContentMerge(nil)
-	cm.AddContent(page1)
-	cm.AddContent(page2)
-
-	err := cm.WriteHtml(bytes.NewBuffer(nil))
-	a.NoError(err)
-}
-
 func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	a := assert.New(t)
 	cm := NewContentMerge(nil)
@@ -123,7 +95,7 @@ func Test_ContentMerge_ErrorOnWrite(t *testing.T) {
 	page.body[""] = StringFragment("Hello World\n")
 
 	cm := NewContentMerge(nil)
-	cm.AddContent(page)
+	cm.AddContent(asFetchResult(page))
 
 	err := cm.WriteHtml(closedWriterMock{})
 	a.Error(err)
@@ -145,4 +117,8 @@ type closedWriterMock struct {
 
 func (buff closedWriterMock) Write(b []byte) (int, error) {
 	return 0, errors.New("writer closed")
+}
+
+func asFetchResult(c Content) *FetchResult {
+	return &FetchResult{Content: c, Def: &FetchDefinition{URL: c.URL()}}
 }

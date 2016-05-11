@@ -12,33 +12,33 @@ type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 
 type CompositionHandler struct {
 	contentFetcherFactory ContentFetcherFactory
-	contentMergerFactory  func() ContentMerger
-	defaultMetaJSON       map[string]interface{}
+	contentMergerFactory  func(metaJSON map[string]interface{}) ContentMerger
 }
 
 // NewCompositionHandler creates a new Handler with the supplied defualtData,
 // which is used for each request.
-func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory, defaultMetaJSON map[string]interface{}) *CompositionHandler {
+func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
 	return &CompositionHandler{
 		contentFetcherFactory: contentFetcherFactory,
-		contentMergerFactory: func() ContentMerger {
-			return NewContentMerge(defaultMetaJSON)
+		contentMergerFactory: func(metaJSON map[string]interface{}) ContentMerger {
+			return NewContentMerge(metaJSON)
 		},
-		defaultMetaJSON: defaultMetaJSON,
 	}
 }
 
 func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fetcher := agg.contentFetcherFactory(r)
-	mergeContext := agg.contentMergerFactory()
 
 	// fetch all contents
 	results := fetcher.WaitForResults()
+
+	mergeContext := agg.contentMergerFactory(fetcher.MetaJSON())
+
 	for _, res := range results {
 		if res.Err == nil && res.Content != nil {
 
-			mergeContext.AddContent(res.Content)
+			mergeContext.AddContent(res)
 
 		} else if res.Def.Required {
 			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
@@ -49,8 +49,6 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	mergeContext.AddMetaValue("request", metadataForReqest(r))
-
 	// TODO: also writeHeaders
 
 	err := mergeContext.WriteHtml(w)
@@ -60,7 +58,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func metadataForReqest(r *http.Request) map[string]interface{} {
+func MetadataForReqest(r *http.Request) map[string]interface{} {
 	return map[string]interface{}{
 		"base_url": getBaseUrlFromRequest(r),
 		"params":   r.URL.Query(),

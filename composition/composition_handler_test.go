@@ -30,7 +30,7 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory), nil)
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
@@ -64,11 +64,10 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory), nil)
-	aggregator.contentMergerFactory = func() ContentMerger {
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any())
-		merger.EXPECT().AddMetaValue(gomock.Any(), gomock.Any())
 		merger.EXPECT().WriteHtml(gomock.Any()).Return(errors.New("an error"))
 		return merger
 	}
@@ -96,7 +95,7 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory), nil)
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
@@ -110,7 +109,7 @@ func Test_metadataForReqest(t *testing.T) {
 	a := assert.New(t)
 	r, _ := http.NewRequest("GET", "https://example.com/nothing?foo=bar", nil)
 
-	m := metadataForReqest(r)
+	m := MetadataForReqest(r)
 	a.Equal("http://example.com", m["base_url"])
 	a.Equal("bar", m["params"].(url.Values).Get("foo"))
 }
@@ -167,4 +166,8 @@ type MockFetchResultSupplier []*FetchResult
 
 func (m MockFetchResultSupplier) WaitForResults() []*FetchResult {
 	return []*FetchResult(m)
+}
+
+func (m MockFetchResultSupplier) MetaJSON() map[string]interface{} {
+	return nil
 }

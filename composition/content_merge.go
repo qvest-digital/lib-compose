@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strings"
 )
 
 const (
@@ -21,16 +22,13 @@ type ContentMerge struct {
 }
 
 // NewContentMerge creates a new buffered ContentMerge
-func NewContentMerge(defaultMetaJSON map[string]interface{}) *ContentMerge {
+func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	cntx := &ContentMerge{
-		MetaJSON: defaultMetaJSON,
+		MetaJSON: metaJSON,
 		Head:     make([]Fragment, 0, 0),
 		Body:     make(map[string]Fragment),
 		Tail:     make([]Fragment, 0, 0),
 		Buffered: true,
-	}
-	if cntx.MetaJSON == nil {
-		cntx.MetaJSON = make(map[string]interface{})
 	}
 	return cntx
 }
@@ -88,21 +86,10 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 	return nil
 }
 
-func (cntx *ContentMerge) AddContent(content Content) {
-	cntx.addMeta(content.Meta())
-	cntx.addHead(content.Head())
-	cntx.addBody(content.URL(), content.Body())
-	cntx.addTail(content.Tail())
-}
-
-func (cntx *ContentMerge) addMeta(data map[string]interface{}) {
-	for k, v := range data {
-		cntx.MetaJSON[k] = v
-	}
-}
-
-func (cntx *ContentMerge) AddMetaValue(prefix string, data interface{}) {
-	cntx.MetaJSON[prefix] = data
+func (cntx *ContentMerge) AddContent(fetchResult *FetchResult) {
+	cntx.addHead(fetchResult.Content.Head())
+	cntx.addBody(fetchResult.Def.URL, fetchResult.Content.Body())
+	cntx.addTail(fetchResult.Content.Tail())
 }
 
 func (cntx *ContentMerge) addHead(f Fragment) {
@@ -115,7 +102,7 @@ func (cntx *ContentMerge) addBody(url string, bodyFragmentMap map[string]Fragmen
 	for name, f := range bodyFragmentMap {
 		// add twice: local and full qualified name
 		cntx.Body[name] = f
-		cntx.Body[url+"#"+name] = f
+		cntx.Body[urlToFragmentName(url+"#"+name)] = f
 	}
 }
 
@@ -123,4 +110,11 @@ func (cntx *ContentMerge) addTail(f Fragment) {
 	if f != nil {
 		cntx.Tail = append(cntx.Tail, f)
 	}
+}
+
+// Returns a name from a url, which has template placeholders eliminated
+func urlToFragmentName(url string) string {
+	url = strings.Replace(url, `§[`, `\§\[`, -1)
+	url = strings.Replace(url, `]§`, `\]\§`, -1)
+	return url
 }

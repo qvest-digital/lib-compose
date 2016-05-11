@@ -61,17 +61,24 @@ type ContentFetcher struct {
 		results []*FetchResult
 		mutex   sync.Mutex
 	}
+	meta struct {
+		json  map[string]interface{}
+		mutex sync.Mutex
+	}
 	contentLoader ContentLoader
 }
 
 // NewContentFetcher creates a ContentFetcher with an HtmlContentLoader as default.
 // TODO: The FetchResults should always be returned in a predictable order,
 // independent of the actual response times of the fetch jobs.
-func NewContentFetcher() *ContentFetcher {
+func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
 	f.contentLoader = &HtmlContentLoader{}
-
+	f.meta.json = defaultMetaJSON
+	if f.meta.json == nil {
+		f.meta.json = make(map[string]interface{})
+	}
 	return f
 }
 
@@ -106,10 +113,21 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		defer fetcher.activeJobs.Done()
 
 		start := time.Now()
-		fetchResult.Content, fetchResult.Err = fetcher.contentLoader.Load(d.URL, d.Timeout)
+		url, err := fetcher.expandTemplateVars(d.URL)
+		if err != nil {
+			log.WithField("error", err).
+				WithField("fetchDefinition", d).
+				Warnf("error expanding url template %v", d.URL)
+			return
+		}
+
+		fetchResult.Content, fetchResult.Err = fetcher.contentLoader.Load(url, d.Timeout)
 
 		if fetchResult.Err == nil {
-			log.WithField("duration", time.Since(start)).Infof("fetched %v", d.URL)
+			log.WithField("duration", time.Since(start)).Infof("fetched %v", url)
+
+			fetcher.addMeta(fetchResult.Content.Meta())
+
 			for _, dependency := range fetchResult.Content.RequiredContent() {
 				if dependency.IsFetchable() {
 					fetcher.AddFetchJob(dependency)
@@ -119,7 +137,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			log.WithField("duration", time.Since(start)).
 				WithField("error", fetchResult.Err).
 				WithField("fetchDefinition", d).
-				Warnf("failed fetching %v", d.URL)
+				Warnf("failed fetching %v", url)
 		}
 	}()
 }
@@ -133,4 +151,24 @@ func (fetcher *ContentFetcher) isAlreadySheduled(fetchDefinitionHash string) boo
 		}
 	}
 	return false
+}
+
+func (fetcher *ContentFetcher) MetaJSON() map[string]interface{} {
+	fetcher.meta.mutex.Lock()
+	defer fetcher.meta.mutex.Unlock()
+	return fetcher.meta.json
+}
+
+func (fetcher *ContentFetcher) expandTemplateVars(template string) (string, error) {
+	fetcher.meta.mutex.Lock()
+	defer fetcher.meta.mutex.Unlock()
+	return expandTemplateVars(template, fetcher.meta.json)
+}
+
+func (fetcher *ContentFetcher) addMeta(data map[string]interface{}) {
+	fetcher.meta.mutex.Lock()
+	defer fetcher.meta.mutex.Unlock()
+	for k, v := range data {
+		fetcher.meta.json[k] = v
+	}
 }
