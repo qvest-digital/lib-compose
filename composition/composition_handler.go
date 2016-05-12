@@ -3,6 +3,7 @@ package composition
 import (
 	log "github.com/Sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 // A ContentFetcherFactory returns a configured fetch job for a request
@@ -11,14 +12,16 @@ type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 
 type CompositionHandler struct {
 	contentFetcherFactory ContentFetcherFactory
-	contentMergerFactory  func() ContentMerger
+	contentMergerFactory  func(metaJSON map[string]interface{}) ContentMerger
 }
 
+// NewCompositionHandler creates a new Handler with the supplied defualtData,
+// which is used for each request.
 func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
 	return &CompositionHandler{
 		contentFetcherFactory: contentFetcherFactory,
-		contentMergerFactory: func() ContentMerger {
-			return NewContentMerge()
+		contentMergerFactory: func(metaJSON map[string]interface{}) ContentMerger {
+			return NewContentMerge(metaJSON)
 		},
 	}
 }
@@ -26,14 +29,16 @@ func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *Composi
 func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fetcher := agg.contentFetcherFactory(r)
-	mergeContext := agg.contentMergerFactory()
 
 	// fetch all contents
 	results := fetcher.WaitForResults()
+
+	mergeContext := agg.contentMergerFactory(fetcher.MetaJSON())
+
 	for _, res := range results {
 		if res.Err == nil && res.Content != nil {
 
-			mergeContext.AddContent(res.Content)
+			mergeContext.AddContent(res)
 
 		} else if res.Def.Required {
 			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
@@ -51,5 +56,30 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
 		return
 	}
+}
 
+func MetadataForRequest(r *http.Request) map[string]interface{} {
+	return map[string]interface{}{
+		"base_url": getBaseUrlFromRequest(r),
+		"params":   r.URL.Query(),
+	}
+}
+
+func getBaseUrlFromRequest(r *http.Request) string {
+	host := r.Host
+	if xffh := r.Header.Get("X-Forwarded-For"); xffh != "" {
+		hostParts := strings.SplitN(xffh, ",", 2)
+		host = hostParts[0]
+	}
+
+	proto := "http"
+	if r.TLS != nil {
+		proto = "https"
+	}
+	if xfph := r.Header.Get("X-Forwarded-Proto"); xfph != "" {
+		protoParts := strings.SplitN(xfph, ",", 2)
+		proto = protoParts[0]
+	}
+
+	return proto + "://" + host
 }

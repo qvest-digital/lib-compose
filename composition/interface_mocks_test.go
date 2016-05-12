@@ -175,7 +175,7 @@ func (_m *MockContentMerger) EXPECT() *_MockContentMergerRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentMerger) AddContent(_param0 Content) {
+func (_m *MockContentMerger) AddContent(_param0 *FetchResult) {
 	_m.ctrl.Call(_m, "AddContent", _param0)
 }
 

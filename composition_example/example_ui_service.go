@@ -20,10 +20,15 @@ func handler() http.Handler {
 
 func compositionHandler() http.Handler {
 	contentFetcherFactory := func(r *http.Request) composition.FetchResultSupplier {
-		fetcher := composition.NewContentFetcher()
-		fetcher.AddFetchJob(composition.NewFetchDefinition("http://127.0.0.1:8080/static/styles.html"))
-		fetcher.AddFetchJob(composition.NewFetchDefinition("http://127.0.0.1:8080/static/layout.html"))
-		fetcher.AddFetchJob(composition.NewFetchDefinition("http://127.0.0.1:8080/static/lorem.html"))
+		defaultMetaJSON := map[string]interface{}{
+			"header_text": "Hello World!",
+			"request":     composition.MetadataForRequest(r),
+		}
+
+		fetcher := composition.NewContentFetcher(defaultMetaJSON)
+		fetcher.AddFetchJob(composition.NewFetchDefinition("§[request.base_url]§/static/styles.html"))
+		fetcher.AddFetchJob(composition.NewFetchDefinition("§[request.base_url]§/static/layout.html"))
+		fetcher.AddFetchJob(composition.NewFetchDefinition("§[request.base_url]§/static/lorem.html"))
 		return fetcher
 	}
 	return composition.NewCompositionHandler(contentFetcherFactory)

@@ -21,6 +21,9 @@ type ContentLoader interface {
 type FetchResultSupplier interface {
 	// WaitForResults returns all results of a fetch job in a blocking manger.
 	WaitForResults() []*FetchResult
+
+	// MetaJSON returns the composed meta JSON object
+	MetaJSON() map[string]interface{}
 }
 
 type Content interface {
@@ -50,7 +53,7 @@ type Content interface {
 
 type ContentMerger interface {
 	// Add content to the meger
-	AddContent(content Content)
+	AddContent(fetchResult *FetchResult)
 
 	// Merge and write all content supplied writer
 	WriteHtml(w io.Writer) error

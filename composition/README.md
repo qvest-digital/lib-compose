@@ -157,15 +157,29 @@ Where: body
 All fragments (except the Head Fragment) may contain minimal templating directives which has to be resolved by the UI-Service.
 There are two forms of includes and a syntax for variable replacement.
 
-#### Variables (TODO: Not implemented yet)
-The UI-Service has to replace Variable directions by the corresponding path out of the global meta data.
+#### Variables
+The UI-Service has to replace variables by the corresponding path out of the global meta data.
+If the variable name contains a '.', at first, it is tried to match the full path as one string, after that,
+it is tried to traverse a tree of maps.
 
 Example:
-
 ```
-§[ foo.bar ]§
+§[ foo ]§
+```
+or
+```
+§[ foo.bar ]§ // tried to match MetaJSON['foo.bar'] and than MetaJSON['foo']['bar']
 ```
 
+#### Predefined Variables
+There are some predefined variables, constructed out of the request.
+```
+{'request': {
+    'base_url': 'http://example.com/' // the base url of the service, calculated out of the request, e.g.
+    'params: {..} // a map with the GET Query parameters of the request.
+  }
+}
+```
 
 #### Preloaded Includes 
 On an unspecified include, the UI-Service has to load replace the include by a previously loaded fragment.
@@ -190,6 +204,7 @@ Example: Will be replaced by the *content* fragment of any random choosen page.
 
 #### Loaded Includes 
 On a specified include, the UI-Service has to load the referenced page and has to replace the include with the referenced fragment.
+Within the src attribute, there are also variable replacements possible.
 
 Example: Will be replaced by the Default Body Fragment of *http://example.com/foo*.
 
