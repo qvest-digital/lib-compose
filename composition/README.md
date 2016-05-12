@@ -158,9 +158,9 @@ All fragments (except the Head Fragment) may contain minimal templating directiv
 There are two forms of includes and a syntax for variable replacement.
 
 #### Variables
-The UI-Service has to replace Variables by the corresponding path out of the global meta data.
+The UI-Service has to replace variables by the corresponding path out of the global meta data.
 If the variable name contains a '.', at first, it is tried to match the full path as one string, after that,
-it is tried to travese a tree of maps.
+it is tried to traverse a tree of maps.
 
 Example:
 ```

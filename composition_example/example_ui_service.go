@@ -22,7 +22,7 @@ func compositionHandler() http.Handler {
 	contentFetcherFactory := func(r *http.Request) composition.FetchResultSupplier {
 		defaultMetaJSON := map[string]interface{}{
 			"header_text": "Hello World!",
-			"request":     composition.MetadataForReqest(r),
+			"request":     composition.MetadataForRequest(r),
 		}
 
 		fetcher := composition.NewContentFetcher(defaultMetaJSON)

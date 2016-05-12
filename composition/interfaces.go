@@ -22,7 +22,7 @@ type FetchResultSupplier interface {
 	// WaitForResults returns all results of a fetch job in a blocking manger.
 	WaitForResults() []*FetchResult
 
-	// MetaJSON returs the composed meta JSON object
+	// MetaJSON returns the composed meta JSON object
 	MetaJSON() map[string]interface{}
 }
 

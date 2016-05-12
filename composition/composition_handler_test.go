@@ -105,11 +105,11 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	a.Equal(502, resp.Code)
 }
 
-func Test_metadataForReqest(t *testing.T) {
+func Test_metadataForRequest(t *testing.T) {
 	a := assert.New(t)
 	r, _ := http.NewRequest("GET", "https://example.com/nothing?foo=bar", nil)
 
-	m := MetadataForReqest(r)
+	m := MetadataForRequest(r)
 	a.Equal("http://example.com", m["base_url"])
 	a.Equal("bar", m["params"].(url.Values).Get("foo"))
 }

@@ -58,7 +58,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func MetadataForReqest(r *http.Request) map[string]interface{} {
+func MetadataForRequest(r *http.Request) map[string]interface{} {
 	return map[string]interface{}{
 		"base_url": getBaseUrlFromRequest(r),
 		"params":   r.URL.Query(),

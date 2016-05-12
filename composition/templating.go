@@ -14,7 +14,7 @@ const PlaceholderEnd = "]§"
 // Write a template to an output stream.
 // The following replacements will be done:
 // §[ aVariable ] inserts a variable from the data map
-// §[> fragment ] executed a nexted fragment by executeNestedFragment()
+// §[> fragment ] executed a nested fragment by executeNestedFragment()
 func executeTemplate(w io.Writer, template string, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
 	t := template
 	for len(t) > 0 {
