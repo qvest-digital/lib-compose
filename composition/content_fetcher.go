@@ -24,7 +24,7 @@ type FetchDefinition struct {
 func NewFetchDefinition(url string) *FetchDefinition {
 	return &FetchDefinition{
 		URL:            url,
-		Timeout:        time.Second,
+		Timeout:        10*time.Second,
 		RequestHeaders: nil,
 		Required:       true,
 	}
