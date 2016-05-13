@@ -37,13 +37,20 @@ func (loader *HtmlContentLoader) Load(url string, timeout time.Duration) (Conten
 		return nil, fmt.Errorf("(http %v) on loading url %q", resp.StatusCode, url)
 	}
 
-	defer func() {
-		ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-	}()
 	c := NewMemoryContent()
 	c.url = url
-	return c, loader.parse(resp.Body, c)
+	c.httpHeader = resp.Header
+
+	if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") {
+		defer func() {
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+		}()
+		return c, loader.parse(resp.Body, c)
+	} else {
+		c.reader = resp.Body
+		return c, nil
+	}
 }
 
 func (loader *HtmlContentLoader) parse(in io.Reader, c *MemoryContent) error {

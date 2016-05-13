@@ -6,6 +6,7 @@ package composition
 import (
 	gomock "github.com/golang/mock/gomock"
 	io "io"
+	http "net/http"
 	
 	time "time"
 )
@@ -124,6 +125,16 @@ func (_mr *_MockContentRecorder) Head() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Head")
 }
 
+func (_m *MockContent) HttpHeader() http.Header {
+	ret := _m.ctrl.Call(_m, "HttpHeader")
+	ret0, _ := ret[0].(http.Header)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) HttpHeader() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "HttpHeader")
+}
+
 func (_m *MockContent) Meta() map[string]interface{} {
 	ret := _m.ctrl.Call(_m, "Meta")
 	ret0, _ := ret[0].(map[string]interface{})
@@ -132,6 +143,16 @@ func (_m *MockContent) Meta() map[string]interface{} {
 
 func (_mr *_MockContentRecorder) Meta() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Meta")
+}
+
+func (_m *MockContent) Reader() io.ReadCloser {
+	ret := _m.ctrl.Call(_m, "Reader")
+	ret0, _ := ret[0].(io.ReadCloser)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) Reader() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Reader")
 }
 
 func (_m *MockContent) RequiredContent() []*FetchDefinition {

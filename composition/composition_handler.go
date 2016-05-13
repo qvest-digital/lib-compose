@@ -2,6 +2,7 @@ package composition
 
 import (
 	log "github.com/Sirupsen/logrus"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -37,6 +38,13 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	for _, res := range results {
 		if res.Err == nil && res.Content != nil {
+
+			if res.Content.Reader() != nil {
+				w.Header().Set("Content-Type", res.Content.HttpHeader().Get("Content-Type"))
+				io.Copy(w, res.Content.Reader())
+				res.Content.Reader().Close()
+				return
+			}
 
 			mergeContext.AddContent(res)
 

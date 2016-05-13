@@ -5,9 +5,11 @@ import (
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -47,6 +49,45 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 </html>
 `
 	a.Equal(expected, string(resp.Body.Bytes()))
+	a.Equal(200, resp.Code)
+}
+
+func Test_CompositionHandler_ReturnStream(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentWithFragment := &MemoryContent{
+		body: map[string]Fragment{
+			"": StringFragment("Hello World\n"),
+		},
+	}
+
+	contentWithReader := &MemoryContent{
+		reader:     ioutil.NopCloser(strings.NewReader("bar")),
+		httpHeader: http.Header{"Content-Type": {"text/plain"}},
+	}
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def:     NewFetchDefinition("/fragment"),
+				Content: contentWithFragment,
+			},
+			&FetchResult{
+				Def:     NewFetchDefinition("/foo"),
+				Content: contentWithReader,
+			},
+		}
+	}
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	aggregator.ServeHTTP(resp, r)
+
+	a.Equal("bar", string(resp.Body.Bytes()))
+	a.Equal("text/plain", resp.Header().Get("Content-Type"))
 	a.Equal(200, resp.Code)
 }
 

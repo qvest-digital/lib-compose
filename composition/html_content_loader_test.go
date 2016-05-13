@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -88,6 +89,7 @@ func Test_HtmlContentLoader_Load(t *testing.T) {
 	c, err := loader.Load(server.URL, time.Second)
 	a.NoError(err)
 	a.NotNil(c)
+	a.Nil(c.Reader())
 
 	a.Equal(server.URL, c.URL())
 	eqFragment(t, integratedTestHtmlExpectedHead, c.Head())
@@ -110,6 +112,25 @@ func Test_HtmlContentLoader_Load(t *testing.T) {
 		Required: false,
 	}, cMemoryConent.requiredContent["example.com/optional"])
 
+}
+
+func Test_HtmlContentLoader_LoadStream(t *testing.T) {
+	a := assert.New(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	loader := &HtmlContentLoader{}
+	c, err := loader.Load(server.URL, time.Second)
+	a.NoError(err)
+
+	a.NotNil(c.Reader())
+	body, err := ioutil.ReadAll(c.Reader())
+	a.NoError(err)
+	a.Equal("{}", string(body))
 }
 
 func Test_HtmlContentLoader_LoadError500(t *testing.T) {
@@ -451,6 +472,8 @@ func Test_joinAttrs(t *testing.T) {
 
 func testServer(content string, timeout time.Duration) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 		time.Sleep(timeout)
 		w.Write([]byte(content))
 	}))
