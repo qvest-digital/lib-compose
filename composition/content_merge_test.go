@@ -17,7 +17,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
     <page2-head/>
     <page3-head/>
   </head>
-  <body>
+  <body a="b" foo="bar">
     <page1-body-main>
       <page2-body-a/>
       <page2-body-b/>
@@ -32,12 +32,14 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	page1 := NewMemoryContent()
 	page1.url = "example.com"
 	page1.head = StringFragment("<page1-head/>\n")
+	page1.bodyAttributes = StringFragment(`a="b"`)
 	page1.tail = StringFragment("    <page1-tail/>\n")
 	page1.body[""] = MockPage1BodyFragment{}
 
 	page2 := NewMemoryContent()
 	page2.url = "example.com"
 	page2.head = StringFragment("    <page2-head/>\n")
+	page2.bodyAttributes = StringFragment(`foo="bar"`)
 	page2.tail = StringFragment("    <page2-tail/>")
 	page2.body["page2-a"] = StringFragment("      <page2-body-a/>\n")
 	page2.body["page2-b"] = StringFragment("      <page2-body-b/>\n")

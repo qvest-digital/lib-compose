@@ -7,6 +7,7 @@ type MemoryContent struct {
 	head            Fragment
 	body            map[string]Fragment
 	tail            Fragment
+	bodyAttributes  Fragment
 }
 
 func NewMemoryContent() *MemoryContent {
@@ -43,4 +44,8 @@ func (c *MemoryContent) Body() map[string]Fragment {
 
 func (c *MemoryContent) Tail() Fragment {
 	return c.tail
+}
+
+func (c *MemoryContent) BodyAttributes() Fragment {
+	return c.bodyAttributes
 }

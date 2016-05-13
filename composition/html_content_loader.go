@@ -118,6 +118,11 @@ func (loader *HtmlContentLoader) parseBody(z *html.Tokenizer, c *MemoryContent) 
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
+	attrs = readAttributes(z, attrs)
+	if len(attrs) > 0 {
+		c.bodyAttributes = StringFragment(joinAttrs(attrs))
+	}
+
 forloop:
 	for {
 		tt := z.Next()
@@ -353,6 +358,24 @@ func readAttributes(z *html.Tokenizer, buff []html.Attribute) []html.Attribute {
 			return buff
 		}
 	}
+}
+
+func joinAttrs(attrs []html.Attribute) string {
+	buff := bytes.NewBufferString("")
+	for i, a := range attrs {
+		if i > 0 {
+			buff.WriteString(" ")
+		}
+		if a.Namespace != "" {
+			buff.WriteString(a.Namespace)
+			buff.WriteString(":")
+		}
+		buff.WriteString(a.Key)
+		buff.WriteString(`="`)
+		buff.WriteString(html.EscapeString(a.Val))
+		buff.WriteString(`"`)
+	}
+	return buff.String()
 }
 
 func isSelfClosingTag(tagname string, token html.TokenType) bool {

@@ -14,21 +14,23 @@ const (
 // ContentMerge is a helper type for creation of a combined html document
 // out of multiple Content pages.
 type ContentMerge struct {
-	MetaJSON map[string]interface{}
-	Head     []Fragment
-	Body     map[string]Fragment
-	Tail     []Fragment
-	Buffered bool
+	MetaJSON  map[string]interface{}
+	Head      []Fragment
+	BodyAttrs []Fragment
+	Body      map[string]Fragment
+	Tail      []Fragment
+	Buffered  bool
 }
 
 // NewContentMerge creates a new buffered ContentMerge
 func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	cntx := &ContentMerge{
-		MetaJSON: metaJSON,
-		Head:     make([]Fragment, 0, 0),
-		Body:     make(map[string]Fragment),
-		Tail:     make([]Fragment, 0, 0),
-		Buffered: true,
+		MetaJSON:  metaJSON,
+		Head:      make([]Fragment, 0, 0),
+		BodyAttrs: make([]Fragment, 0, 0),
+		Body:      make(map[string]Fragment),
+		Tail:      make([]Fragment, 0, 0),
+		Buffered:  true,
 	}
 	return cntx
 }
@@ -65,7 +67,21 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 			return err
 		}
 	}
-	if _, err := io.WriteString(w, "\n  </head>\n  <body>\n    "); err != nil {
+	if _, err := io.WriteString(w, "\n  </head>\n  <body"); err != nil {
+		return err
+	}
+
+	for _, f := range cntx.BodyAttrs {
+		if _, err := io.WriteString(w, " "); err != nil {
+			return err
+		}
+
+		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
+			return err
+		}
+	}
+
+	if _, err := io.WriteString(w, ">\n    "); err != nil {
 		return err
 	}
 
@@ -88,6 +104,7 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 
 func (cntx *ContentMerge) AddContent(fetchResult *FetchResult) {
 	cntx.addHead(fetchResult.Content.Head())
+	cntx.addBodyAttributes(fetchResult.Content.BodyAttributes())
 	cntx.addBody(fetchResult.Def.URL, fetchResult.Content.Body())
 	cntx.addTail(fetchResult.Content.Tail())
 }
@@ -95,6 +112,12 @@ func (cntx *ContentMerge) AddContent(fetchResult *FetchResult) {
 func (cntx *ContentMerge) addHead(f Fragment) {
 	if f != nil {
 		cntx.Head = append(cntx.Head, f)
+	}
+}
+
+func (cntx *ContentMerge) addBodyAttributes(f Fragment) {
+	if f != nil {
+		cntx.BodyAttrs = append(cntx.BodyAttrs, f)
 	}
 }
 

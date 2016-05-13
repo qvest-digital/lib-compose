@@ -205,7 +205,7 @@ func Test_HtmlContentLoader_parseBody(t *testing.T) {
 	a := assert.New(t)
 
 	loader := &HtmlContentLoader{}
-	z := html.NewTokenizer(bytes.NewBufferString(`<body>
+	z := html.NewTokenizer(bytes.NewBufferString(`<body some="attribute">
     <h1>Default Fragment Content</h1><br>
     <ul uic-remove>
       <!-- A Navigation for testing -->
@@ -235,6 +235,8 @@ func Test_HtmlContentLoader_parseBody(t *testing.T) {
 	eqFragment(t, `<h1>Headline</h1> §[> example.com/optional#content]§`, c.Body()["headline"])
 	eqFragment(t, `some content §[> example.com/foo#content]§ §[> example.com/optional#content]§`, c.Body()["content"])
 	eqFragment(t, "<!-- tail -->§[> example.com/tail]§", c.Tail())
+
+	eqFragment(t, `some="attribute"`, c.BodyAttributes())
 
 	a.Equal(3, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
@@ -436,6 +438,15 @@ func Test_HtmlContentLoader_skipSubtreeIfUicRemove(t *testing.T) {
 	a.Equal(html.EndTagToken, token)
 	tag, _ := z.TagName()
 	a.Equal("a", string(tag))
+}
+
+func Test_joinAttrs(t *testing.T) {
+	a := assert.New(t)
+	a.Equal(``, joinAttrs([]html.Attribute{}))
+	a.Equal(`some="attribute"`, joinAttrs([]html.Attribute{{Key: "some", Val: "attribute"}}))
+	a.Equal(`a="b" some="attribute"`, joinAttrs([]html.Attribute{{Key: "a", Val: "b"}, {Key: "some", Val: "attribute"}}))
+	a.Equal(`a="--&#34;--"`, joinAttrs([]html.Attribute{{Key: "a", Val: `--"--`}}))
+	a.Equal(`ns:a="b"`, joinAttrs([]html.Attribute{{Namespace: "ns", Key: "a", Val: "b"}}))
 }
 
 func testServer(content string, timeout time.Duration) *httptest.Server {
