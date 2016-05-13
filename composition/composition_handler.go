@@ -60,18 +60,13 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 func MetadataForRequest(r *http.Request) map[string]interface{} {
 	return map[string]interface{}{
+		"host":     getHostFromRequest(r),
 		"base_url": getBaseUrlFromRequest(r),
 		"params":   r.URL.Query(),
 	}
 }
 
 func getBaseUrlFromRequest(r *http.Request) string {
-	host := r.Host
-	if xffh := r.Header.Get("X-Forwarded-For"); xffh != "" {
-		hostParts := strings.SplitN(xffh, ",", 2)
-		host = hostParts[0]
-	}
-
 	proto := "http"
 	if r.TLS != nil {
 		proto = "https"
@@ -81,5 +76,14 @@ func getBaseUrlFromRequest(r *http.Request) string {
 		proto = protoParts[0]
 	}
 
-	return proto + "://" + host
+	return proto + "://" + getHostFromRequest(r)
+}
+
+func getHostFromRequest(r *http.Request) string {
+	host := r.Host
+	if xffh := r.Header.Get("X-Forwarded-For"); xffh != "" {
+		hostParts := strings.SplitN(xffh, ",", 2)
+		host = hostParts[0]
+	}
+	return host
 }
