@@ -37,13 +37,20 @@ func (loader *HtmlContentLoader) Load(url string, timeout time.Duration) (Conten
 		return nil, fmt.Errorf("(http %v) on loading url %q", resp.StatusCode, url)
 	}
 
-	defer func() {
-		ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-	}()
 	c := NewMemoryContent()
 	c.url = url
-	return c, loader.parse(resp.Body, c)
+	c.httpHeader = resp.Header
+
+	if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") {
+		defer func() {
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+		}()
+		return c, loader.parse(resp.Body, c)
+	} else {
+		c.reader = resp.Body
+		return c, nil
+	}
 }
 
 func (loader *HtmlContentLoader) parse(in io.Reader, c *MemoryContent) error {
@@ -117,6 +124,11 @@ forloop:
 func (loader *HtmlContentLoader) parseBody(z *html.Tokenizer, c *MemoryContent) error {
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
+
+	attrs = readAttributes(z, attrs)
+	if len(attrs) > 0 {
+		c.bodyAttributes = StringFragment(joinAttrs(attrs))
+	}
 
 forloop:
 	for {
@@ -353,6 +365,24 @@ func readAttributes(z *html.Tokenizer, buff []html.Attribute) []html.Attribute {
 			return buff
 		}
 	}
+}
+
+func joinAttrs(attrs []html.Attribute) string {
+	buff := bytes.NewBufferString("")
+	for i, a := range attrs {
+		if i > 0 {
+			buff.WriteString(" ")
+		}
+		if a.Namespace != "" {
+			buff.WriteString(a.Namespace)
+			buff.WriteString(":")
+		}
+		buff.WriteString(a.Key)
+		buff.WriteString(`="`)
+		buff.WriteString(html.EscapeString(a.Val))
+		buff.WriteString(`"`)
+	}
+	return buff.String()
 }
 
 func isSelfClosingTag(tagname string, token html.TokenType) bool {

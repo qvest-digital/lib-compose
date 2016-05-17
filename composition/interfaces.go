@@ -1,10 +1,11 @@
 package composition
 
 //go:generate go get github.com/golang/mock/mockgen
-//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go lib-ui-service/composition Fragment,ContentLoader,Content,ContentMerger
-//go:generate sed -ie "s/composition .lib-ui-service\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
+//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go stash.rewe-digital.com/toom/lib-ui-service/composition Fragment,ContentLoader,Content,ContentMerger
+//go:generate sed -ie "s/composition .stash.rewe-digital.com\\/toom\\/lib-ui-service\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
 import (
 	"io"
+	"net/http"
 	"time"
 )
 
@@ -26,6 +27,8 @@ type FetchResultSupplier interface {
 	MetaJSON() map[string]interface{}
 }
 
+// Vontent is the abstration over includable data.
+// Content may be parsed of it may contain a stream represented by a non nil Reader(), not both.
 type Content interface {
 
 	// The URL, from where the content was loaded
@@ -49,6 +52,16 @@ type Content interface {
 	// Tail returns a partial which should be inserted at the end of the page.
 	// e.g. a script to load after rendering.
 	Tail() Fragment
+
+	// The attributes for the body element
+	BodyAttributes() Fragment
+
+	// Reader returns the stream with the content, of any.
+	// If Reader() == nil, no stream is available an it contains parsed data, only.
+	Reader() io.ReadCloser
+
+	// HttpHeader() returns the https headers of the fetch job
+	HttpHeader() http.Header
 }
 
 type ContentMerger interface {

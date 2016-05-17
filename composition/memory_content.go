@@ -1,5 +1,10 @@
 package composition
 
+import (
+	"io"
+	"net/http"
+)
+
 type MemoryContent struct {
 	url             string
 	requiredContent map[string]*FetchDefinition // key ist the url
@@ -7,6 +12,9 @@ type MemoryContent struct {
 	head            Fragment
 	body            map[string]Fragment
 	tail            Fragment
+	bodyAttributes  Fragment
+	reader          io.ReadCloser
+	httpHeader      http.Header
 }
 
 func NewMemoryContent() *MemoryContent {
@@ -43,4 +51,16 @@ func (c *MemoryContent) Body() map[string]Fragment {
 
 func (c *MemoryContent) Tail() Fragment {
 	return c.tail
+}
+
+func (c *MemoryContent) BodyAttributes() Fragment {
+	return c.bodyAttributes
+}
+
+func (c *MemoryContent) Reader() io.ReadCloser {
+	return c.reader
+}
+
+func (c *MemoryContent) HttpHeader() http.Header {
+	return c.httpHeader
 }

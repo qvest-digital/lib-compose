@@ -24,7 +24,26 @@ type FetchDefinition struct {
 func NewFetchDefinition(url string) *FetchDefinition {
 	return &FetchDefinition{
 		URL:            url,
-		Timeout:        10*time.Second,
+		Timeout:        10 * time.Second,
+		RequestHeaders: nil,
+		Required:       true,
+	}
+}
+
+// NewFetchDefinitionFromRequest creates a fetch definition
+// from the request path, but replaces the sheme, host and port with the provided base url
+func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
+	fullPath := r.URL.Path
+	if fullPath == "" {
+		fullPath = "/"
+	}
+	if r.URL.RawQuery != "" {
+		fullPath += "?" + r.URL.RawQuery
+	}
+
+	return &FetchDefinition{
+		URL:            baseUrl + fullPath,
+		Timeout:        10 * time.Second,
 		RequestHeaders: nil,
 		Required:       true,
 	}
@@ -124,7 +143,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		fetchResult.Content, fetchResult.Err = fetcher.contentLoader.Load(url, d.Timeout)
 
 		if fetchResult.Err == nil {
-			log.WithField("duration", time.Since(start)).Infof("fetched %v", url)
+			log.WithField("duration", time.Since(start)).Debugf("fetched %v", url)
 
 			fetcher.addMeta(fetchResult.Content.Meta())
 
