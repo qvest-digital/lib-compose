@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -79,101 +76,20 @@ var integratedTestHtmlExpectedTail = `
       <script src="foo.js"></script>
       <script src="bar.js"></script>`
 
-func Test_HtmlContentLoader_Load(t *testing.T) {
+func Test_HtmlContentParser_LoadEmptyContent(t *testing.T) {
 	a := assert.New(t)
 
-	server := testServer(integratedTestHtml, time.Millisecond*0)
-	defer server.Close()
-
-	loader := &HtmlContentLoader{}
-	c, err := loader.Load(server.URL, time.Second)
-	a.NoError(err)
-	a.NotNil(c)
-	a.Nil(c.Reader())
-
-	a.Equal(server.URL, c.URL())
-	eqFragment(t, integratedTestHtmlExpectedHead, c.Head())
-	a.Equal(2, len(c.Body()))
-	eqFragment(t, integratedTestHtmlExpectedHeadline, c.Body()["headline"])
-	eqFragment(t, integratedTestHtmlExpectedContent, c.Body()["content"])
-	a.Equal(integratedTestHtmlExpectedMeta, c.Meta())
-	eqFragment(t, integratedTestHtmlExpectedTail, c.Tail())
-	cMemoryConent := c.(*MemoryContent)
-	a.Equal(2, len(cMemoryConent.RequiredContent()))
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo",
-		Timeout:  time.Millisecond * 42000,
-		Required: true,
-	}, cMemoryConent.requiredContent["example.com/foo"])
-
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional",
-		Timeout:  time.Millisecond * 100,
-		Required: false,
-	}, cMemoryConent.requiredContent["example.com/optional"])
-
-}
-
-func Test_HtmlContentLoader_LoadStream(t *testing.T) {
-	a := assert.New(t)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("{}"))
-	}))
-	defer server.Close()
-
-	loader := &HtmlContentLoader{}
-	c, err := loader.Load(server.URL, time.Second)
-	a.NoError(err)
-
-	a.NotNil(c.Reader())
-	body, err := ioutil.ReadAll(c.Reader())
-	a.NoError(err)
-	a.Equal("{}", string(body))
-}
-
-func Test_HtmlContentLoader_LoadError500(t *testing.T) {
-	a := assert.New(t)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Internal Server Error", 500)
-	}))
-	defer server.Close()
-
-	loader := &HtmlContentLoader{}
-	c, err := loader.Load(server.URL, time.Second)
-	a.Error(err)
-	a.Nil(c)
-	a.Contains(err.Error(), "http 500")
-}
-
-func Test_HtmlContentLoader_LoadErrorNetwork(t *testing.T) {
-	a := assert.New(t)
-
-	loader := &HtmlContentLoader{}
-	c, err := loader.Load("...", time.Second)
-	a.Error(err)
-	a.Nil(c)
-	a.Contains(err.Error(), "unsupported protocol scheme")
-}
-
-func Test_HtmlContentLoader_LoadEmptyContent(t *testing.T) {
-	a := assert.New(t)
-
-	server := testServer(`<html>
+	in := strings.NewReader(`<html>
   <head>
   </head>
   <body>
   </body>
 </html>
-`, time.Millisecond*0)
-	defer server.Close()
-
-	loader := &HtmlContentLoader{}
-	c, err := loader.Load(server.URL, time.Second)
+`)
+	c := NewMemoryContent()
+	parser := &HtmlContentParser{}
+	err := parser.Parse(c, in)
 	a.NoError(err)
-	a.NotNil(c)
 
 	a.Equal(0, len(c.Body()))
 	a.Equal(0, len(c.Meta()))
@@ -182,10 +98,10 @@ func Test_HtmlContentLoader_LoadEmptyContent(t *testing.T) {
 	a.Nil(c.Tail())
 }
 
-func Test_HtmlContentLoader_parseHead(t *testing.T) {
+func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a := assert.New(t)
 
-	loader := &HtmlContentLoader{}
+	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<head>
   <div uic-remove>
     <script>
@@ -215,17 +131,17 @@ func Test_HtmlContentLoader_parseHead(t *testing.T) {
 
 	z.Next() // At <head ..
 	c := NewMemoryContent()
-	err := loader.parseHead(z, c)
+	err := parser.parseHead(z, c)
 	a.NoError(err)
 
 	eqFragment(t, "<xx/><foo>xxx</foo><bar>xxx</bar>", c.Head())
 	a.Equal("bar", c.Meta()["foo"])
 }
 
-func Test_HtmlContentLoader_parseBody(t *testing.T) {
+func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a := assert.New(t)
 
-	loader := &HtmlContentLoader{}
+	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body some="attribute">
     <h1>Default Fragment Content</h1><br>
     <ul uic-remove>
@@ -248,7 +164,7 @@ func Test_HtmlContentLoader_parseBody(t *testing.T) {
 
 	z.Next() // At <body ..
 	c := NewMemoryContent()
-	err := loader.parseBody(z, c)
+	err := parser.parseBody(z, c)
 	a.NoError(err)
 
 	a.Equal(3, len(c.Body()))
@@ -278,10 +194,10 @@ func Test_HtmlContentLoader_parseBody(t *testing.T) {
 	}, c.requiredContent["example.com/tail"])
 }
 
-func Test_HtmlContentLoader_parseBody_OnlyDefaultFragment(t *testing.T) {
+func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 	a := assert.New(t)
 
-	loader := &HtmlContentLoader{}
+	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
     <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
@@ -289,7 +205,7 @@ func Test_HtmlContentLoader_parseBody_OnlyDefaultFragment(t *testing.T) {
 
 	z.Next() // At <body ..
 	c := NewMemoryContent()
-	err := loader.parseBody(z, c)
+	err := parser.parseBody(z, c)
 	a.NoError(err)
 
 	a.Equal(1, len(c.Body()))
@@ -303,10 +219,10 @@ func Test_HtmlContentLoader_parseBody_OnlyDefaultFragment(t *testing.T) {
 	}, c.requiredContent["example.com/foo"])
 }
 
-func Test_HtmlContentLoader_parseBody_DefaultFragmentOverwritten(t *testing.T) {
+func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 	a := assert.New(t)
 
-	loader := &HtmlContentLoader{}
+	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
     <uic-fragment>
@@ -316,17 +232,17 @@ func Test_HtmlContentLoader_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 
 	z.Next() // At <body ..
 	c := NewMemoryContent()
-	err := loader.parseBody(z, c)
+	err := parser.parseBody(z, c)
 	a.NoError(err)
 
 	a.Equal(1, len(c.Body()))
 	eqFragment(t, "Overwritten", c.Body()[""])
 }
 
-func Test_HtmlContentLoader_parseHead_JsonError(t *testing.T) {
+func Test_HtmlContentParser_parseHead_JsonError(t *testing.T) {
 	a := assert.New(t)
 
-	loader := &HtmlContentLoader{}
+	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`
 <script type="text/uic-meta">
       {
@@ -334,13 +250,13 @@ func Test_HtmlContentLoader_parseHead_JsonError(t *testing.T) {
 `))
 
 	c := NewMemoryContent()
-	err := loader.parseHead(z, c)
+	err := parser.parseHead(z, c)
 
 	a.Error(err)
 	a.Contains(err.Error(), "error while parsing json from meta json")
 }
 
-func Test_HtmlContentLoader_parseFragment(t *testing.T) {
+func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	a := assert.New(t)
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
@@ -387,7 +303,7 @@ func Test_HtmlContentLoader_parseFragment(t *testing.T) {
 	a.Equal("testend", string(endTag))
 }
 
-func Test_HtmlContentLoader_parseMetaJson(t *testing.T) {
+func Test_HtmlContentParser_parseMetaJson(t *testing.T) {
 	a := assert.New(t)
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<script type="text/uic-meta">
@@ -406,7 +322,7 @@ func Test_HtmlContentLoader_parseMetaJson(t *testing.T) {
 	a.Equal("bar", c.Meta()["foo"])
 }
 
-func Test_HtmlContentLoader_parseMetaJson_Errors(t *testing.T) {
+func Test_HtmlContentParser_parseMetaJson_Errors(t *testing.T) {
 	a := assert.New(t)
 
 	testCases := []struct {
@@ -437,7 +353,7 @@ func Test_HtmlContentLoader_parseMetaJson_Errors(t *testing.T) {
 	}
 }
 
-func Test_HtmlContentLoader_skipSubtreeIfUicRemove(t *testing.T) {
+func Test_HtmlContentParser_skipSubtreeIfUicRemove(t *testing.T) {
 	a := assert.New(t)
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<a><b uic-remove>
@@ -468,15 +384,6 @@ func Test_joinAttrs(t *testing.T) {
 	a.Equal(`a="b" some="attribute"`, joinAttrs([]html.Attribute{{Key: "a", Val: "b"}, {Key: "some", Val: "attribute"}}))
 	a.Equal(`a="--&#34;--"`, joinAttrs([]html.Attribute{{Key: "a", Val: `--"--`}}))
 	a.Equal(`ns:a="b"`, joinAttrs([]html.Attribute{{Namespace: "ns", Key: "a", Val: "b"}}))
-}
-
-func testServer(content string, timeout time.Duration) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-		time.Sleep(timeout)
-		w.Write([]byte(content))
-	}))
 }
 
 func eqFragment(t *testing.T, expected string, f Fragment) {

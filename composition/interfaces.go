@@ -1,12 +1,11 @@
 package composition
 
 //go:generate go get github.com/golang/mock/mockgen
-//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go stash.rewe-digital.com/toom/lib-ui-service/composition Fragment,ContentLoader,Content,ContentMerger
+//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go stash.rewe-digital.com/toom/lib-ui-service/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser
 //go:generate sed -ie "s/composition .stash.rewe-digital.com\\/toom\\/lib-ui-service\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
 import (
 	"io"
 	"net/http"
-	"time"
 )
 
 type Fragment interface {
@@ -15,8 +14,13 @@ type Fragment interface {
 
 type ContentLoader interface {
 	// Load synchronously loads a content.
-	// The loader has to ensure to return the call at withing the supplied timeout.
-	Load(url string, timeout time.Duration) (Content, error)
+	// The loader has to ensure to return the call withing the supplied timeout.
+	Load(fd *FetchDefinition) (Content, error)
+}
+
+type ContentParser interface {
+	// Parse parses the input stream into a Content Object
+	Parse(*MemoryContent, io.Reader) error
 }
 
 type FetchResultSupplier interface {

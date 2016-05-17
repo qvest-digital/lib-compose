@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"golang.org/x/net/html"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -21,39 +19,10 @@ const (
 	ScriptTypeMeta = "text/uic-meta"
 )
 
-type HtmlContentLoader struct {
+type HtmlContentParser struct {
 }
 
-// TODO: Include Cookies and HTTP Headers from original request to the call
-func (loader *HtmlContentLoader) Load(url string, timeout time.Duration) (Content, error) {
-
-	client := &http.Client{Timeout: timeout}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("(http %v) on loading url %q", resp.StatusCode, url)
-	}
-
-	c := NewMemoryContent()
-	c.url = url
-	c.httpHeader = resp.Header
-
-	if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") {
-		defer func() {
-			ioutil.ReadAll(resp.Body)
-			resp.Body.Close()
-		}()
-		return c, loader.parse(resp.Body, c)
-	} else {
-		c.reader = resp.Body
-		return c, nil
-	}
-}
-
-func (loader *HtmlContentLoader) parse(in io.Reader, c *MemoryContent) error {
+func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 	z := html.NewTokenizer(in)
 	for {
 		tt := z.Next()
@@ -67,11 +36,11 @@ func (loader *HtmlContentLoader) parse(in io.Reader, c *MemoryContent) error {
 			tag, _ := z.TagName()
 			switch string(tag) {
 			case "head":
-				if err := loader.parseHead(z, c); err != nil {
+				if err := parser.parseHead(z, c); err != nil {
 					return err
 				}
 			case "body":
-				if err := loader.parseBody(z, c); err != nil {
+				if err := parser.parseBody(z, c); err != nil {
 					return err
 				}
 			}
@@ -79,7 +48,7 @@ func (loader *HtmlContentLoader) parse(in io.Reader, c *MemoryContent) error {
 	}
 }
 
-func (loader *HtmlContentLoader) parseHead(z *html.Tokenizer, c *MemoryContent) error {
+func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 
@@ -121,7 +90,7 @@ forloop:
 	return nil
 }
 
-func (loader *HtmlContentLoader) parseBody(z *html.Tokenizer, c *MemoryContent) error {
+func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
