@@ -143,7 +143,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		fetchResult.Content, fetchResult.Err = fetcher.contentLoader.Load(url, d.Timeout)
 
 		if fetchResult.Err == nil {
-			log.WithField("duration", time.Since(start)).Infof("fetched %v", url)
+			log.WithField("duration", time.Since(start)).Debugf("fetched %v", url)
 
 			fetcher.addMeta(fetchResult.Content.Meta())
 

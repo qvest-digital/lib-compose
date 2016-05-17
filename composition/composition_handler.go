@@ -57,7 +57,14 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// TODO: also writeHeaders
+	if len(results) > 0 {
+		// copy headers
+		for k, values := range results[0].Content.HttpHeader() {
+			for _, v := range values {
+				w.Header().Set(k, v)
+			}
+		}
+	}
 
 	err := mergeContext.WriteHtml(w)
 	if err != nil {
