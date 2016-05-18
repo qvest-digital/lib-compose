@@ -64,6 +64,9 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 				w.Header().Set(k, v)
 			}
 		}
+		if results[0].Content.HttpStatusCode() != 0 {
+			w.WriteHeader(results[0].Content.HttpStatusCode())
+		}
 	}
 
 	err := mergeContext.WriteHtml(w)

@@ -134,6 +134,16 @@ func (_mr *_MockContentRecorder) HttpHeader() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "HttpHeader")
 }
 
+func (_m *MockContent) HttpStatusCode() int {
+	ret := _m.ctrl.Call(_m, "HttpStatusCode")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) HttpStatusCode() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "HttpStatusCode")
+}
+
 func (_m *MockContent) Meta() map[string]interface{} {
 	ret := _m.ctrl.Call(_m, "Meta")
 	ret0, _ := ret[0].(map[string]interface{})

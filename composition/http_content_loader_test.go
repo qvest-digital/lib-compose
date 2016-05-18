@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -76,6 +77,47 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 	a.Equal(0, len(c.Body()))
 }
 
+func Test_HttpContentLoader_Load_POST(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		body, err := ioutil.ReadAll(r.Body)
+		a.NoError(err)
+		a.Equal("post content", string(body))
+		a.Equal("POST", r.Method)
+		a.Equal("bar", r.Header.Get("X-Foo"))
+		w.Write([]byte("the body"))
+	}))
+
+	loader := NewHttpContentLoader()
+	mockParser := NewMockContentParser(ctrl)
+	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
+		Do(func(c *MemoryContent, in io.Reader) {
+			body, err := ioutil.ReadAll(in)
+			a.NoError(err)
+			a.Equal("the body", string(body))
+			c.head = StringFragment("some head content")
+		})
+
+	loader.parser["text/html"] = mockParser
+
+	fd := NewFetchDefinition(server.URL)
+	fd.Header = http.Header{"X-Foo": {"bar"}}
+	fd.Method = "POST"
+	fd.Body = strings.NewReader("post content")
+
+	c, err := loader.Load(fd)
+	a.NoError(err)
+	a.NotNil(c)
+	a.Nil(c.Reader())
+	a.Equal(server.URL, c.URL())
+	eqFragment(t, "some head content", c.Head())
+	a.Equal(0, len(c.Body()))
+}
+
 func Test_HttpContentLoader_LoadStream(t *testing.T) {
 	a := assert.New(t)
 
@@ -88,7 +130,6 @@ func Test_HttpContentLoader_LoadStream(t *testing.T) {
 	loader := &HttpContentLoader{}
 	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.NoError(err)
-
 	a.NotNil(c.Reader())
 	body, err := ioutil.ReadAll(c.Reader())
 	a.NoError(err)

@@ -103,7 +103,7 @@ type ContentFetcher struct {
 func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
-	f.contentLoader = &HttpContentLoader{}
+	f.contentLoader = NewHttpContentLoader()
 	f.meta.json = defaultMetaJSON
 	if f.meta.json == nil {
 		f.meta.json = make(map[string]interface{})

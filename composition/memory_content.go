@@ -15,6 +15,7 @@ type MemoryContent struct {
 	bodyAttributes  Fragment
 	reader          io.ReadCloser
 	httpHeader      http.Header
+	httpStatusCode  int
 }
 
 func NewMemoryContent() *MemoryContent {
@@ -63,4 +64,8 @@ func (c *MemoryContent) Reader() io.ReadCloser {
 
 func (c *MemoryContent) HttpHeader() http.Header {
 	return c.httpHeader
+}
+
+func (c *MemoryContent) HttpStatusCode() int {
+	return c.httpStatusCode
 }

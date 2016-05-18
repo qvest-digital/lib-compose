@@ -2,9 +2,9 @@ package main
 
 import (
 	gorilla "github.com/gorilla/handlers"
-	"lib-ui-service/composition"
 	"net/http"
 	"os"
+	"stash.rewe-digital.com/toom/lib-ui-service/composition"
 )
 
 func main() {

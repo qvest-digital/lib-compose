@@ -64,8 +64,11 @@ type Content interface {
 	// If Reader() == nil, no stream is available an it contains parsed data, only.
 	Reader() io.ReadCloser
 
-	// HttpHeader() returns the https headers of the fetch job
+	// HttpHeader() returns the http headers of the fetch job
 	HttpHeader() http.Header
+
+	// HttpStatusCode() returns the http statuc code of the fetch job
+	HttpStatusCode() int
 }
 
 type ContentMerger interface {
