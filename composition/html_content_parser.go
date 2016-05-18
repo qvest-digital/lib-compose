@@ -56,6 +56,7 @@ forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
+		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
 		attrs = readAttributes(z, attrs)
 
 		switch {
@@ -79,7 +80,7 @@ forloop:
 				break forloop
 			}
 		}
-		headBuff.Write(z.Raw())
+		headBuff.Write(raw)
 	}
 
 	s := headBuff.String()
@@ -103,6 +104,7 @@ forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
+		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
 		attrs = readAttributes(z, attrs)
 
 		switch {
@@ -152,7 +154,7 @@ forloop:
 				break forloop
 			}
 		}
-		bodyBuff.Write(z.Raw())
+		bodyBuff.Write(raw)
 	}
 
 	s := bodyBuff.String()
@@ -174,6 +176,7 @@ forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
+		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
 		attrs = readAttributes(z, attrs)
 
 		switch {
@@ -202,7 +205,7 @@ forloop:
 				break forloop
 			}
 		}
-		buff.Write(z.Raw())
+		buff.Write(raw)
 	}
 
 	return StringFragment(buff.String()), dependencies, nil
@@ -356,6 +359,13 @@ func joinAttrs(attrs []html.Attribute) string {
 
 func isSelfClosingTag(tagname string, token html.TokenType) bool {
 	return token == html.SelfClosingTagToken || voidElements[tagname]
+}
+
+// byteCopy creates a copy of a byte slice
+func byteCopy(in []byte) []byte {
+	result := make([]byte, len(in), len(in))
+	copy(result, in)
+	return result
 }
 
 // HTML Section 12.1.2, "Elements", gives this list of void elements. Void elements

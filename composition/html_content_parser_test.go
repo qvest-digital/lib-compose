@@ -303,6 +303,24 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	a.Equal("testend", string(endTag))
 }
 
+// Regression test: to ensure, that escaped entities in attributes do not lead to a problem.
+func Test_HtmlContentParser_parseFragment_EntityAttribute(t *testing.T) {
+	a := assert.New(t)
+
+	testHtml := `<a style="text-decoration: none" href="/produktkatalog?&amp;page=91">`
+	in := strings.NewReader(`<html><head>` + testHtml + `</head><body>` +
+		testHtml + `<uic-fragment name="content">` + testHtml + `</uic-fragment></body></html>`)
+
+	c := NewMemoryContent()
+	parser := &HtmlContentParser{}
+	err := parser.Parse(c, in)
+	a.NoError(err)
+
+	eqFragment(t, testHtml, c.Head())
+	eqFragment(t, testHtml, c.Body()[""])
+	eqFragment(t, testHtml, c.Body()["content"])
+}
+
 func Test_HtmlContentParser_parseMetaJson(t *testing.T) {
 	a := assert.New(t)
 
