@@ -5,17 +5,21 @@ import (
 	"encoding/hex"
 	"errors"
 	log "github.com/Sirupsen/logrus"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
-	URL            string
-	Timeout        time.Duration
-	RequestHeaders http.Header
-	Required       bool
+	URL      string
+	Timeout  time.Duration
+	Required bool
+	Header   http.Header
+	Method   string
+	Body     io.Reader
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -23,16 +27,20 @@ type FetchDefinition struct {
 
 func NewFetchDefinition(url string) *FetchDefinition {
 	return &FetchDefinition{
-		URL:            url,
-		Timeout:        10 * time.Second,
-		RequestHeaders: nil,
-		Required:       true,
+		URL:      url,
+		Timeout:  10 * time.Second,
+		Required: true,
+		Method:   "GET",
 	}
 }
 
 // NewFetchDefinitionFromRequest creates a fetch definition
 // from the request path, but replaces the sheme, host and port with the provided base url
 func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
+	if strings.HasSuffix(baseUrl, "/") {
+		baseUrl = baseUrl[:len(baseUrl)-1]
+	}
+
 	fullPath := r.URL.Path
 	if fullPath == "" {
 		fullPath = "/"
@@ -42,10 +50,12 @@ func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefini
 	}
 
 	return &FetchDefinition{
-		URL:            baseUrl + fullPath,
-		Timeout:        10 * time.Second,
-		RequestHeaders: nil,
-		Required:       true,
+		URL:      baseUrl + fullPath,
+		Timeout:  10 * time.Second,
+		Header:   r.Header,
+		Method:   r.Method,
+		Body:     r.Body,
+		Required: true,
 	}
 }
 
@@ -56,7 +66,7 @@ func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefini
 func (def *FetchDefinition) Hash() string {
 	hasher := md5.New()
 	hasher.Write([]byte(def.URL))
-	def.RequestHeaders.Write(hasher)
+	def.Header.Write(hasher)
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
@@ -87,13 +97,13 @@ type ContentFetcher struct {
 	contentLoader ContentLoader
 }
 
-// NewContentFetcher creates a ContentFetcher with an HtmlContentLoader as default.
+// NewContentFetcher creates a ContentFetcher with an HtmlContentParser as default.
 // TODO: The FetchResults should always be returned in a predictable order,
 // independent of the actual response times of the fetch jobs.
 func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
-	f.contentLoader = &HtmlContentLoader{}
+	f.contentLoader = NewHttpContentLoader()
 	f.meta.json = defaultMetaJSON
 	if f.meta.json == nil {
 		f.meta.json = make(map[string]interface{})
@@ -140,10 +150,11 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			return
 		}
 
-		fetchResult.Content, fetchResult.Err = fetcher.contentLoader.Load(url, d.Timeout)
+		d.URL = url
+		fetchResult.Content, fetchResult.Err = fetcher.fetch(d)
 
 		if fetchResult.Err == nil {
-			log.WithField("duration", time.Since(start)).Debugf("fetched %v", url)
+			log.WithField("duration", time.Since(start)).Debugf("fetched %v", d.URL)
 
 			fetcher.addMeta(fetchResult.Content.Meta())
 
@@ -156,9 +167,13 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			log.WithField("duration", time.Since(start)).
 				WithField("error", fetchResult.Err).
 				WithField("fetchDefinition", d).
-				Warnf("failed fetching %v", url)
+				Warnf("failed fetching %v", d.URL)
 		}
 	}()
+}
+
+func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error) {
+	return fetcher.contentLoader.Load(fd)
 }
 
 // isAlreadySheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.

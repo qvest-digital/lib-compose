@@ -13,7 +13,7 @@ The composition is done in the following steps:
 1. The UI-Service has a `CompositionHandler` in it's handler chain, which answers these which need composition.
 2. The `CompositionHandler` has a callback from the UI-Service. This callback gets a `http.Request` object as argument and returns a List of FetchResult.
 3. For each request this callback is triggered. So the UI-Service can add a `ContentFetcher` for this request and adds FetchDefinitions for Page using `ContentFetcher.AddFetchJob()`.
-4. The ContentFetchter loads the Pages and recursively it's dependencies in parallel. For the actual loading and parsing, it uses the `HtmlContentLoader`.
+4. The ContentFetchter loads the Pages and recursively it's dependencies in parallel. For the actual loading and parsing, it uses the `HtmlContentParser`.
 5. When all `Content` objects are loaded, the `CompositionHandler` merges them together, using `ContentMerge`.
 
 ### Merging
