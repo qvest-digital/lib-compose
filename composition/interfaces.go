@@ -15,7 +15,7 @@ type Fragment interface {
 type ContentLoader interface {
 	// Load synchronously loads a content.
 	// The loader has to ensure to return the call withing the supplied timeout.
-	Load(fd *FetchDefinition) (Content, error)
+	Load(fd *FetchDefinition, rp ResponseProcessor) (Content, error)
 }
 
 type ContentParser interface {
@@ -77,4 +77,9 @@ type ContentMerger interface {
 
 	// Merge and write all content supplied writer
 	WriteHtml(w io.Writer) error
+}
+
+type ResponseProcessor interface {
+	// Process html from responsebody before composition is triggered
+	Process(*http.Response, string) error
 }
