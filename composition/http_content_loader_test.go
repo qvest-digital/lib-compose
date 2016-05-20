@@ -89,12 +89,12 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 	loader := NewHttpContentLoader()
 	mockParser := NewMockContentParser(ctrl)
 	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
-	Do(func(c *MemoryContent, in io.Reader) {
-		body, err := ioutil.ReadAll(in)
-		a.NoError(err)
-		a.Equal("the body", string(body))
-		c.head = StringFragment("some head content")
-	})
+		Do(func(c *MemoryContent, in io.Reader) {
+			body, err := ioutil.ReadAll(in)
+			a.NoError(err)
+			a.Equal("the body", string(body))
+			c.head = StringFragment("some head content")
+		})
 
 	loader.parser["text/html"] = mockParser
 

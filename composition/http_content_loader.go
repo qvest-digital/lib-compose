@@ -41,10 +41,10 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 		return nil, err
 	}
 
-	if fd.RespProc!=nil {
-		err=fd.RespProc.Process(resp, fd.URL)
+	if fd.RespProc != nil {
+		err = fd.RespProc.Process(resp, fd.URL)
 	}
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 

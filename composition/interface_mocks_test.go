@@ -6,7 +6,7 @@ package composition
 import (
 	gomock "github.com/golang/mock/gomock"
 	io "io"
-	
+
 	http "net/http"
 )
 
