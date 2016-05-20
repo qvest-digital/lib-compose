@@ -81,5 +81,6 @@ type ContentMerger interface {
 
 type ResponseProcessor interface {
 	// Process html from responsebody before composition is triggered
+	// May create a new Reader inside the ResponseBody
 	Process(*http.Response, string) error
 }
