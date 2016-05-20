@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"errors"
 )
 
 func XTest_HttpContentLoader_Load(t *testing.T) {
@@ -88,12 +87,26 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 	defer server.Close()
 
 	loader := NewHttpContentLoader()
+	mockParser := NewMockContentParser(ctrl)
+	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
+	Do(func(c *MemoryContent, in io.Reader) {
+		body, err := ioutil.ReadAll(in)
+		a.NoError(err)
+		a.Equal("the body", string(body))
+		c.head = StringFragment("some head content")
+	})
 
-	expectedError:= "ResponseProcessor was called"
+	loader.parser["text/html"] = mockParser
+
 	mockResponseProcessor := NewMockResponseProcessor(ctrl)
-	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any()).AnyTimes().Return(errors.New(expectedError))
-	_, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
-	a.Contains(err.Error(), expectedError)
+	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any())
+	c, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
+	a.NoError(err)
+	a.NotNil(c)
+	a.Nil(c.Reader())
+	a.Equal(server.URL, c.URL())
+	eqFragment(t, "some head content", c.Head())
+	a.Equal(0, len(c.Body()))
 }
 
 func Test_HttpContentLoader_Load_POST(t *testing.T) {
