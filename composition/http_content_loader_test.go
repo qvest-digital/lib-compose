@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"errors"
 )
 
 func XTest_HttpContentLoader_Load(t *testing.T) {
@@ -75,6 +76,24 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 	a.Equal(server.URL, c.URL())
 	eqFragment(t, "some head content", c.Head())
 	a.Equal(0, len(c.Body()))
+}
+
+func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	server := testServer("the body", time.Millisecond*0)
+	defer server.Close()
+
+	loader := NewHttpContentLoader()
+
+	expectedError:= "ResponseProcessor was called"
+	mockResponseProcessor := NewMockResponseProcessor(ctrl)
+	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any()).AnyTimes().Return(errors.New(expectedError))
+	_, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
+	a.Contains(err.Error(), expectedError)
 }
 
 func Test_HttpContentLoader_Load_POST(t *testing.T) {
