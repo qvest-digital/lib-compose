@@ -22,7 +22,7 @@ func NewHttpContentLoader() *HttpContentLoader {
 }
 
 // TODO: Should we filter the headers, which we forward here, or is it correct to copy all of them?
-func (loader *HttpContentLoader) Load(fd *FetchDefinition, rp ResponseProcessor) (Content, error) {
+func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	client := &http.Client{Timeout: fd.Timeout}
 
 	var err error
@@ -41,8 +41,8 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition, rp ResponseProcessor)
 		return nil, err
 	}
 
-	if rp!=nil {
-		err=rp.Process(resp, fd.URL)
+	if fd.RespProc!=nil {
+		err=fd.RespProc.Process(resp, fd.URL)
 	}
 	if err!=nil {
 		return nil, err

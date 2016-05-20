@@ -20,6 +20,7 @@ type FetchDefinition struct {
 	Header   http.Header
 	Method   string
 	Body     io.Reader
+	RespProc ResponseProcessor
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -123,12 +124,8 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	return fetcher.r.results
 }
 
-func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
-	fetcher.AddFetchJobWithPostProcessing(d, nil)
-}
-
 // AddFetchJob addes one job to the fetcher and recursively adds the dependencies also.
-func (fetcher *ContentFetcher) AddFetchJobWithPostProcessing(d *FetchDefinition, rp ResponseProcessor) {
+func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
 
@@ -155,7 +152,7 @@ func (fetcher *ContentFetcher) AddFetchJobWithPostProcessing(d *FetchDefinition,
 		}
 
 		d.URL = url
-		fetchResult.Content, fetchResult.Err = fetcher.fetch(d, rp)
+		fetchResult.Content, fetchResult.Err = fetcher.fetch(d)
 
 		if fetchResult.Err == nil {
 			log.WithField("duration", time.Since(start)).Debugf("fetched %v", d.URL)
@@ -176,8 +173,8 @@ func (fetcher *ContentFetcher) AddFetchJobWithPostProcessing(d *FetchDefinition,
 	}()
 }
 
-func (fetcher *ContentFetcher) fetch(fd *FetchDefinition, rp ResponseProcessor) (Content, error) {
-	return fetcher.contentLoader.Load(fd, rp)
+func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error) {
+	return fetcher.contentLoader.Load(fd)
 }
 
 // isAlreadySheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.

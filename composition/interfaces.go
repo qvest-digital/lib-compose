@@ -15,7 +15,7 @@ type Fragment interface {
 type ContentLoader interface {
 	// Load synchronously loads a content.
 	// The loader has to ensure to return the call withing the supplied timeout.
-	Load(fd *FetchDefinition, rp ResponseProcessor) (Content, error)
+	Load(fd *FetchDefinition) (Content, error)
 }
 
 type ContentParser interface {
