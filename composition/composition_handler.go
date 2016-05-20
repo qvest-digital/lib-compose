@@ -60,9 +60,11 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if len(results) > 0 {
 		// copy headers
 		for k, values := range results[0].Content.HttpHeader() {
-			for _, v := range values {
-				w.Header().Set(k, v)
-			}
+                        if k != "Content-Length" {
+                                for _, v := range values {
+                                        w.Header().Set(k, v)
+                                }
+                        }
 		}
 		if results[0].Content.HttpStatusCode() != 0 {
 			w.WriteHeader(results[0].Content.HttpStatusCode())
