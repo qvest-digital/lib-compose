@@ -20,23 +20,37 @@ type FetchDefinition struct {
 	Header   http.Header
 	Method   string
 	Body     io.Reader
+	RespProc ResponseProcessor
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
 }
 
 func NewFetchDefinition(url string) *FetchDefinition {
+	return NewFetchDefinitionWithResponseProcessor(url, nil)
+}
+
+// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
+func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
 	return &FetchDefinition{
 		URL:      url,
 		Timeout:  10 * time.Second,
 		Required: true,
 		Method:   "GET",
+		RespProc: rp,
 	}
 }
 
 // NewFetchDefinitionFromRequest creates a fetch definition
 // from the request path, but replaces the sheme, host and port with the provided base url
 func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
+	return NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl, r, nil)
+}
+
+// NewFetchDefinitionFromRequest creates a fetch definition
+// from the request path, but replaces the sheme, host and port with the provided base url
+// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
+func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor) *FetchDefinition {
 	if strings.HasSuffix(baseUrl, "/") {
 		baseUrl = baseUrl[:len(baseUrl)-1]
 	}
@@ -56,6 +70,7 @@ func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefini
 		Method:   r.Method,
 		Body:     r.Body,
 		Required: true,
+		RespProc: rp,
 	}
 }
 

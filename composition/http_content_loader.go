@@ -41,6 +41,13 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 		return nil, err
 	}
 
+	if fd.RespProc != nil {
+		err = fd.RespProc.Process(resp, fd.URL)
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return nil, fmt.Errorf("(http %v) on loading url %q", resp.StatusCode, fd.URL)
 	}

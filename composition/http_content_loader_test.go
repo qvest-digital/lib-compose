@@ -77,6 +77,38 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 	a.Equal(0, len(c.Body()))
 }
 
+func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	server := testServer("the body", time.Millisecond*0)
+	defer server.Close()
+
+	loader := NewHttpContentLoader()
+	mockParser := NewMockContentParser(ctrl)
+	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
+		Do(func(c *MemoryContent, in io.Reader) {
+			body, err := ioutil.ReadAll(in)
+			a.NoError(err)
+			a.Equal("the body", string(body))
+			c.head = StringFragment("some head content")
+		})
+
+	loader.parser["text/html"] = mockParser
+
+	mockResponseProcessor := NewMockResponseProcessor(ctrl)
+	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any())
+	c, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
+	a.NoError(err)
+	a.NotNil(c)
+	a.Nil(c.Reader())
+	a.Equal(server.URL, c.URL())
+	eqFragment(t, "some head content", c.Head())
+	a.Equal(0, len(c.Body()))
+}
+
 func Test_HttpContentLoader_Load_POST(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
