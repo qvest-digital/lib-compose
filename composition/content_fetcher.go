@@ -1,89 +1,11 @@
 package composition
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"errors"
 	log "github.com/Sirupsen/logrus"
-	"io"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
-
-// FetchDefinition is a descriptor for fetching Content from an endpoint.
-type FetchDefinition struct {
-	URL      string
-	Timeout  time.Duration
-	Required bool
-	Header   http.Header
-	Method   string
-	Body     io.Reader
-	RespProc ResponseProcessor
-	//ServeResponseHeaders bool
-	//IsPrimary            bool
-	//FallbackURL string
-}
-
-func NewFetchDefinition(url string) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessor(url, nil)
-}
-
-// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
-func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
-	return &FetchDefinition{
-		URL:      url,
-		Timeout:  10 * time.Second,
-		Required: true,
-		Method:   "GET",
-		RespProc: rp,
-	}
-}
-
-// NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the sheme, host and port with the provided base url
-func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl, r, nil)
-}
-
-// NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the sheme, host and port with the provided base url
-// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
-func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor) *FetchDefinition {
-	if strings.HasSuffix(baseUrl, "/") {
-		baseUrl = baseUrl[:len(baseUrl)-1]
-	}
-
-	fullPath := r.URL.Path
-	if fullPath == "" {
-		fullPath = "/"
-	}
-	if r.URL.RawQuery != "" {
-		fullPath += "?" + r.URL.RawQuery
-	}
-
-	return &FetchDefinition{
-		URL:      baseUrl + fullPath,
-		Timeout:  10 * time.Second,
-		Header:   r.Header,
-		Method:   r.Method,
-		Body:     r.Body,
-		Required: true,
-		RespProc: rp,
-	}
-}
-
-// Hash returns a unique hash for the fetch request.
-// If two hashes of fetch resources are equal, they refer the same resource
-// and can e.g. be taken as replacement for each other. E.g. in case of caching.
-// TODO: Maybe we should exclude some headers from the hash?
-func (def *FetchDefinition) Hash() string {
-	hasher := md5.New()
-	hasher.Write([]byte(def.URL))
-	def.Header.Write(hasher)
-	return hex.EncodeToString(hasher.Sum(nil))
-}
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
 // or is a local name only.

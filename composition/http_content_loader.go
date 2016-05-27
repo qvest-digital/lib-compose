@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"strings"
-	"time"
 )
 
 type HttpContentLoader struct {
@@ -31,10 +29,10 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 		return nil, err
 	}
 	request.Header = fd.Header
-
-	if fd.Method == "POST" {
-		request.Header.Set("Content-Type", fd.Header.Get("Content-Type"))
+	if request.Header == nil {
+		request.Header = http.Header{}
 	}
+	request.Header.Set("User-Agent", "lib-ui-service")
 
 	resp, err := client.Do(request)
 	if err != nil {
@@ -68,20 +66,10 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 				ioutil.ReadAll(resp.Body)
 				resp.Body.Close()
 			}()
-
 			return c, parser.Parse(c, resp.Body)
 		}
 	}
 
 	c.reader = resp.Body
 	return c, nil
-}
-
-func testServer(content string, timeout time.Duration) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-		time.Sleep(timeout)
-		w.Write([]byte(content))
-	}))
 }
