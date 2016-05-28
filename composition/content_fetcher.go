@@ -87,8 +87,11 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			return
 		}
 
-		d.URL = url
-		fetchResult.Content, fetchResult.Err = fetcher.fetch(d)
+		// create a copy of the fetch definition, to because we do not
+		// want to override the original URL with expanded values
+		definitionCopy := *d
+		definitionCopy.URL = url
+		fetchResult.Content, fetchResult.Err = fetcher.fetch(&definitionCopy)
 
 		if fetchResult.Err == nil {
 			log.WithField("duration", time.Since(start)).Debugf("fetched %v", d.URL)
