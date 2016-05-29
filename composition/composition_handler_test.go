@@ -18,25 +18,23 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	defer ctrl.Finish()
 	a := assert.New(t)
 
-	content := &MemoryContent{
-		body: map[string]Fragment{
-			"": StringFragment("Hello World\n"),
-		},
-	}
-
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
 			&FetchResult{
-				Def:     NewFetchDefinition("/foo"),
-				Content: content,
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment("Hello World\n"),
+					},
+				},
 			},
 		}
 	}
-	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 
 	resp := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
-	aggregator.ServeHTTP(resp, r)
+	ch.ServeHTTP(resp, r)
 
 	expected := `<html>
   <head>
@@ -50,6 +48,50 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 `
 	a.Equal(expected, string(resp.Body.Bytes()))
 	a.Equal(200, resp.Code)
+}
+
+func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment(""),
+					},
+					httpHeader: http.Header{
+						"Transfer-Encoding": {"gzip"}, // removed
+						"Location":          {"/look/somewhere"},
+						"Set-Cookie": {
+							"cookie-content 1",
+							"cookie-content 2",
+						},
+					},
+					httpStatusCode: 302,
+				},
+			},
+			&FetchResult{
+				Def:     NewFetchDefinition("..."),
+				Content: &MemoryContent{},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(302, resp.Code)
+	a.Equal(3, len(resp.Header()))
+	a.Equal("/look/somewhere", resp.Header().Get("Location"))
+	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
 }
 
 func Test_CompositionHandler_ReturnStream(t *testing.T) {
