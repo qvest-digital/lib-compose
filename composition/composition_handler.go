@@ -40,7 +40,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		if res.Err == nil && res.Content != nil {
 
 			if res.Content.Reader() != nil {
-				w.Header().Set("Content-Type", res.Content.HttpHeader().Get("Content-Type"))
+				copyHeaders(res.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
 				io.Copy(w, res.Content.Reader())
 				res.Content.Reader().Close()
 				return
@@ -57,20 +57,21 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	status := 200
+	// Take status code and headers from first fetch definition
 	if len(results) > 0 {
-		// copy headers
-		for k, values := range results[0].Content.HttpHeader() {
-                        if k != "Content-Length" {
-                                for _, v := range values {
-                                        w.Header().Set(k, v)
-                                }
-                        }
-		}
+		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
 		if results[0].Content.HttpStatusCode() != 0 {
-			w.WriteHeader(results[0].Content.HttpStatusCode())
+			status = results[0].Content.HttpStatusCode()
 		}
 	}
 
+	// Overwrite Content-Type to ensure, that the encoding is correct
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	if status != 200 {
+		w.WriteHeader(status)
+	}
 	err := mergeContext.WriteHtml(w)
 	if err != nil {
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
