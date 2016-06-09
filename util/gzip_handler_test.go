@@ -12,10 +12,12 @@ import (
 )
 
 func Test_GzipHandler_CompressableType(t *testing.T) {
-	server := httptest.NewServer(NewGzipHandler(test_text_handler()))
-
 	a := assert.New(t)
 
+	// given: a server which returns text
+	server := httptest.NewServer(NewGzipHandler(test_text_handler()))
+
+	// when: we call the server with gzip accept header
 	r, err := http.NewRequest("GET", server.URL, nil)
 	a.NoError(err)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -23,6 +25,7 @@ func Test_GzipHandler_CompressableType(t *testing.T) {
 	resp, err := http.DefaultClient.Do(r)
 	a.NoError(err)
 
+	// then: it is gzipped
 	a.Equal("text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
 	a.Equal("gzip", resp.Header.Get("Content-Encoding"))
 
@@ -30,6 +33,7 @@ func Test_GzipHandler_CompressableType(t *testing.T) {
 	a.NoError(err)
 	a.Equal(strconv.Itoa(len(gzBytes)), resp.Header.Get("Content-Length"))
 
+	// and: we can uncomress it
 	reader, err := gzip.NewReader(bytes.NewBuffer(gzBytes))
 	a.NoError(err)
 	defer reader.Close()
@@ -41,10 +45,12 @@ func Test_GzipHandler_CompressableType(t *testing.T) {
 }
 
 func Test_GzipHandler_NotCompressingTwice(t *testing.T) {
-	server := httptest.NewServer(NewGzipHandler(test_already_compressed_handler()))
-
 	a := assert.New(t)
 
+	// given: a server which returns an already compressed stream
+	server := httptest.NewServer(NewGzipHandler(test_already_compressed_handler()))
+
+	// when: we call the server with gzip accept header
 	r, err := http.NewRequest("GET", server.URL, nil)
 	a.NoError(err)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -52,8 +58,10 @@ func Test_GzipHandler_NotCompressingTwice(t *testing.T) {
 	resp, err := http.DefaultClient.Do(r)
 	a.NoError(err)
 
+	// then: it is gzipped
 	a.Equal("gzip", resp.Header.Get("Content-Encoding"))
 
+	// and: we can uncomress it
 	reader, err := gzip.NewReader(resp.Body)
 	a.NoError(err)
 	defer reader.Close()
@@ -65,10 +73,12 @@ func Test_GzipHandler_NotCompressingTwice(t *testing.T) {
 }
 
 func Test_GzipHandler_CompressableType_NoAccept(t *testing.T) {
-	server := httptest.NewServer(NewGzipHandler(test_text_handler()))
-
 	a := assert.New(t)
 
+	// given: a server which returns text
+	server := httptest.NewServer(NewGzipHandler(test_text_handler()))
+
+	// when: we call it without gzip accept header
 	r, err := http.NewRequest("GET", server.URL, nil)
 	a.NoError(err)
 	r.Header.Set("Accept-Encoding", "none")
@@ -76,6 +86,7 @@ func Test_GzipHandler_CompressableType_NoAccept(t *testing.T) {
 	resp, err := http.DefaultClient.Do(r)
 	a.NoError(err)
 
+	// then: it is not encrypted
 	a.Equal("", resp.Header.Get("Content-Encoding"))
 
 	bytes, err := ioutil.ReadAll(resp.Body)
@@ -85,10 +96,12 @@ func Test_GzipHandler_CompressableType_NoAccept(t *testing.T) {
 }
 
 func Test_GzipHandler_NonCompressableType(t *testing.T) {
-	server := httptest.NewServer(NewGzipHandler(test_binary_handler()))
-
 	a := assert.New(t)
 
+	// given: a server which returns binary data, which is not listed in the content types
+	server := httptest.NewServer(NewGzipHandler(test_binary_handler()))
+
+	// when we call it with accept header
 	r, err := http.NewRequest("GET", server.URL, nil)
 	a.NoError(err)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -96,6 +109,7 @@ func Test_GzipHandler_NonCompressableType(t *testing.T) {
 	resp, err := http.DefaultClient.Do(r)
 	a.NoError(err)
 
+	// then: it is not encrypted
 	a.Equal("", resp.Header.Get("Content-Encoding"))
 
 	bytes, err := ioutil.ReadAll(resp.Body)
