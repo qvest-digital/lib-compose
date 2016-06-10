@@ -55,6 +55,7 @@ type FetchDefinition struct {
 	Method   string
 	Body     io.Reader
 	RespProc ResponseProcessor
+        ErrHandler ErrorHandler
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -62,6 +63,16 @@ type FetchDefinition struct {
 
 func NewFetchDefinition(url string) *FetchDefinition {
 	return NewFetchDefinitionWithResponseProcessor(url, nil)
+}
+
+func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
+        return &FetchDefinition{
+                URL:      url,
+                Timeout:  10 * time.Second,
+                Required: true,
+                Method:   "GET",
+                ErrHandler: errHandler,
+        }
 }
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
@@ -72,6 +83,7 @@ func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *
 		Required: true,
 		Method:   "GET",
 		RespProc: rp,
+                ErrHandler: NewDefaultErrorHandler(),
 	}
 }
 
@@ -106,6 +118,7 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 		Body:     r.Body,
 		Required: true,
 		RespProc: rp,
+                ErrHandler: NewDefaultErrorHandler(),
 	}
 }
 
@@ -135,3 +148,17 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 	}
 	return dest
 }
+
+// the default handler throws an controlled status 502
+type DefaultErrorHandler struct {
+}
+
+func NewDefaultErrorHandler() *DefaultErrorHandler {
+        deh := new(DefaultErrorHandler)
+        return deh
+}
+
+func (der *DefaultErrorHandler) Handle(err error, w http.ResponseWriter, r *http.Request) {
+        http.Error(w, "Bad Gateway: " + err.Error(), 502)
+}
+

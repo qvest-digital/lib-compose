@@ -50,7 +50,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 		} else if res.Def.Required {
 			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
-			http.Error(w, "Bad Gateway: "+res.Err.Error(), 502)
+                        res.Def.ErrHandler.Handle(res.Err, w, r)
 			return
 		} else {
 			log.WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
