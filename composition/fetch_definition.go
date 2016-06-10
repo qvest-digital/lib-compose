@@ -46,6 +46,10 @@ var ForwardResponseHeaders = []string{
 	"Set-Cookie",
 	"WWW-Authenticate"}
 
+const(
+        DEFAULTTIMEOUT time.Duration = 10 * time.Second
+)
+
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
 	URL      string
@@ -68,7 +72,7 @@ func NewFetchDefinition(url string) *FetchDefinition {
 func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
         return &FetchDefinition{
                 URL:      url,
-                Timeout:  10 * time.Second,
+                Timeout:  DEFAULTTIMEOUT,
                 Required: true,
                 Method:   "GET",
                 ErrHandler: errHandler,
@@ -79,7 +83,7 @@ func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *Fe
 func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
 	return &FetchDefinition{
 		URL:      url,
-		Timeout:  10 * time.Second,
+		Timeout:  DEFAULTTIMEOUT,
 		Required: true,
 		Method:   "GET",
 		RespProc: rp,
@@ -112,7 +116,7 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 
 	return &FetchDefinition{
 		URL:      baseUrl + fullPath,
-		Timeout:  10 * time.Second,
+		Timeout:  DEFAULTTIMEOUT,
 		Header:   copyHeaders(r.Header, nil, ForwardRequestHeaders),
 		Method:   r.Method,
 		Body:     r.Body,
@@ -149,7 +153,7 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 	return dest
 }
 
-// the default handler throws an controlled status 502
+// the default handler throws an status 502
 type DefaultErrorHandler struct {
 }
 
