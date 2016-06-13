@@ -36,3 +36,10 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 	a.NoError(err)
 	a.Equal("the body", string(b))
 }
+
+func Test_FetchDefinition_use_DefaultErrorHandler_if_not_set(t *testing.T) {
+	a := assert.New(t)
+
+	fd := NewFetchDefinitionWithErrorHandler("http://upstream:8080/", nil)
+        a.Equal(NewDefaultErrorHandler(), fd.ErrHandler)
+}
