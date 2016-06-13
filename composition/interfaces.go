@@ -84,3 +84,8 @@ type ResponseProcessor interface {
 	// May create a new Reader inside the ResponseBody
 	Process(*http.Response, string) error
 }
+
+type ErrorHandler interface {
+	// handle http request errors
+	Handle(err error, w http.ResponseWriter, r *http.Request)
+}

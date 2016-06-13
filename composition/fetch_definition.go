@@ -46,6 +46,10 @@ var ForwardResponseHeaders = []string{
 	"Set-Cookie",
 	"WWW-Authenticate"}
 
+const(
+        DEFAULTTIMEOUT time.Duration = 10 * time.Second
+)
+
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
 	URL      string
@@ -55,6 +59,7 @@ type FetchDefinition struct {
 	Method   string
 	Body     io.Reader
 	RespProc ResponseProcessor
+        ErrHandler ErrorHandler
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -64,14 +69,28 @@ func NewFetchDefinition(url string) *FetchDefinition {
 	return NewFetchDefinitionWithResponseProcessor(url, nil)
 }
 
+func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
+        if (errHandler == nil) {
+                errHandler = NewDefaultErrorHandler()
+        }
+        return &FetchDefinition{
+                URL:      url,
+                Timeout:  DEFAULTTIMEOUT,
+                Required: true,
+                Method:   "GET",
+                ErrHandler: errHandler,
+        }
+}
+
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
 	return &FetchDefinition{
 		URL:      url,
-		Timeout:  10 * time.Second,
+		Timeout:  DEFAULTTIMEOUT,
 		Required: true,
 		Method:   "GET",
 		RespProc: rp,
+                ErrHandler: NewDefaultErrorHandler(),
 	}
 }
 
@@ -100,12 +119,13 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 
 	return &FetchDefinition{
 		URL:      baseUrl + fullPath,
-		Timeout:  10 * time.Second,
+		Timeout:  DEFAULTTIMEOUT,
 		Header:   copyHeaders(r.Header, nil, ForwardRequestHeaders),
 		Method:   r.Method,
 		Body:     r.Body,
 		Required: true,
 		RespProc: rp,
+                ErrHandler: NewDefaultErrorHandler(),
 	}
 }
 
@@ -135,3 +155,17 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 	}
 	return dest
 }
+
+// the default handler throws an status 502
+type DefaultErrorHandler struct {
+}
+
+func NewDefaultErrorHandler() *DefaultErrorHandler {
+        deh := new(DefaultErrorHandler)
+        return deh
+}
+
+func (der *DefaultErrorHandler) Handle(err error, w http.ResponseWriter, r *http.Request) {
+        http.Error(w, "Bad Gateway: " + err.Error(), 502)
+}
+
