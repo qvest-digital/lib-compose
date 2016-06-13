@@ -74,7 +74,8 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 	err := mergeContext.WriteHtml(w)
 	if err != nil {
-		http.Error(w, "Internal Server Error: "+err.Error(), 500)
+                log.Error(err.Error())
+		http.Error(w, "Internal Server Error: " + err.Error(), 500)
 		return
 	}
 }

@@ -70,6 +70,9 @@ func NewFetchDefinition(url string) *FetchDefinition {
 }
 
 func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
+        if (errHandler == nil) {
+                errHandler = NewDefaultErrorHandler()
+        }
         return &FetchDefinition{
                 URL:      url,
                 Timeout:  DEFAULTTIMEOUT,
