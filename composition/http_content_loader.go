@@ -60,7 +60,7 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	// content type may have encoding information at the end
 	reponseType := resp.Header.Get("Content-Type")
 	responseNoCompositionHeader := resp.Header.Get("X-No-Composition")
-	if responseNoCompositionHeader != "" {
+	if responseNoCompositionHeader == "" {
 		for contentType, parser := range loader.parser {
 			if strings.HasPrefix(reponseType, contentType) {
 				defer func() {
