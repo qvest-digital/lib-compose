@@ -168,6 +168,25 @@ func Test_HttpContentLoader_LoadStream(t *testing.T) {
 	a.Equal("{}", string(body))
 }
 
+func Test_HttpContentLoader_LoadStream_No_Composition_Header(t *testing.T) {
+	a := assert.New(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-No-Composition", "1")
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	loader := &HttpContentLoader{}
+	c, err := loader.Load(NewFetchDefinition(server.URL))
+	a.NoError(err)
+	a.NotNil(c.Reader())
+	body, err := ioutil.ReadAll(c.Reader())
+	a.NoError(err)
+	a.Equal("{}", string(body))
+}
+
 func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	a := assert.New(t)
 
