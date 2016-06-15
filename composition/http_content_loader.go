@@ -59,14 +59,17 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	// direct access to the map does not work, because the
 	// content type may have encoding information at the end
 	reponseType := resp.Header.Get("Content-Type")
-	for contentType, parser := range loader.parser {
-		if strings.HasPrefix(reponseType, contentType) {
-			defer func() {
-				// read and close the body, to make reuse of tcp connections
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-			}()
-			return c, parser.Parse(c, resp.Body)
+	responseNoCompositionHeader := resp.Header.Get("X-No-Composition")
+	if responseNoCompositionHeader != "" {
+		for contentType, parser := range loader.parser {
+			if strings.HasPrefix(reponseType, contentType) {
+				defer func() {
+					// read and close the body, to make reuse of tcp connections
+					ioutil.ReadAll(resp.Body)
+					resp.Body.Close()
+				}()
+				return c, parser.Parse(c, resp.Body)
+			}
 		}
 	}
 
