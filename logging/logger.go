@@ -6,6 +6,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/Sirupsen/logrus/formatters/logstash"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -48,9 +49,9 @@ func Access(r *http.Request, start time.Time, statusCode int) {
 		msg = fmt.Sprintf("%v %v %v?...", statusCode, r.Method, r.URL.Path)
 	}
 
-	if statusCode >= 200 && statusCode < 399 {
+	if statusCode >= 200 && statusCode <= 399 {
 		e.Info(msg)
-	} else if statusCode >= 400 && statusCode < 499 {
+	} else if statusCode >= 400 && statusCode <= 499 {
 		e.Warn(msg)
 	} else {
 		e.Error(msg)
@@ -83,18 +84,10 @@ func access(r *http.Request, start time.Time, statusCode int, err error) *logrus
 	}
 
 	if err != nil {
-		fields[logrus.ErrorKey] = err
+		fields[logrus.ErrorKey] = err.Error()
 	}
 
-	correlationId := GetCorrelationId(r)
-	if correlationId != "" {
-		fields["correlation_id"] = correlationId
-	}
-
-	userCorrelationId := GetUserCorrelationId(r)
-	if userCorrelationId != "" {
-		fields["user_correlation_id"] = userCorrelationId
-	}
+	setCorrelationIds(fields, r)
 
 	cookies := map[string]string{}
 	for _, c := range r.Cookies() {
@@ -109,9 +102,62 @@ func access(r *http.Request, start time.Time, statusCode int, err error) *logrus
 	return Logger.WithFields(fields)
 }
 
-// ApplicationStart logs the start of an application
+// Call logs the result of an outgoing call
+func Call(r *http.Request, resp *http.Response, start time.Time, err error) {
+	url := r.URL.Path
+	if r.URL.RawQuery != "" {
+		url += "?" + r.URL.RawQuery
+	}
+	fields := logrus.Fields{
+		"type":       "call",
+		"@timestamp": start,
+		"host":       r.Host,
+		"url":        url,
+		"full_url":   r.URL.String(),
+		"method":     r.Method,
+		"duration":   time.Since(start).Nanoseconds() / 1000000,
+	}
+
+	setCorrelationIds(fields, r)
+
+	if err != nil {
+		fields[logrus.ErrorKey] = err.Error()
+		Logger.WithFields(fields).Error(err)
+		return
+	}
+
+	if resp != nil {
+		fields["response_status"] = resp.StatusCode
+		fields["content_type"] = resp.Header.Get("Content-Type")
+		e := Logger.WithFields(fields)
+		msg := fmt.Sprintf("%v %v %v", resp.StatusCode, r.Method, r.URL.String())
+
+		if resp.StatusCode >= 200 && resp.StatusCode <= 399 {
+			e.Info(msg)
+		} else if resp.StatusCode >= 400 && resp.StatusCode <= 499 {
+			e.Warn(msg)
+		} else {
+			e.Error(msg)
+		}
+		return
+	}
+
+	Logger.WithFields(fields).Warn("call, but no response given")
+}
+
+// Return a log entry for application logs,
+// prefilled with the correlation ids out of the supplied request.
+func Application(r *http.Request) *logrus.Entry {
+	fields := logrus.Fields{
+		"type": "application",
+	}
+	setCorrelationIds(fields, r)
+	return Logger.WithFields(fields)
+}
+
+// LifecycleStart logs the start of an application
 // with the configuration struct or map as paramter.
-func ApplicationStart(appName string, args interface{}) {
+func LifecycleStart(appName string, args interface{}) {
 	fields := logrus.Fields{}
 
 	jsonString, err := json.Marshal(args)
@@ -121,9 +167,36 @@ func ApplicationStart(appName string, args interface{}) {
 			fields["parse_error"] = err.Error()
 		}
 	}
-	fields["type"] = "service-start"
+	fields["type"] = "lifecycle"
+	fields["event"] = "start"
+	if os.Getenv("BUILD_NUMBER") != "" {
+		fields["build_number"] = os.Getenv("BUILD_NUMBER")
+	}
 
 	Logger.WithFields(fields).Infof("starting application: %v", appName)
+}
+
+// LifecycleStop logs the stop of an application
+func LifecycleStop(appName string, signal os.Signal, err error) {
+	fields := logrus.Fields{
+		"type":  "lifecycle",
+		"event": "stop",
+	}
+	if signal != nil {
+		fields["signal"] = signal.String()
+	}
+
+	if os.Getenv("BUILD_NUMBER") != "" {
+		fields["build_number"] = os.Getenv("BUILD_NUMBER")
+	}
+
+	if err != nil {
+		Logger.WithFields(fields).
+			WithError(err).
+			Errorf("stopping application: %v (%v)", appName, err)
+	} else {
+		Logger.WithFields(fields).Infof("stopping application: %v (%v)", appName, signal.String())
+	}
 }
 
 func getRemoteIp(r *http.Request) string {
@@ -134,6 +207,18 @@ func getRemoteIp(r *http.Request) string {
 		return r.Header.Get("X-Real-Ip")
 	}
 	return strings.Split(r.RemoteAddr, ":")[0]
+}
+
+func setCorrelationIds(fields logrus.Fields, r *http.Request) {
+	correlationId := GetCorrelationId(r.Header)
+	if correlationId != "" {
+		fields["correlation_id"] = correlationId
+	}
+
+	userCorrelationId := GetUserCorrelationId(r)
+	if userCorrelationId != "" {
+		fields["user_correlation_id"] = userCorrelationId
+	}
 }
 
 func contains(s []string, e string) bool {

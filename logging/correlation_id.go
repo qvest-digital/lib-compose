@@ -27,8 +27,8 @@ func EnsureCorrelationId(r *http.Request) string {
 }
 
 // GetCorrelationId returns the correlation from of the request.
-func GetCorrelationId(r *http.Request) string {
-	return r.Header.Get(CorrelationIdHeader)
+func GetCorrelationId(h http.Header) string {
+	return h.Get(CorrelationIdHeader)
 }
 
 func randStringBytes(n int) string {

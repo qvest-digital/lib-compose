@@ -3,9 +3,11 @@ package logging
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 )
@@ -24,6 +26,7 @@ type logReccord struct {
 	Cookies           map[string]string `json:"cookies"`
 	Error             string            `json:"error"`
 	Message           string            `json:"message"`
+	Level             string            `json:"level"`
 }
 
 func Test_Logger_Set(t *testing.T) {
@@ -60,6 +63,70 @@ func Test_Logger_Access(t *testing.T) {
 		CorrelationIdHeader: {"correlation-123"},
 		"Cookie":            {"user_id=user-id-xyz; ignore=me; foo=bar;"},
 	}
+
+	resp := &http.Response{
+		StatusCode: 404,
+		Header:     http.Header{"Content-Type": {"text/html"}},
+	}
+
+	// when: We log a request with access
+	start := time.Now().Add(-1 * time.Second)
+	Call(r, resp, start, nil)
+
+	// then: all fields match
+	data := &logReccord{}
+	err := json.Unmarshal(b.Bytes(), data)
+	a.NoError(err)
+
+	a.Equal("warning", data.Level)
+	a.Equal("correlation-123", data.CorrelationId)
+	a.Equal("user-id-xyz", data.UserCorrelationId)
+	a.InDelta(1000, data.Duration, 0.5)
+	a.Equal("", data.Error)
+	a.Equal("www.example.org", data.Host)
+	a.Equal("GET", data.Method)
+	a.Equal("404 GET http://www.example.org/foo?q=bar", data.Message)
+	a.Equal(404, data.ResponseStatus)
+	a.Equal("call", data.Type)
+	a.Equal("/foo?q=bar", data.URL)
+
+	// when we call with an error
+	b.Reset()
+	start = time.Now().Add(-1 * time.Second)
+	Call(r, nil, start, errors.New("oops"))
+
+	// then: all fields match
+	data = &logReccord{}
+	err = json.Unmarshal(b.Bytes(), data)
+	a.NoError(err)
+
+	a.Equal("error", data.Level)
+	a.Equal("oops", data.Error)
+	a.Equal("oops", data.Message)
+	a.Equal("correlation-123", data.CorrelationId)
+	a.Equal("user-id-xyz", data.UserCorrelationId)
+	a.InDelta(1000, data.Duration, 0.5)
+	a.Equal("www.example.org", data.Host)
+	a.Equal("GET", data.Method)
+	a.Equal("call", data.Type)
+	a.Equal("/foo?q=bar", data.URL)
+}
+
+func Test_Logger_Call(t *testing.T) {
+	a := assert.New(t)
+
+	// given a logger
+	b := bytes.NewBuffer(nil)
+	Logger.Out = b
+	AccessLogCookiesBlacklist = []string{"ignore", "user_id"}
+	UserCorrelationCookie = "user_id"
+
+	// and a request
+	r, _ := http.NewRequest("GET", "http://www.example.org/foo?q=bar", nil)
+	r.Header = http.Header{
+		CorrelationIdHeader: {"correlation-123"},
+		"Cookie":            {"user_id=user-id-xyz; ignore=me; foo=bar;"},
+	}
 	r.RemoteAddr = "127.0.0.1"
 
 	// when: We log a request with access
@@ -71,6 +138,7 @@ func Test_Logger_Access(t *testing.T) {
 	err := json.Unmarshal(b.Bytes(), data)
 	a.NoError(err)
 
+	a.Equal("info", data.Level)
 	a.Equal(map[string]string{"foo": "bar"}, data.Cookies)
 	a.Equal("correlation-123", data.CorrelationId)
 	a.InDelta(1000, data.Duration, 0.5)
@@ -83,4 +151,130 @@ func Test_Logger_Access(t *testing.T) {
 	a.Equal("access", data.Type)
 	a.Equal("/foo?q=bar", data.URL)
 	a.Equal("user-id-xyz", data.UserCorrelationId)
+}
+
+func Test_Logger_Access_ErrorCases(t *testing.T) {
+	a := assert.New(t)
+
+	// given a logger
+	b := bytes.NewBuffer(nil)
+	Logger.Out = b
+
+	// and a request
+	r, _ := http.NewRequest("GET", "http://www.example.org/foo", nil)
+
+	// when a status 404 is logged
+	Access(r, time.Now(), 404)
+	// then: all fields match
+	data := logRecordFromBuffer(b)
+	a.Equal("warning", data.Level)
+	a.Equal("404 GET /foo", data.Message)
+
+	// when a status 500 is logged
+	b.Reset()
+	Access(r, time.Now(), 500)
+	// then: all fields match
+	data = logRecordFromBuffer(b)
+	a.Equal("error", data.Level)
+
+	// when an error is logged
+	b.Reset()
+	AccessError(r, time.Now(), errors.New("oops"))
+	// then: all fields match
+	data = logRecordFromBuffer(b)
+	a.Equal("error", data.Level)
+	a.Equal("oops", data.Error)
+	a.Equal("ERROR GET /foo", data.Message)
+}
+
+func Test_Logger_Application(t *testing.T) {
+	a := assert.New(t)
+
+	// given:
+	UserCorrelationCookie = "user_id"
+	r, _ := http.NewRequest("GET", "http://www.example.org/foo?q=bar", nil)
+	r.Header = http.Header{
+		CorrelationIdHeader: {"correlation-123"},
+		"Cookie":            {"user_id=user-id-xyz;"},
+	}
+
+	// when:
+	entry := Application(r)
+
+	// then:
+	a.Equal("correlation-123", entry.Data["correlation_id"])
+	a.Equal("user-id-xyz", entry.Data["user_correlation_id"])
+}
+
+func Test_Logger_LifecycleStart(t *testing.T) {
+	a := assert.New(t)
+
+	// given a logger
+	b := bytes.NewBuffer(nil)
+	Logger.Out = b
+
+	// and
+	someArguments := struct {
+		Foo    string
+		Number int
+	}{
+		Foo:    "bar",
+		Number: 42,
+	}
+
+	// and an Environment Variable with the Build Number is set
+	os.Setenv("BUILD_NUMBER", "b666")
+
+	// when a LifecycleStart is logged
+	LifecycleStart("my-app", someArguments)
+
+	// then: it is logged
+	data := mapFromBuffer(b)
+	a.Equal("info", data["level"])
+	a.Equal("lifecycle", data["type"])
+	a.Equal("start", data["event"])
+	a.Equal("bar", data["Foo"])
+	a.Equal(42.0, data["Number"])
+	a.Equal("b666", data["build_number"])
+}
+
+func Test_Logger_LifecycleStop(t *testing.T) {
+	a := assert.New(t)
+
+	// given a logger
+	b := bytes.NewBuffer(nil)
+	Logger.Out = b
+
+	// and an Environment Variable with the Build Number is set
+	os.Setenv("BUILD_NUMBER", "b666")
+
+	// when a LifecycleStart is logged
+	LifecycleStop("my-app", os.Interrupt, nil)
+
+	// then: it is logged
+	data := mapFromBuffer(b)
+	a.Equal("info", data["level"])
+	a.Equal("stopping application: my-app (interrupt)", data["message"])
+	a.Equal("lifecycle", data["type"])
+	a.Equal("stop", data["event"])
+	a.Equal("interrupt", data["signal"])
+	a.Equal("b666", data["build_number"])
+}
+
+func logRecordFromBuffer(b *bytes.Buffer) *logReccord {
+	data := &logReccord{}
+	err := json.Unmarshal(b.Bytes(), data)
+	if err != nil {
+		panic(err.Error() + " " + b.String())
+	}
+	return data
+}
+
+func mapFromBuffer(b *bytes.Buffer) map[string]interface{} {
+	data := map[string]interface{}{}
+	err := json.Unmarshal(b.Bytes(), &data)
+	if err != nil {
+		panic(err.Error() + " " + b.String())
+	}
+	return data
 }
