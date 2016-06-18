@@ -4,7 +4,7 @@ import (
 	gorilla "github.com/gorilla/handlers"
 	"net/http"
 	"os"
-	"stash.rewe-digital.com/toom/lib-ui-service/composition"
+	"github.com/tarent/lib-composition/composition"
 )
 
 func main() {

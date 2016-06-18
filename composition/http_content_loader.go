@@ -32,7 +32,7 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	if request.Header == nil {
 		request.Header = http.Header{}
 	}
-	request.Header.Set("User-Agent", "lib-ui-service")
+	request.Header.Set("User-Agent", "lib-composition")
 
 	resp, err := client.Do(request)
 	if err != nil {
