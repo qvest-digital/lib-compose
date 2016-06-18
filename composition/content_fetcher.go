@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"stash.rewe-digital.com/toom/lib-ui-service/logging"
+	"github.com/tarent/lib-compose/logging"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource

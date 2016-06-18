@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"stash.rewe-digital.com/toom/lib-ui-service/logging"
+	"github.com/tarent/lib-compose/logging"
 )
 
 type HttpContentLoader struct {
