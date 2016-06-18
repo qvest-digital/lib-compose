@@ -94,7 +94,7 @@ Example: The Head Fragment contains `<title>The Title</title>`
 </head>
 ```
 
-#### Body Default Fragment 
+#### Body Default Fragment
 All other elements fragments and those elements, marked with `uic-remove`, are removed from the body
 and the remaining fragment is taken as Body Default Fragment. The Body Default Fragment is just a fragment with
 the empty name (""). If there is a `uic-fragment` tag without the name in the body, this overwrites the default fragment.
@@ -181,7 +181,7 @@ There are some predefined variables, constructed out of the request.
 }
 ```
 
-#### Preloaded Includes 
+#### Preloaded Includes
 On an unspecified include, the UI-Service has to load replace the include by a previously loaded fragment.
 
 Example: Will be replaced by the Default Body Fragment of *example.com/foo*.
@@ -202,7 +202,7 @@ Example: Will be replaced by the *content* fragment of any random choosen page.
 §[> #content]§
 ```
 
-#### Loaded Includes 
+#### Loaded Includes
 On a specified include, the UI-Service has to load the referenced page and has to replace the include with the referenced fragment.
 Within the src attribute, there are also variable replacements possible.
 
