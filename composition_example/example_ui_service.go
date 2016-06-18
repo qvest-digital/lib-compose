@@ -4,7 +4,7 @@ import (
 	gorilla "github.com/gorilla/handlers"
 	"net/http"
 	"os"
-	"github.com/tarent/lib-composition/composition"
+	"github.com/tarent/lib-compose/composition"
 )
 
 func main() {
