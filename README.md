@@ -11,4 +11,4 @@ The library consists of the following packages:
 
 - [composition](composition/README.md): The page composition.
 - [util](util/README.md): Some common middleware handlers.
-- [logging](util/README.md): Highlevel logging library.
+- [logging](logging/README.md): Highlevel logging library.
