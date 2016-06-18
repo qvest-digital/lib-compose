@@ -8,4 +8,5 @@ UI-Services are those services, which integrate a set of HTML page to one combin
 The library consists of the following packages:
 
 - [composition](composition/README.md): The page composition.
-- [middleware](middleware/README.md): Some common middleware handlers.
+- [util](util/README.md): Some common middleware handlers.
+- [logging](util/README.md): Highlevel logging library.
