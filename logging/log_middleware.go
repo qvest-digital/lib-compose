@@ -34,6 +34,8 @@ func (mw *LogMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Access(r, start, lrw.statusCode)
 }
 
+// identifyLogOrigin returns the location, where a panic was raised
+// in the form package/subpackage.method:line
 func identifyLogOrigin() string {
 	var name, file string
 	var line int

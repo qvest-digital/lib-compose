@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
+
+	"stash.rewe-digital.com/toom/lib-ui-service/logging"
 )
 
 type HttpContentLoader struct {
@@ -34,7 +37,11 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	}
 	request.Header.Set("User-Agent", "lib-compose")
 
+	start := time.Now()
+
 	resp, err := client.Do(request)
+
+	logging.Call(request, resp, start, err)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +75,13 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 					ioutil.ReadAll(resp.Body)
 					resp.Body.Close()
 				}()
-				return c, parser.Parse(c, resp.Body)
+				parsingStart := time.Now()
+				err := parser.Parse(c, resp.Body)
+				logging.Logger.
+					WithField("full_url", c.URL()).
+					WithField("duration", time.Since(parsingStart)).
+					Debug("content parsing")
+				return c, err
 			}
 		}
 	}

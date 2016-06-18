@@ -2,9 +2,9 @@ package composition
 
 import (
 	"errors"
-	log "github.com/Sirupsen/logrus"
 	"sync"
-	"time"
+
+	"stash.rewe-digital.com/toom/lib-ui-service/logging"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -78,11 +78,11 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	go func() {
 		defer fetcher.activeJobs.Done()
 
-		start := time.Now()
 		url, err := fetcher.expandTemplateVars(d.URL)
 		if err != nil {
-			log.WithField("error", err).
+			logging.Logger.
 				WithField("fetchDefinition", d).
+				WithError(err).
 				Warnf("error expanding url template %v", d.URL)
 			return
 		}
@@ -94,20 +94,17 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		fetchResult.Content, fetchResult.Err = fetcher.fetch(&definitionCopy)
 
 		if fetchResult.Err == nil {
-			log.WithField("duration", time.Since(start)).Debugf("fetched %v", d.URL)
-
 			fetcher.addMeta(fetchResult.Content.Meta())
-
 			for _, dependency := range fetchResult.Content.RequiredContent() {
 				if dependency.IsFetchable() {
 					fetcher.AddFetchJob(dependency)
 				}
 			}
 		} else {
-			log.WithField("duration", time.Since(start)).
-				WithField("error", fetchResult.Err).
+			logging.Logger.WithError(fetchResult.Err).
 				WithField("fetchDefinition", d).
-				Warnf("failed fetching %v", d.URL)
+				WithField("correlation_id", logging.GetCorrelationId(definitionCopy.Header)).
+				Errorf("failed fetching %v", d.URL)
 		}
 	}()
 }
