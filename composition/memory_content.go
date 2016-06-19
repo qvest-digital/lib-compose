@@ -26,6 +26,17 @@ func NewMemoryContent() *MemoryContent {
 	}
 }
 
+func (c *MemoryContent) MemorySize() int {
+	// We estimate the size for caching, here
+	// so a rougth esitmation is enough
+	i := len(c.meta)*20 + c.head.MemorySize() + c.tail.MemorySize() + len(c.httpHeader)*20
+
+	for _, f := range c.body {
+		i += f.MemorySize()
+	}
+	return i
+}
+
 func (c *MemoryContent) URL() string {
 	return c.url
 }

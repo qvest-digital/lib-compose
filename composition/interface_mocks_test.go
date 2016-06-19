@@ -5,9 +5,9 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	
 	io "io"
 	http "net/http"
-	
 )
 
 // Mock of Fragment interface
@@ -39,6 +39,16 @@ func (_m *MockFragment) Execute(_param0 io.Writer, _param1 map[string]interface{
 
 func (_mr *_MockFragmentRecorder) Execute(arg0, arg1, arg2 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Execute", arg0, arg1, arg2)
+}
+
+func (_m *MockFragment) MemorySize() int {
+	ret := _m.ctrl.Call(_m, "MemorySize")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+func (_mr *_MockFragmentRecorder) MemorySize() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "MemorySize")
 }
 
 // Mock of ContentLoader interface
@@ -142,6 +152,16 @@ func (_m *MockContent) HttpStatusCode() int {
 
 func (_mr *_MockContentRecorder) HttpStatusCode() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "HttpStatusCode")
+}
+
+func (_m *MockContent) MemorySize() int {
+	ret := _m.ctrl.Call(_m, "MemorySize")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) MemorySize() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "MemorySize")
 }
 
 func (_m *MockContent) Meta() map[string]interface{} {

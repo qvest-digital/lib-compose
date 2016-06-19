@@ -10,6 +10,9 @@ import (
 
 type Fragment interface {
 	Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error
+
+	// MemorySize return the estimated size in bytes, for this object in memory
+	MemorySize() int
 }
 
 type ContentLoader interface {
@@ -29,6 +32,11 @@ type FetchResultSupplier interface {
 
 	// MetaJSON returns the composed meta JSON object
 	MetaJSON() map[string]interface{}
+}
+
+type CacheStrategy interface {
+	Hash(method string, url string, requestHeader http.Header) string
+	IsCachable(method string, url string, requestHeader http.Header, responseHeader http.Header) bool
 }
 
 // Vontent is the abstration over includable data.
@@ -69,6 +77,9 @@ type Content interface {
 
 	// HttpStatusCode() returns the http statuc code of the fetch job
 	HttpStatusCode() int
+
+	// MemorySize return the estimated size in bytes, for this object in memory
+	MemorySize() int
 }
 
 type ContentMerger interface {

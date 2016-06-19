@@ -79,6 +79,10 @@ func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{},
 	return nil
 }
 
+func (f MockPage1BodyFragment) MemorySize() int {
+	return 42
+}
+
 func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	a := assert.New(t)
 	cm := NewContentMerge(nil)

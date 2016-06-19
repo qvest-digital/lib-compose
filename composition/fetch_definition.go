@@ -53,14 +53,15 @@ const (
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
-	URL        string
-	Timeout    time.Duration
-	Required   bool
-	Header     http.Header
-	Method     string
-	Body       io.Reader
-	RespProc   ResponseProcessor
-	ErrHandler ErrorHandler
+	URL           string
+	Timeout       time.Duration
+	Required      bool
+	Header        http.Header
+	Method        string
+	Body          io.Reader
+	RespProc      ResponseProcessor
+	ErrHandler    ErrorHandler
+	cacheStrategy CacheStrategy
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -134,12 +135,22 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 // Hash returns a unique hash for the fetch request.
 // If two hashes of fetch resources are equal, they refer the same resource
 // and can e.g. be taken as replacement for each other. E.g. in case of caching.
-// TODO: Maybe we should exclude some headers from the hash?
 func (def *FetchDefinition) Hash() string {
+	if def.cacheStrategy != nil {
+		return def.cacheStrategy.Hash(def.Method, def.URL, def.Header)
+	}
+
 	hasher := md5.New()
 	hasher.Write([]byte(def.URL))
 	def.Header.Write(hasher)
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func (def *FetchDefinition) IsCachable(responseHeaders http.Header) bool {
+	if def.cacheStrategy != nil {
+		return def.cacheStrategy.IsCachable(def.Method, def.URL, def.Header, responseHeaders)
+	}
+	return false
 }
 
 // copyHeaders copies only the header contained in the the whitelist
