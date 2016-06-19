@@ -36,12 +36,8 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 }
 
 func (cntx *ContentMerge) GetHtml() ([]byte, error) {
-	buff := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
-	err := cntx.WriteHtmlUnbuffered(buff)
-	return buff.Bytes(), err
-}
+	w := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 
-func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 	var executeFragment func(fragmentName string) error
 	executeFragment = func(fragmentName string) error {
 		f, exist := cntx.Body[fragmentName]
@@ -51,48 +47,38 @@ func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 
-	if _, err := io.WriteString(w, "<html>\n  <head>\n    "); err != nil {
-		return err
-	}
+	io.WriteString(w, "<html>\n  <head>\n    ")
 
 	for _, f := range cntx.Head {
 		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if _, err := io.WriteString(w, "\n  </head>\n  <body"); err != nil {
-		return err
-	}
+	io.WriteString(w, "\n  </head>\n  <body")
 
 	for _, f := range cntx.BodyAttrs {
-		if _, err := io.WriteString(w, " "); err != nil {
-			return err
-		}
+		io.WriteString(w, " ")
 
 		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	if _, err := io.WriteString(w, ">\n    "); err != nil {
-		return err
-	}
+	io.WriteString(w, ">\n    ")
 
 	if err := executeFragment(""); err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, f := range cntx.Tail {
 		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	if _, err := io.WriteString(w, "\n  </body>\n</html>\n"); err != nil {
-		return err
-	}
+	io.WriteString(w, "\n  </body>\n</html>\n")
 
-	return nil
+	return w.Bytes(), nil
 }
 
 func (cntx *ContentMerge) AddContent(fetchResult *FetchResult) {
