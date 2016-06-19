@@ -75,8 +75,8 @@ type ContentMerger interface {
 	// Add content to the meger
 	AddContent(fetchResult *FetchResult)
 
-	// Merge and write all content supplied writer
-	WriteHtml(w io.Writer) error
+	// Return the html as byte array
+	GetHtml() ([]byte, error)
 }
 
 type ResponseProcessor interface {

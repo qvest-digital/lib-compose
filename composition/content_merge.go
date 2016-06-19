@@ -35,17 +35,10 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	return cntx
 }
 
-func (cntx *ContentMerge) WriteHtml(w io.Writer) error {
-	if cntx.Buffered {
-		buff := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
-		if err := cntx.WriteHtmlUnbuffered(buff); err != nil {
-			return err
-		}
-		_, err := buff.WriteTo(w)
-		return err
-	} else {
-		return cntx.WriteHtmlUnbuffered(w)
-	}
+func (cntx *ContentMerge) GetHtml() ([]byte, error) {
+	buff := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+	err := cntx.WriteHtmlUnbuffered(buff)
+	return buff.Bytes(), err
 }
 
 func (cntx *ContentMerge) WriteHtmlUnbuffered(w io.Writer) error {

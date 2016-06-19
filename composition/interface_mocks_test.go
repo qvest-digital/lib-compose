@@ -5,9 +5,9 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	
 	io "io"
 	http "net/http"
-	
 )
 
 // Mock of Fragment interface
@@ -223,14 +223,15 @@ func (_mr *_MockContentMergerRecorder) AddContent(arg0 interface{}) *gomock.Call
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddContent", arg0)
 }
 
-func (_m *MockContentMerger) WriteHtml(_param0 io.Writer) error {
-	ret := _m.ctrl.Call(_m, "WriteHtml", _param0)
-	ret0, _ := ret[0].(error)
-	return ret0
+func (_m *MockContentMerger) GetHtml() ([]byte, error) {
+	ret := _m.ctrl.Call(_m, "GetHtml")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-func (_mr *_MockContentMergerRecorder) WriteHtml(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "WriteHtml", arg0)
+func (_mr *_MockContentMergerRecorder) GetHtml() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetHtml")
 }
 
 // Mock of ContentParser interface
