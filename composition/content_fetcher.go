@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/tarent/lib-compose/logging"
+	"net/http"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -73,7 +74,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 
 	fetcher.activeJobs.Add(1)
 
-	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched")}
+	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched"), HttpStatus:http.StatusBadGateway}
 	fetcher.r.results = append(fetcher.r.results, fetchResult)
 
 	go func() {

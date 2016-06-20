@@ -187,6 +187,26 @@ func Test_HttpContentLoader_LoadStream_No_Composition_Header(t *testing.T) {
 	a.Equal("{}", string(body))
 }
 
+func Test_HttpContentLoader_Pass_404(t *testing.T) {
+	a := assert.New(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		w.Write([]byte("{}"))
+	}))
+
+
+	defer server.Close()
+
+	loader := &HttpContentLoader{}
+	c, err, status := loader.Load(NewFetchDefinition(server.URL))
+	a.Error(err)
+	a.Nil(c)
+	a.Equal(404, status)
+}
+
+
+
 func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	a := assert.New(t)
 
