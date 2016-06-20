@@ -17,6 +17,7 @@ type FetchResult struct {
 	Def     *FetchDefinition
 	Err     error
 	Content Content
+	HttpStatus int
 	Hash    string // the hash of the FetchDefinition
 }
 
@@ -91,7 +92,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		// want to override the original URL with expanded values
 		definitionCopy := *d
 		definitionCopy.URL = url
-		fetchResult.Content, fetchResult.Err = fetcher.fetch(&definitionCopy)
+		fetchResult.Content, fetchResult.Err, fetchResult.HttpStatus = fetcher.fetch(&definitionCopy)
 
 		if fetchResult.Err == nil {
 			fetcher.addMeta(fetchResult.Content.Meta())
@@ -109,7 +110,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	}()
 }
 
-func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error) {
+func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error, int) {
 	return fetcher.contentLoader.Load(fd)
 }
 

@@ -23,13 +23,14 @@ func NewHttpContentLoader() *HttpContentLoader {
 }
 
 // TODO: Should we filter the headers, which we forward here, or is it correct to copy all of them?
-func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
+func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error, int) {
 	client := &http.Client{Timeout: fd.Timeout}
+	statusCode:=502
 
 	var err error
 	request, err := http.NewRequest(fd.Method, fd.URL, fd.Body)
 	if err != nil {
-		return nil, err
+		return nil, err, 0
 	}
 	request.Header = fd.Header
 	if request.Header == nil {
@@ -41,26 +42,31 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 
 	resp, err := client.Do(request)
 
+	if resp != nil {
+		statusCode = resp.StatusCode
+	}
+
+
 	logging.Call(request, resp, start, err)
 	if err != nil {
-		return nil, err
+		return nil, err, statusCode
 	}
 
 	if fd.RespProc != nil {
 		err = fd.RespProc.Process(resp, fd.URL)
 	}
 	if err != nil {
-		return nil, err
+		return nil, err, statusCode
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 399 {
-		return nil, fmt.Errorf("(http %v) on loading url %q", resp.StatusCode, fd.URL)
+	if statusCode < 200 || statusCode > 399 {
+		return nil, fmt.Errorf("(http %v) on loading url %q", statusCode, fd.URL), statusCode
 	}
 
 	c := NewMemoryContent()
 	c.url = fd.URL
 	c.httpHeader = resp.Header
-	c.httpStatusCode = resp.StatusCode
+	c.httpStatusCode = statusCode
 
 	// take the first parser for the content type
 	// direct access to the map does not work, because the
@@ -81,11 +87,11 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 					WithField("full_url", c.URL()).
 					WithField("duration", time.Since(parsingStart)).
 					Debug("content parsing")
-				return c, err
+				return c, err, statusCode
 			}
 		}
 	}
 
 	c.reader = resp.Body
-	return c, nil
+	return c, nil, statusCode
 }

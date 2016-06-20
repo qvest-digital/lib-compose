@@ -62,11 +62,12 @@ func (_m *MockContentLoader) EXPECT() *_MockContentLoaderRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentLoader) Load(_param0 *FetchDefinition) (Content, error) {
+func (_m *MockContentLoader) Load(_param0 *FetchDefinition) (Content, error, int) {
 	ret := _m.ctrl.Call(_m, "Load", _param0)
 	ret0, _ := ret[0].(Content)
 	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret2, _ := ret[2].(int)
+	return ret0, ret1, ret2
 }
 
 func (_mr *_MockContentLoaderRecorder) Load(arg0 interface{}) *gomock.Call {
