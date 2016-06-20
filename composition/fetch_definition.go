@@ -168,5 +168,5 @@ func NewDefaultErrorHandler() *DefaultErrorHandler {
 }
 
 func (der *DefaultErrorHandler) Handle(err error, status int, w http.ResponseWriter, r *http.Request) {
-        http.Error(w, "Error: " + err.Error(), status)
+	http.Error(w, "Error: "+err.Error(), status)
 }

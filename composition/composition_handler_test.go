@@ -173,9 +173,9 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		return MockFetchResultSupplier{
 			&FetchResult{
-				Def:     NewFetchDefinition("/foo"),
-				Content: nil,
-				Err:     errors.New(errorString),
+				Def:        NewFetchDefinition("/foo"),
+				Content:    nil,
+				Err:        errors.New(errorString),
 				HttpStatus: 502,
 			},
 		}

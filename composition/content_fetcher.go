@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/tarent/lib-compose/logging"
-	"strings"
 	"net/http"
+	"strings"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -16,11 +16,11 @@ func (def *FetchDefinition) IsFetchable() bool {
 }
 
 type FetchResult struct {
-	Def     *FetchDefinition
-	Err     error
-	Content Content
+	Def        *FetchDefinition
+	Err        error
+	Content    Content
 	HttpStatus int
-	Hash    string // the hash of the FetchDefinition
+	Hash       string // the hash of the FetchDefinition
 }
 
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
@@ -77,7 +77,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 
 	fetcher.activeJobs.Add(1)
 
-	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched"), HttpStatus:http.StatusBadGateway}
+	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched"), HttpStatus: http.StatusBadGateway}
 	fetcher.r.results = append(fetcher.r.results, fetchResult)
 
 	go func() {

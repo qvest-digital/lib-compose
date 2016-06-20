@@ -43,7 +43,7 @@ func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error, int)
 			WithField("duration", time.Since(parsingStart)).
 			Debug("content parsing")
 		f.Close()
-		return c, err,c.httpStatusCode
+		return c, err, c.httpStatusCode
 	}
 
 	c.reader = f

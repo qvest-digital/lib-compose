@@ -25,7 +25,7 @@ func NewHttpContentLoader() *HttpContentLoader {
 // TODO: Should we filter the headers, which we forward here, or is it correct to copy all of them?
 func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error, int) {
 	client := &http.Client{Timeout: fd.Timeout}
-	statusCode:=502
+	statusCode := 502
 
 	var err error
 	request, err := http.NewRequest(fd.Method, fd.URL, fd.Body)
@@ -45,7 +45,6 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error, int)
 	if resp != nil {
 		statusCode = resp.StatusCode
 	}
-
 
 	logging.Call(request, resp, start, err)
 	if err != nil {

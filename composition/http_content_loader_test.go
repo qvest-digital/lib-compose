@@ -159,7 +159,6 @@ func Test_HttpContentLoader_Pass_404(t *testing.T) {
 		w.Write([]byte("{}"))
 	}))
 
-
 	defer server.Close()
 
 	loader := &HttpContentLoader{}
@@ -168,8 +167,6 @@ func Test_HttpContentLoader_Pass_404(t *testing.T) {
 	a.Nil(c)
 	a.Equal(404, status)
 }
-
-
 
 func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	a := assert.New(t)
@@ -184,7 +181,7 @@ func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	a.Error(err)
 	a.Nil(c)
 	a.Contains(err.Error(), "http 500")
-	assert.True(t, statusCode==500)
+	assert.True(t, statusCode == 500)
 }
 
 func Test_HttpContentLoader_LoadErrorNetwork(t *testing.T) {
