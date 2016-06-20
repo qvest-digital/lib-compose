@@ -4,6 +4,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -50,7 +51,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 		} else if res.Def.Required {
 			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
-                        res.Def.ErrHandler.Handle(res.Err, w, r)
+			res.Def.ErrHandler.Handle(res.Err, w, r)
 			return
 		} else {
 			log.WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
@@ -69,15 +70,16 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	// Overwrite Content-Type to ensure, that the encoding is correct
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if status != 200 {
-		w.WriteHeader(status)
-	}
-	err := mergeContext.WriteHtml(w)
+	html, err := mergeContext.GetHtml()
 	if err != nil {
-                log.Error(err.Error())
-		http.Error(w, "Internal Server Error: " + err.Error(), 500)
+		log.Error(err.Error())
+		http.Error(w, "Internal Server Error: "+err.Error(), 500)
 		return
 	}
+
+	w.Header().Set("Content-Length", strconv.Itoa(len(html)))
+	w.WriteHeader(status)
+	w.Write(html)
 }
 
 func MetadataForRequest(r *http.Request) map[string]interface{} {

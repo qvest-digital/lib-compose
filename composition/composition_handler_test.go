@@ -87,9 +87,10 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(302, resp.Code)
-	a.Equal(3, len(resp.Header()))
+	a.Equal(4, len(resp.Header()))
 	a.Equal("/look/somewhere", resp.Header().Get("Location"))
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.NotEqual("", resp.Header().Get("Content-Length"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
 }
@@ -151,7 +152,7 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any())
-		merger.EXPECT().WriteHtml(gomock.Any()).Return(errors.New("an error"))
+		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
 		return merger
 	}
 
