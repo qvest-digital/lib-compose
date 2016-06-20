@@ -73,7 +73,7 @@ func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
 	bazzFd := getFetchDefinitionMock(ctrl, loader, "/bazz", []*FetchDefinition{barFd}, time.Millisecond, map[string]interface{}{})
 
 	fetcher := NewContentFetcher(nil)
-	fetcher.contentLoader = loader
+	fetcher.httpContentLoader = loader
 
 	fetcher.AddFetchJob(fooFd)
 	fetcher.AddFetchJob(bazzFd)
