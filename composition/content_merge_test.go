@@ -1,7 +1,6 @@
 package composition
 
 import (
-	"bytes"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -54,11 +53,9 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	cm.AddContent(asFetchResult(page2))
 	cm.AddContent(asFetchResult(page3))
 
-	buff := bytes.NewBuffer(nil)
-	err := cm.WriteHtml(buff)
-
+	html, err := cm.GetHtml()
 	a.NoError(err)
-	a.Equal(expected, buff.String())
+	a.Equal(expected, string(html))
 }
 
 type MockPage1BodyFragment struct {
@@ -82,36 +79,9 @@ func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{},
 func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	a := assert.New(t)
 	cm := NewContentMerge(nil)
-	buff := bytes.NewBuffer(nil)
-	err := cm.WriteHtml(buff)
+	_, err := cm.GetHtml()
 	a.Error(err)
 	a.Equal("Fragment does not exist: ", err.Error())
-	// the buffered merger should not write if errors occur
-	a.Equal(0, len(buff.Bytes()))
-}
-
-func Test_ContentMerge_ErrorOnWrite(t *testing.T) {
-	a := assert.New(t)
-
-	page := NewMemoryContent()
-	page.body[""] = StringFragment("Hello World\n")
-
-	cm := NewContentMerge(nil)
-	cm.AddContent(asFetchResult(page))
-
-	err := cm.WriteHtml(closedWriterMock{})
-	a.Error(err)
-	a.Equal("writer closed", err.Error())
-}
-
-func Test_ContentMerge_ErrorOnWriteUnbuffered(t *testing.T) {
-	a := assert.New(t)
-
-	cm := NewContentMerge(nil)
-	cm.Buffered = false
-	err := cm.WriteHtml(closedWriterMock{})
-	a.Error(err)
-	a.Equal("writer closed", err.Error())
 }
 
 type closedWriterMock struct {

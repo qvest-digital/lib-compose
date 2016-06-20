@@ -46,51 +46,53 @@ var ForwardResponseHeaders = []string{
 	"Set-Cookie",
 	"WWW-Authenticate"}
 
-const(
-        DEFAULTTIMEOUT time.Duration = 10 * time.Second
+const (
+	DefaultTimeout time.Duration = 10 * time.Second
+	FileURLPrefix                = "file://"
 )
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
-	URL      string
-	Timeout  time.Duration
-	Required bool
-	Header   http.Header
-	Method   string
-	Body     io.Reader
-	RespProc ResponseProcessor
-        ErrHandler ErrorHandler
+	URL        string
+	Timeout    time.Duration
+	Required   bool
+	Header     http.Header
+	Method     string
+	Body       io.Reader
+	RespProc   ResponseProcessor
+	ErrHandler ErrorHandler
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
 }
 
+// Creates a fetch definition
 func NewFetchDefinition(url string) *FetchDefinition {
 	return NewFetchDefinitionWithResponseProcessor(url, nil)
 }
 
 func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
-        if (errHandler == nil) {
-                errHandler = NewDefaultErrorHandler()
-        }
-        return &FetchDefinition{
-                URL:      url,
-                Timeout:  DEFAULTTIMEOUT,
-                Required: true,
-                Method:   "GET",
-                ErrHandler: errHandler,
-        }
+	if errHandler == nil {
+		errHandler = NewDefaultErrorHandler()
+	}
+	return &FetchDefinition{
+		URL:        url,
+		Timeout:    DefaultTimeout,
+		Required:   true,
+		Method:     "GET",
+		ErrHandler: errHandler,
+	}
 }
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
 	return &FetchDefinition{
-		URL:      url,
-		Timeout:  DEFAULTTIMEOUT,
-		Required: true,
-		Method:   "GET",
-		RespProc: rp,
-                ErrHandler: NewDefaultErrorHandler(),
+		URL:        url,
+		Timeout:    DefaultTimeout,
+		Required:   true,
+		Method:     "GET",
+		RespProc:   rp,
+		ErrHandler: NewDefaultErrorHandler(),
 	}
 }
 
@@ -118,14 +120,14 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 	}
 
 	return &FetchDefinition{
-		URL:      baseUrl + fullPath,
-		Timeout:  DEFAULTTIMEOUT,
-		Header:   copyHeaders(r.Header, nil, ForwardRequestHeaders),
-		Method:   r.Method,
-		Body:     r.Body,
-		Required: true,
-		RespProc: rp,
-                ErrHandler: NewDefaultErrorHandler(),
+		URL:        baseUrl + fullPath,
+		Timeout:    DefaultTimeout,
+		Header:     copyHeaders(r.Header, nil, ForwardRequestHeaders),
+		Method:     r.Method,
+		Body:       r.Body,
+		Required:   true,
+		RespProc:   rp,
+		ErrHandler: NewDefaultErrorHandler(),
 	}
 }
 
@@ -161,11 +163,10 @@ type DefaultErrorHandler struct {
 }
 
 func NewDefaultErrorHandler() *DefaultErrorHandler {
-        deh := new(DefaultErrorHandler)
-        return deh
+	deh := new(DefaultErrorHandler)
+	return deh
 }
 
 func (der *DefaultErrorHandler) Handle(err error, status int, w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Error: " + err.Error(), status)
 }
-

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/tarent/lib-compose/logging"
+	"strings"
 	"net/http"
 )
 
@@ -33,7 +34,8 @@ type ContentFetcher struct {
 		json  map[string]interface{}
 		mutex sync.Mutex
 	}
-	contentLoader ContentLoader
+	httpContentLoader ContentLoader
+	fileContentLoader ContentLoader
 }
 
 // NewContentFetcher creates a ContentFetcher with an HtmlContentParser as default.
@@ -42,7 +44,8 @@ type ContentFetcher struct {
 func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
-	f.contentLoader = NewHttpContentLoader()
+	f.httpContentLoader = NewHttpContentLoader()
+	f.fileContentLoader = NewFileContentLoader()
 	f.meta.json = defaultMetaJSON
 	if f.meta.json == nil {
 		f.meta.json = make(map[string]interface{})
@@ -112,7 +115,10 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 }
 
 func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error, int) {
-	return fetcher.contentLoader.Load(fd)
+	if strings.HasPrefix(fd.URL, FileURLPrefix) {
+		return fetcher.fileContentLoader.Load(fd)
+	}
+	return fetcher.httpContentLoader.Load(fd)
 }
 
 // isAlreadySheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.

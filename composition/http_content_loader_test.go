@@ -12,42 +12,6 @@ import (
 	"time"
 )
 
-func XTest_HttpContentLoader_Load(t *testing.T) {
-	a := assert.New(t)
-
-	server := testServer("", time.Millisecond*0)
-	defer server.Close()
-
-	loader := &HttpContentLoader{}
-	c, err, _ := loader.Load(NewFetchDefinition(server.URL))
-	a.NoError(err)
-	a.NotNil(c)
-	a.Nil(c.Reader())
-
-	a.Equal(server.URL, c.URL())
-	eqFragment(t, integratedTestHtmlExpectedHead, c.Head())
-	a.Equal(2, len(c.Body()))
-
-	eqFragment(t, integratedTestHtmlExpectedHeadline, c.Body()["headline"])
-	eqFragment(t, integratedTestHtmlExpectedContent, c.Body()["content"])
-	a.Equal(integratedTestHtmlExpectedMeta, c.Meta())
-	eqFragment(t, integratedTestHtmlExpectedTail, c.Tail())
-	cMemoryConent := c.(*MemoryContent)
-	a.Equal(2, len(cMemoryConent.RequiredContent()))
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo",
-		Timeout:  time.Millisecond * 42000,
-		Required: true,
-	}, cMemoryConent.requiredContent["example.com/foo"])
-
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional",
-		Timeout:  time.Millisecond * 100,
-		Required: false,
-	}, cMemoryConent.requiredContent["example.com/optional"])
-
-}
-
 func Test_HttpContentLoader_Load(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

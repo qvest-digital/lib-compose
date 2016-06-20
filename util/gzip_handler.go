@@ -28,7 +28,7 @@ var GzipCompressableTypes = []string{
 }
 
 var gzipWriterPool = sync.Pool{
-	New: func() interface{} { return gzip.NewWriter(nil) },
+	New: func() interface{} { w, _ := gzip.NewWriterLevel(nil, gzip.BestSpeed); return w },
 }
 
 // Transparently gzip the response body if
