@@ -76,6 +76,7 @@ func access(r *http.Request, start time.Time, statusCode int, err error) *logrus
 		"host":       r.Host,
 		"url":        url,
 		"method":     r.Method,
+		"proto":      r.Proto,
 		"duration":   time.Since(start).Nanoseconds() / 1000000,
 	}
 
