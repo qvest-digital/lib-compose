@@ -40,17 +40,6 @@ func Test_ContentFetcher_FetchDefinitionHash(t *testing.T) {
 			},
 			true,
 		},
-		{
-			&FetchDefinition{
-				URL:    "/foo",
-				Header: http.Header{"Some": {"header"}},
-			},
-			&FetchDefinition{
-				URL:    "/foo",
-				Header: http.Header{"Some": {"other header"}},
-			},
-			false,
-		},
 	}
 
 	for _, t := range tests {
@@ -73,7 +62,7 @@ func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
 	bazzFd := getFetchDefinitionMock(ctrl, loader, "/bazz", []*FetchDefinition{barFd}, time.Millisecond, map[string]interface{}{})
 
 	fetcher := NewContentFetcher(nil)
-	fetcher.httpContentLoader = loader
+	fetcher.Loader = loader
 
 	fetcher.AddFetchJob(fooFd)
 	fetcher.AddFetchJob(bazzFd)

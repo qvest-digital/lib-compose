@@ -5,12 +5,12 @@ import (
 )
 
 type Cache struct {
-	lruBackend *lru.ARCCache
+	lruBackend *lru.Cache
 }
 
 // NewCache creates a cache with max 100MB and max 10.000 Entries
 func NewCache(entrySize int) *Cache {
-	arc, err := lru.NewARC(entrySize)
+	arc, err := lru.New(entrySize)
 	if err != nil {
 		panic(err)
 	}

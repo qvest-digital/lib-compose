@@ -2,10 +2,8 @@ package composition
 
 import (
 	"errors"
-	"sync"
-
 	"github.com/tarent/lib-compose/logging"
-	"strings"
+	"sync"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -32,8 +30,7 @@ type ContentFetcher struct {
 		json  map[string]interface{}
 		mutex sync.Mutex
 	}
-	httpContentLoader ContentLoader
-	fileContentLoader ContentLoader
+	Loader ContentLoader
 }
 
 // NewContentFetcher creates a ContentFetcher with an HtmlContentParser as default.
@@ -42,8 +39,7 @@ type ContentFetcher struct {
 func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
-	f.httpContentLoader = NewHttpContentLoader()
-	f.fileContentLoader = NewFileContentLoader()
+	f.Loader = NewHttpContentLoader()
 	f.meta.json = defaultMetaJSON
 	if f.meta.json == nil {
 		f.meta.json = make(map[string]interface{})
@@ -94,7 +90,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		// want to override the original URL with expanded values
 		definitionCopy := *d
 		definitionCopy.URL = url
-		fetchResult.Content, fetchResult.Err = fetcher.fetch(&definitionCopy)
+		fetchResult.Content, fetchResult.Err = fetcher.Loader.Load(&definitionCopy)
 
 		if fetchResult.Err == nil {
 			fetcher.addMeta(fetchResult.Content.Meta())
@@ -110,13 +106,6 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 				Errorf("failed fetching %v", d.URL)
 		}
 	}()
-}
-
-func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error) {
-	if strings.HasPrefix(fd.URL, FileURLPrefix) {
-		return fetcher.fileContentLoader.Load(fd)
-	}
-	return fetcher.httpContentLoader.Load(fd)
 }
 
 // isAlreadySheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.

@@ -36,7 +36,7 @@ type FetchResultSupplier interface {
 
 type CacheStrategy interface {
 	Hash(method string, url string, requestHeader http.Header) string
-	IsCachable(method string, url string, requestHeader http.Header, responseHeader http.Header) bool
+	IsCachable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool
 }
 
 // Vontent is the abstration over includable data.

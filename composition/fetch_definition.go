@@ -1,8 +1,7 @@
 package composition
 
 import (
-	"crypto/md5"
-	"encoding/hex"
+	"github.com/tarent/lib-compose/cache"
 	"io"
 	"net/http"
 	"strings"
@@ -61,7 +60,7 @@ type FetchDefinition struct {
 	Body          io.Reader
 	RespProc      ResponseProcessor
 	ErrHandler    ErrorHandler
-	cacheStrategy CacheStrategy
+	CacheStrategy CacheStrategy
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -77,23 +76,25 @@ func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *Fe
 		errHandler = NewDefaultErrorHandler()
 	}
 	return &FetchDefinition{
-		URL:        url,
-		Timeout:    DefaultTimeout,
-		Required:   true,
-		Method:     "GET",
-		ErrHandler: errHandler,
+		URL:           url,
+		Timeout:       DefaultTimeout,
+		Required:      true,
+		Method:        "GET",
+		ErrHandler:    errHandler,
+		CacheStrategy: cache.DefaultCacheStrategy,
 	}
 }
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
 	return &FetchDefinition{
-		URL:        url,
-		Timeout:    DefaultTimeout,
-		Required:   true,
-		Method:     "GET",
-		RespProc:   rp,
-		ErrHandler: NewDefaultErrorHandler(),
+		URL:           url,
+		Timeout:       DefaultTimeout,
+		Required:      true,
+		Method:        "GET",
+		RespProc:      rp,
+		ErrHandler:    NewDefaultErrorHandler(),
+		CacheStrategy: cache.DefaultCacheStrategy,
 	}
 }
 
@@ -136,19 +137,15 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 // If two hashes of fetch resources are equal, they refer the same resource
 // and can e.g. be taken as replacement for each other. E.g. in case of caching.
 func (def *FetchDefinition) Hash() string {
-	if def.cacheStrategy != nil {
-		return def.cacheStrategy.Hash(def.Method, def.URL, def.Header)
+	if def.CacheStrategy != nil {
+		return def.CacheStrategy.Hash(def.Method, def.URL, def.Header)
 	}
-
-	hasher := md5.New()
-	hasher.Write([]byte(def.URL))
-	def.Header.Write(hasher)
-	return hex.EncodeToString(hasher.Sum(nil))
+	return def.URL
 }
 
-func (def *FetchDefinition) IsCachable(responseHeaders http.Header) bool {
-	if def.cacheStrategy != nil {
-		return def.cacheStrategy.IsCachable(def.Method, def.URL, def.Header, responseHeaders)
+func (def *FetchDefinition) IsCachable(responseStatus int, responseHeaders http.Header) bool {
+	if def.CacheStrategy != nil {
+		return def.CacheStrategy.IsCachable(def.Method, def.URL, responseStatus, def.Header, responseHeaders)
 	}
 	return false
 }
