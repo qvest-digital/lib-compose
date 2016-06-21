@@ -167,6 +167,6 @@ func NewDefaultErrorHandler() *DefaultErrorHandler {
 	return deh
 }
 
-func (der *DefaultErrorHandler) Handle(err error, w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Bad Gateway: "+err.Error(), 502)
+func (der *DefaultErrorHandler) Handle(err error, status int, w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Error: "+err.Error(), status)
 }

@@ -174,7 +174,7 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 		return MockFetchResultSupplier{
 			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
-				Content: nil,
+				Content: &MemoryContent{httpStatusCode: 502},
 				Err:     errors.New(errorString),
 			},
 		}
@@ -185,7 +185,7 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
 	aggregator.ServeHTTP(resp, r)
 
-	a.Equal("Bad Gateway: "+errorString+"\n", string(resp.Body.Bytes()))
+	a.Equal("Error: "+errorString+"\n", string(resp.Body.Bytes()))
 	a.Equal(502, resp.Code)
 }
 

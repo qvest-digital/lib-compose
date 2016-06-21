@@ -1,8 +1,8 @@
 package composition
 
 //go:generate go get github.com/golang/mock/mockgen
-//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go github.com/tarent/lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor
-//go:generate sed -ie "s/composition .github.com\\/tarent\\/lib-compose\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
+//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor
+//go:generate sed -ie "s/composition .lib-compose\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
 import (
 	"io"
 	"net/http"
@@ -15,7 +15,7 @@ type Fragment interface {
 type ContentLoader interface {
 	// Load synchronously loads a content.
 	// The loader has to ensure to return the call withing the supplied timeout.
-	Load(fd *FetchDefinition) (Content, error)
+	Load(fd *FetchDefinition) (content Content, err error)
 }
 
 type ContentParser interface {
@@ -87,5 +87,5 @@ type ResponseProcessor interface {
 
 type ErrorHandler interface {
 	// handle http request errors
-	Handle(err error, w http.ResponseWriter, r *http.Request)
+	Handle(err error, status int, w http.ResponseWriter, r *http.Request)
 }

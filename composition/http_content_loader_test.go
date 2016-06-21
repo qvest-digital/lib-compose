@@ -151,6 +151,22 @@ func Test_HttpContentLoader_LoadStream_No_Composition_Header(t *testing.T) {
 	a.Equal("{}", string(body))
 }
 
+func Test_HttpContentLoader_Pass_404(t *testing.T) {
+	a := assert.New(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		w.Write([]byte("{}"))
+	}))
+
+	defer server.Close()
+
+	loader := &HttpContentLoader{}
+	c, err := loader.Load(NewFetchDefinition(server.URL))
+	a.Error(err)
+	a.Equal(404, c.HttpStatusCode())
+}
+
 func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	a := assert.New(t)
 
@@ -162,17 +178,16 @@ func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	loader := &HttpContentLoader{}
 	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.Error(err)
-	a.Nil(c)
 	a.Contains(err.Error(), "http 500")
+	assert.True(t, c.HttpStatusCode() == 500)
 }
 
 func Test_HttpContentLoader_LoadErrorNetwork(t *testing.T) {
 	a := assert.New(t)
 
 	loader := &HttpContentLoader{}
-	c, err := loader.Load(NewFetchDefinition("..."))
+	_, err := loader.Load(NewFetchDefinition("..."))
 	a.Error(err)
-	a.Nil(c)
 	a.Contains(err.Error(), "unsupported protocol scheme")
 }
 

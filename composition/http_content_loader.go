@@ -26,10 +26,14 @@ func NewHttpContentLoader() *HttpContentLoader {
 func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	client := &http.Client{Timeout: fd.Timeout}
 
+	c := NewMemoryContent()
+	c.url = fd.URL
+	c.httpStatusCode = 502
+
 	var err error
 	request, err := http.NewRequest(fd.Method, fd.URL, fd.Body)
 	if err != nil {
-		return nil, err
+		return c, err
 	}
 	request.Header = fd.Header
 	if request.Header == nil {
@@ -41,26 +45,27 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 
 	resp, err := client.Do(request)
 
+	if resp != nil {
+		c.httpStatusCode = resp.StatusCode
+	}
+
 	logging.Call(request, resp, start, err)
 	if err != nil {
-		return nil, err
+		return c, err
 	}
 
 	if fd.RespProc != nil {
 		err = fd.RespProc.Process(resp, fd.URL)
 	}
 	if err != nil {
-		return nil, err
+		return c, err
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 399 {
-		return nil, fmt.Errorf("(http %v) on loading url %q", resp.StatusCode, fd.URL)
+	if c.httpStatusCode < 200 || c.httpStatusCode > 399 {
+		return c, fmt.Errorf("(http %v) on loading url %q", c.httpStatusCode, fd.URL)
 	}
 
-	c := NewMemoryContent()
-	c.url = fd.URL
 	c.httpHeader = resp.Header
-	c.httpStatusCode = resp.StatusCode
 
 	// take the first parser for the content type
 	// direct access to the map does not work, because the
