@@ -28,7 +28,7 @@ func Test_LogMiddleware_Panic(t *testing.T) {
 	data := logRecordFromBuffer(b)
 	a.Contains(data.Error, "logging.Test_LogMiddleware_Panic.func1")
 	a.Contains(data.Error, "runtime error: index out of range")
-	a.Contains(data.Message, "ERROR GET /foo")
+	a.Contains(data.Message, "ERROR ->GET /foo")
 	a.Equal(data.Level, "error")
 }
 
@@ -50,7 +50,7 @@ func Test_LogMiddleware_Log_implicit200(t *testing.T) {
 
 	data := logRecordFromBuffer(b)
 	a.Equal("", data.Error)
-	a.Equal("200 GET /foo", data.Message)
+	a.Equal("200 ->GET /foo", data.Message)
 	a.Equal(200, data.ResponseStatus)
 	a.Equal("info", data.Level)
 }
@@ -73,7 +73,7 @@ func Test_LogMiddleware_Log_404(t *testing.T) {
 
 	data := logRecordFromBuffer(b)
 	a.Equal("", data.Error)
-	a.Equal("404 GET /foo", data.Message)
+	a.Equal("404 ->GET /foo", data.Message)
 	a.Equal(404, data.ResponseStatus)
 	a.Equal("warning", data.Level)
 }
