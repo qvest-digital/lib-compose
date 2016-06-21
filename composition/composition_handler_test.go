@@ -36,7 +36,8 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
 	ch.ServeHTTP(resp, r)
 
-	expected := `<html>
+	expected := `<!DOCTYPE html>
+<html>
   <head>
     
   </head>

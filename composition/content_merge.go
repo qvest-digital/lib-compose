@@ -47,7 +47,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 
-	io.WriteString(w, "<html>\n  <head>\n    ")
+	io.WriteString(w, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
 
 	for _, f := range cntx.Head {
 		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {

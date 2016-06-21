@@ -10,7 +10,8 @@ import (
 func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a := assert.New(t)
 
-	expected := `<html>
+	expected := `<!DOCTYPE html>
+<html>
   <head>
     <page1-head/>
     <page2-head/>
