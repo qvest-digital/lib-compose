@@ -25,7 +25,8 @@ var ForwardRequestHeaders = []string{
 	"If-Unmodified-Since",
 	"Pragma",
 	"Referer",
-	"Transfer-Encoding"}
+	"Transfer-Encoding",
+	"X-Forwarded-Host"}
 
 // ForwardResponseHeaders are those headers,
 // which are incuded from the servers backend response to the client.
