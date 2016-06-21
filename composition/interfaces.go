@@ -3,6 +3,8 @@ package composition
 //go:generate go get github.com/golang/mock/mockgen
 //go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor
 //go:generate sed -ie "s/composition .lib-compose\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
+//go:generate sh ../scripts/mockgen.sh
+
 import (
 	"io"
 	"net/http"

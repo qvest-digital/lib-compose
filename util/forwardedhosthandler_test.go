@@ -1,9 +1,9 @@
 package util
 
 import (
-	mockHttp "content-ui-service/mocks/net/http"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	mockHttp "lib-compose/composition/mocks/net/http"
 	"net/http"
 	"net/http/httptest"
 	"testing"
