@@ -51,7 +51,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 		} else if res.Def.Required {
 			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
-			res.Def.ErrHandler.Handle(res.Err, res.HttpStatus, w, r)
+			res.Def.ErrHandler.Handle(res.Err, res.Content.HttpStatusCode(), w, r)
 			return
 		} else {
 			log.WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)

@@ -32,7 +32,7 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 
 	loader.parser["text/html"] = mockParser
 
-	c, err, _ := loader.Load(NewFetchDefinition(server.URL))
+	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
@@ -64,7 +64,7 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 
 	mockResponseProcessor := NewMockResponseProcessor(ctrl)
 	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any())
-	c, err, _ := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
+	c, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
@@ -105,7 +105,7 @@ func Test_HttpContentLoader_Load_POST(t *testing.T) {
 	fd.Method = "POST"
 	fd.Body = strings.NewReader("post content")
 
-	c, err, _ := loader.Load(fd)
+	c, err := loader.Load(fd)
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
@@ -124,7 +124,7 @@ func Test_HttpContentLoader_LoadStream(t *testing.T) {
 	defer server.Close()
 
 	loader := &HttpContentLoader{}
-	c, err, _ := loader.Load(NewFetchDefinition(server.URL))
+	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.NoError(err)
 	a.NotNil(c.Reader())
 	body, err := ioutil.ReadAll(c.Reader())
@@ -143,7 +143,7 @@ func Test_HttpContentLoader_LoadStream_No_Composition_Header(t *testing.T) {
 	defer server.Close()
 
 	loader := &HttpContentLoader{}
-	c, err, _ := loader.Load(NewFetchDefinition(server.URL))
+	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.NoError(err)
 	a.NotNil(c.Reader())
 	body, err := ioutil.ReadAll(c.Reader())
@@ -162,10 +162,9 @@ func Test_HttpContentLoader_Pass_404(t *testing.T) {
 	defer server.Close()
 
 	loader := &HttpContentLoader{}
-	c, err, status := loader.Load(NewFetchDefinition(server.URL))
+	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.Error(err)
-	a.Nil(c)
-	a.Equal(404, status)
+	a.Equal(404, c.HttpStatusCode())
 }
 
 func Test_HttpContentLoader_LoadError500(t *testing.T) {
@@ -177,20 +176,18 @@ func Test_HttpContentLoader_LoadError500(t *testing.T) {
 	defer server.Close()
 
 	loader := &HttpContentLoader{}
-	c, err, statusCode := loader.Load(NewFetchDefinition(server.URL))
+	c, err := loader.Load(NewFetchDefinition(server.URL))
 	a.Error(err)
-	a.Nil(c)
 	a.Contains(err.Error(), "http 500")
-	assert.True(t, statusCode == 500)
+	assert.True(t, c.HttpStatusCode() == 500)
 }
 
 func Test_HttpContentLoader_LoadErrorNetwork(t *testing.T) {
 	a := assert.New(t)
 
 	loader := &HttpContentLoader{}
-	c, err, _ := loader.Load(NewFetchDefinition("..."))
+	_, err := loader.Load(NewFetchDefinition("..."))
 	a.Error(err)
-	a.Nil(c)
 	a.Contains(err.Error(), "unsupported protocol scheme")
 }
 

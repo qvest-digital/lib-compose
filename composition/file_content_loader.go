@@ -21,14 +21,14 @@ func NewFileContentLoader() *FileContentLoader {
 	}
 }
 
-func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error, int) {
+func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	if fd.RespProc != nil {
-		return nil, ResponseProcessorsNotApplicable, 502
+		return nil, ResponseProcessorsNotApplicable
 	}
 	filename := strings.TrimPrefix(fd.URL, FileURLPrefix)
 	f, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file %v: %v", fd.URL, err), 502
+		return nil, fmt.Errorf("error opening file %v: %v", fd.URL, err)
 	}
 
 	c := NewMemoryContent()
@@ -43,9 +43,9 @@ func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error, int)
 			WithField("duration", time.Since(parsingStart)).
 			Debug("content parsing")
 		f.Close()
-		return c, err, c.httpStatusCode
+		return c, err
 	}
 
 	c.reader = f
-	return c, nil, c.httpStatusCode
+	return c, nil
 }

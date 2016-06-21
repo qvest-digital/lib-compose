@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/tarent/lib-compose/logging"
-	"net/http"
 	"strings"
 )
 
@@ -16,11 +15,10 @@ func (def *FetchDefinition) IsFetchable() bool {
 }
 
 type FetchResult struct {
-	Def        *FetchDefinition
-	Err        error
-	Content    Content
-	HttpStatus int
-	Hash       string // the hash of the FetchDefinition
+	Def     *FetchDefinition
+	Err     error
+	Content Content
+	Hash    string // the hash of the FetchDefinition
 }
 
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
@@ -77,7 +75,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 
 	fetcher.activeJobs.Add(1)
 
-	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched"), HttpStatus: http.StatusBadGateway}
+	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched")}
 	fetcher.r.results = append(fetcher.r.results, fetchResult)
 
 	go func() {
@@ -96,7 +94,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 		// want to override the original URL with expanded values
 		definitionCopy := *d
 		definitionCopy.URL = url
-		fetchResult.Content, fetchResult.Err, fetchResult.HttpStatus = fetcher.fetch(&definitionCopy)
+		fetchResult.Content, fetchResult.Err = fetcher.fetch(&definitionCopy)
 
 		if fetchResult.Err == nil {
 			fetcher.addMeta(fetchResult.Content.Meta())
@@ -114,7 +112,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	}()
 }
 
-func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error, int) {
+func (fetcher *ContentFetcher) fetch(fd *FetchDefinition) (Content, error) {
 	if strings.HasPrefix(fd.URL, FileURLPrefix) {
 		return fetcher.fileContentLoader.Load(fd)
 	}

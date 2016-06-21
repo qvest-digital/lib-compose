@@ -24,7 +24,7 @@ func Test_FileContentLoader_LoadHTML(t *testing.T) {
 	a.NoError(err)
 
 	loader := NewFileContentLoader()
-	c, err, _ := loader.Load(NewFetchDefinition(FileURLPrefix + fileName))
+	c, err := loader.Load(NewFetchDefinition(FileURLPrefix + fileName))
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
@@ -42,7 +42,7 @@ func Test_FileContentLoader_LoadStream(t *testing.T) {
 	a.NoError(err)
 
 	loader := NewFileContentLoader()
-	c, err, _ := loader.Load(NewFetchDefinition(FileURLPrefix + fileName))
+	c, err := loader.Load(NewFetchDefinition(FileURLPrefix + fileName))
 	a.NoError(err)
 	a.NotNil(c)
 	body, err := ioutil.ReadAll(c.Reader())
@@ -54,7 +54,7 @@ func Test_FileContentLoader_LoadError(t *testing.T) {
 	a := assert.New(t)
 
 	loader := NewFileContentLoader()
-	_, err, _ := loader.Load(NewFetchDefinition("/tmp/some/non/existing/path"))
+	_, err := loader.Load(NewFetchDefinition("/tmp/some/non/existing/path"))
 	a.Error(err)
 }
 
@@ -66,7 +66,7 @@ func Test_FileContentLoader_RequestProcessor(t *testing.T) {
 	fd := NewFetchDefinition("/tmp/some/non/existing/path")
 	fd.RespProc = NewMockResponseProcessor(ctrl)
 
-	_, err, _ := NewFileContentLoader().Load(fd)
+	_, err := NewFileContentLoader().Load(fd)
 	a.Equal(ResponseProcessorsNotApplicable, err)
 }
 
