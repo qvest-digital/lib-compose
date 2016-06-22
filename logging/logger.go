@@ -44,9 +44,9 @@ func Access(r *http.Request, start time.Time, statusCode int) {
 
 	var msg string
 	if len(r.URL.RawQuery) == 0 {
-		msg = fmt.Sprintf("%v %v %v", statusCode, r.Method, r.URL.Path)
+		msg = fmt.Sprintf("%v ->%v %v", statusCode, r.Method, r.URL.Path)
 	} else {
-		msg = fmt.Sprintf("%v %v %v?...", statusCode, r.Method, r.URL.Path)
+		msg = fmt.Sprintf("%v ->%v %v?...", statusCode, r.Method, r.URL.Path)
 	}
 
 	if statusCode >= 200 && statusCode <= 399 {
@@ -61,7 +61,7 @@ func Access(r *http.Request, start time.Time, statusCode int) {
 // AccessError logs an error while accessing
 func AccessError(r *http.Request, start time.Time, err error) {
 	e := access(r, start, 0, err)
-	e.Errorf("ERROR %v %v", r.Method, r.URL.Path)
+	e.Errorf("ERROR ->%v %v", r.Method, r.URL.Path)
 }
 
 func access(r *http.Request, start time.Time, statusCode int, err error) *logrus.Entry {
@@ -76,6 +76,7 @@ func access(r *http.Request, start time.Time, statusCode int, err error) *logrus
 		"host":       r.Host,
 		"url":        url,
 		"method":     r.Method,
+		"proto":      r.Proto,
 		"duration":   time.Since(start).Nanoseconds() / 1000000,
 	}
 
@@ -130,7 +131,7 @@ func Call(r *http.Request, resp *http.Response, start time.Time, err error) {
 		fields["response_status"] = resp.StatusCode
 		fields["content_type"] = resp.Header.Get("Content-Type")
 		e := Logger.WithFields(fields)
-		msg := fmt.Sprintf("%v %v %v", resp.StatusCode, r.Method, r.URL.String())
+		msg := fmt.Sprintf("%v %v-> %v", resp.StatusCode, r.Method, r.URL.String())
 
 		if resp.StatusCode >= 200 && resp.StatusCode <= 399 {
 			e.Info(msg)

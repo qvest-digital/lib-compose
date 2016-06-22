@@ -20,6 +20,7 @@ type logReccord struct {
 	Host              string            `json:"host"`
 	URL               string            `json:"url"`
 	Method            string            `json:"method"`
+	Proto             string            `json:"proto"`
 	Duration          int               `json:"duration"`
 	ResponseStatus    int               `json:"response_status"`
 	UserCorrelationId string            `json:"user_correlation_id"`
@@ -48,7 +49,7 @@ func Test_Logger_Set(t *testing.T) {
 	a.Regexp(`^time.* level\=error msg\=oops foo\=bar.*`, b.String())
 }
 
-func Test_Logger_Access(t *testing.T) {
+func Test_Logger_Call(t *testing.T) {
 	a := assert.New(t)
 
 	// given a logger
@@ -85,7 +86,7 @@ func Test_Logger_Access(t *testing.T) {
 	a.Equal("", data.Error)
 	a.Equal("www.example.org", data.Host)
 	a.Equal("GET", data.Method)
-	a.Equal("404 GET http://www.example.org/foo?q=bar", data.Message)
+	a.Equal("404 GET-> http://www.example.org/foo?q=bar", data.Message)
 	a.Equal(404, data.ResponseStatus)
 	a.Equal("call", data.Type)
 	a.Equal("/foo?q=bar", data.URL)
@@ -112,7 +113,7 @@ func Test_Logger_Access(t *testing.T) {
 	a.Equal("/foo?q=bar", data.URL)
 }
 
-func Test_Logger_Call(t *testing.T) {
+func Test_Logger_Access(t *testing.T) {
 	a := assert.New(t)
 
 	// given a logger
@@ -145,7 +146,8 @@ func Test_Logger_Call(t *testing.T) {
 	a.Equal("", data.Error)
 	a.Equal("www.example.org", data.Host)
 	a.Equal("GET", data.Method)
-	a.Equal("201 GET /foo?...", data.Message)
+	a.Equal("HTTP/1.1", data.Proto)
+	a.Equal("201 ->GET /foo?...", data.Message)
 	a.Equal("127.0.0.1", data.RemoteIp)
 	a.Equal(201, data.ResponseStatus)
 	a.Equal("access", data.Type)
@@ -168,7 +170,7 @@ func Test_Logger_Access_ErrorCases(t *testing.T) {
 	// then: all fields match
 	data := logRecordFromBuffer(b)
 	a.Equal("warning", data.Level)
-	a.Equal("404 GET /foo", data.Message)
+	a.Equal("404 ->GET /foo", data.Message)
 
 	// when a status 500 is logged
 	b.Reset()
@@ -184,7 +186,7 @@ func Test_Logger_Access_ErrorCases(t *testing.T) {
 	data = logRecordFromBuffer(b)
 	a.Equal("error", data.Level)
 	a.Equal("oops", data.Error)
-	a.Equal("ERROR GET /foo", data.Message)
+	a.Equal("ERROR ->GET /foo", data.Message)
 }
 
 func Test_Logger_Application(t *testing.T) {

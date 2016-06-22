@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var RequestProcessorsNotApplicable = errors.New("request processors are not apliable on file content")
+var ResponseProcessorsNotApplicable = errors.New("request processors are not apliable on file content")
 
 type FileContentLoader struct {
 	parser ContentParser
@@ -23,7 +23,7 @@ func NewFileContentLoader() *FileContentLoader {
 
 func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	if fd.RespProc != nil {
-		return nil, RequestProcessorsNotApplicable
+		return nil, ResponseProcessorsNotApplicable
 	}
 	filename := strings.TrimPrefix(fd.URL, FileURLPrefix)
 	f, err := os.Open(filename)

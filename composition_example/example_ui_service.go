@@ -2,9 +2,9 @@ package main
 
 import (
 	gorilla "github.com/gorilla/handlers"
+	"github.com/tarent/lib-compose/composition"
 	"net/http"
 	"os"
-	"github.com/tarent/lib-compose/composition"
 )
 
 func main() {

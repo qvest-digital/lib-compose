@@ -67,7 +67,7 @@ func Test_FileContentLoader_RequestProcessor(t *testing.T) {
 	fd.RespProc = NewMockResponseProcessor(ctrl)
 
 	_, err := NewFileContentLoader().Load(fd)
-	a.Equal(RequestProcessorsNotApplicable, err)
+	a.Equal(ResponseProcessorsNotApplicable, err)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

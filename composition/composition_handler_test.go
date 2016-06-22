@@ -36,7 +36,8 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
 	ch.ServeHTTP(resp, r)
 
-	expected := `<html>
+	expected := `<!DOCTYPE html>
+<html>
   <head>
     
   </head>
@@ -87,9 +88,10 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(302, resp.Code)
-	a.Equal(3, len(resp.Header()))
+	a.Equal(4, len(resp.Header()))
 	a.Equal("/look/somewhere", resp.Header().Get("Location"))
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.NotEqual("", resp.Header().Get("Content-Length"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
 }
@@ -151,7 +153,7 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any())
-		merger.EXPECT().WriteHtml(gomock.Any()).Return(errors.New("an error"))
+		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
 		return merger
 	}
 
@@ -173,7 +175,7 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 		return MockFetchResultSupplier{
 			&FetchResult{
 				Def:     NewFetchDefinition("/foo"),
-				Content: nil,
+				Content: &MemoryContent{httpStatusCode: 502},
 				Err:     errors.New(errorString),
 			},
 		}
@@ -184,7 +186,7 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
 	aggregator.ServeHTTP(resp, r)
 
-	a.Equal("Bad Gateway: "+errorString+"\n", string(resp.Body.Bytes()))
+	a.Equal("Error: "+errorString+"\n", string(resp.Body.Bytes()))
 	a.Equal(502, resp.Code)
 }
 

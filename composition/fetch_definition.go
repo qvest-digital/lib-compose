@@ -24,7 +24,8 @@ var ForwardRequestHeaders = []string{
 	"If-Unmodified-Since",
 	"Pragma",
 	"Referer",
-	"Transfer-Encoding"}
+	"Transfer-Encoding",
+	"X-Forwarded-Host"}
 
 // ForwardResponseHeaders are those headers,
 // which are incuded from the servers backend response to the client.
@@ -175,6 +176,6 @@ func NewDefaultErrorHandler() *DefaultErrorHandler {
 	return deh
 }
 
-func (der *DefaultErrorHandler) Handle(err error, w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Bad Gateway: "+err.Error(), 502)
+func (der *DefaultErrorHandler) Handle(err error, status int, w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Error: "+err.Error(), status)
 }
