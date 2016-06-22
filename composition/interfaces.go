@@ -1,7 +1,7 @@
 package composition
 
 //go:generate go get github.com/golang/mock/mockgen
-//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go github.com/tarent/lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor
+//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go github.com/tarent/lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor,Cache
 //go:generate sed -ie "s/composition .github.com\\/tarent\\/lib-compose\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
 import (
 	"io"
@@ -99,4 +99,9 @@ type ResponseProcessor interface {
 type ErrorHandler interface {
 	// handle http request errors
 	Handle(err error, w http.ResponseWriter, r *http.Request)
+}
+
+type Cache interface {
+	Get(hash string) (cacheObject interface{}, found bool)
+	Set(hash string, label string, memorySize int, cacheObject interface{})
 }

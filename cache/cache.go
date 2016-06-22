@@ -1,29 +1,114 @@
 package cache
 
 import (
-	"github.com/hashicorp/golang-lru"
+	"github.com/Sirupsen/logrus"
+	"github.com/hashicorp/golang-lru/simplelru"
+	"github.com/tarent/lib-compose/logging"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
+// Cache is a LRU cache with the following features
+// - limits on max entries
+// - memory size limit
+// - ttl for entries
 type Cache struct {
-	lruBackend *lru.Cache
+	lock             sync.RWMutex
+	lruBackend       *simplelru.LRU
+	maxAge           time.Duration
+	maxSizeBytes     int32
+	currentSizeBytes int32
 }
 
-// NewCache creates a cache with max 100MB and max 10.000 Entries
-func NewCache(entrySize int) *Cache {
-	arc, err := lru.New(entrySize)
+type CacheEntry struct {
+	key         string
+	label       string
+	size        int
+	fetchTime   time.Time
+	cacheObject interface{}
+	hits        int
+}
+
+// NewCache creates a new cache
+func NewCache(maxEntries int, maxSizeBytes int32, maxAge time.Duration) *Cache {
+	c := &Cache{
+		maxAge:       maxAge,
+		maxSizeBytes: maxSizeBytes,
+	}
+
+	var err error
+	c.lruBackend, err = simplelru.NewLRU(maxEntries, simplelru.EvictCallback(c.onEvicted))
 	if err != nil {
 		panic(err)
 	}
-	return &Cache{
-		lruBackend: arc,
+	return c
+}
+
+// LogEvery Start a Goroutine, which logs statisitcs periodically.
+func (c *Cache) LogEvery(d time.Duration) {
+	go c.logEvery(d)
+}
+
+func (c *Cache) logEvery(d time.Duration) {
+	for {
+		select {
+		case <-time.After(d):
+			logging.Logger.WithFields(logrus.Fields{
+				"type":             "metric",
+				"matric_name":      "cachestatus",
+				"cache_entries":    c.Len(),
+				"cache_size_bytes": c.SizeByte(),
+			}).Infof("cache status #%v, %vbytes", c.Len(), c.SizeByte())
+		}
 	}
 }
 
-func (c *Cache) Get(key string) (interface{}, bool) {
-	return c.lruBackend.Get(key)
-
+func (c *Cache) onEvicted(key, value interface{}) {
+	entry := value.(*CacheEntry)
+	atomic.AddInt32(&c.currentSizeBytes, -1*int32(entry.size))
 }
 
-func (c *Cache) Set(key string, sizeBytes int, cacheObject interface{}) {
-	c.lruBackend.Add(key, cacheObject)
+func (c *Cache) Get(key string) (interface{}, bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	e, found := c.lruBackend.Get(key)
+	if found {
+		entry := e.(*CacheEntry)
+		if time.Since(entry.fetchTime) < c.maxAge {
+			entry.hits++
+			return entry.cacheObject, true
+		}
+	}
+	return nil, false
+}
+
+func (c *Cache) Set(key string, label string, sizeBytes int, cacheObject interface{}) {
+	entry := &CacheEntry{
+		key:         key,
+		label:       label,
+		size:        sizeBytes,
+		fetchTime:   time.Now(),
+		cacheObject: cacheObject,
+	}
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	atomic.AddInt32(&c.currentSizeBytes, int32(sizeBytes))
+	c.lruBackend.Add(key, entry)
+
+	for atomic.LoadInt32(&c.currentSizeBytes) > int32(c.maxSizeBytes) {
+		c.lruBackend.RemoveOldest()
+	}
+}
+
+// SizeByte returns the total memory consumption of the cache
+func (c *Cache) SizeByte() int {
+	return int(atomic.LoadInt32(&c.currentSizeBytes))
+}
+
+// Len returns the total number of entries in the cache
+func (c *Cache) Len() int {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.lruBackend.Len()
 }

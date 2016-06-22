@@ -3,53 +3,9 @@ package composition
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"net/http"
 	"testing"
 	"time"
 )
-
-func Test_ContentFetcher_FetchDefinitionHash(t *testing.T) {
-	a := assert.New(t)
-	tests := []struct {
-		fd1 *FetchDefinition
-		fd2 *FetchDefinition
-		eq  bool
-	}{
-		{
-			NewFetchDefinition("/foo"),
-			NewFetchDefinition("/foo"),
-			true,
-		},
-		{
-			NewFetchDefinition("/foo"),
-			NewFetchDefinition("/bar"),
-			false,
-		},
-		{
-			&FetchDefinition{
-				URL:      "/foo",
-				Timeout:  time.Second,
-				Header:   http.Header{"Some": {"header"}},
-				Required: false,
-			},
-			&FetchDefinition{
-				URL:      "/foo",
-				Timeout:  time.Second * 42,
-				Header:   http.Header{"Some": {"header"}},
-				Required: true,
-			},
-			true,
-		},
-	}
-
-	for _, t := range tests {
-		if t.eq {
-			a.Equal(t.fd1.Hash(), t.fd2.Hash())
-		} else {
-			a.NotEqual(t.fd1.Hash(), t.fd2.Hash())
-		}
-	}
-}
 
 func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
 	ctrl := gomock.NewController(t)

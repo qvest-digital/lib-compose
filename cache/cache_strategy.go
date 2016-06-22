@@ -107,13 +107,14 @@ func (tcs *CacheStrategy) IsCachable(method string, url string, statusCode int, 
 	req := &http.Request{Method: method, Header: requestHeader}
 	reasons, _, err := cacheobject.UsingRequestResponse(req, statusCode, responseHeader, true)
 	if err != nil {
-		logging.Logger.WithError(err).Warnf("error checking cachability fot %v %v: %v", method, url, err)
+		logging.Logger.WithError(err).Warnf("error checking cachability for %v %v: %v", method, url, err)
 		return false
 	}
-
 	for _, foundReason := range reasons {
 		if !tcs.isReasonIgnorable(foundReason) {
-			logging.Logger.WithField("notCachableReason", foundReason).Debugf("ressource not cachable %v %v: %v", method, url, foundReason)
+			logging.Logger.WithField("notCachableReason", foundReason).
+				WithField("type", "cacheinfo").
+				Debugf("ressource not cachable %v %v: %v", method, url, foundReason)
 			return false
 		}
 	}

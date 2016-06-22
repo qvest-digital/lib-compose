@@ -2,41 +2,39 @@ package composition
 
 import (
 	"github.com/tarent/lib-compose/cache"
+	"github.com/tarent/lib-compose/logging"
 	"strings"
+	"time"
 )
 
 type CachingContentLoader struct {
 	httpContentLoader ContentLoader
 	fileContentLoader ContentLoader
-	cache             *cache.Cache
+	cache             Cache
 }
 
 func NewCachingContentLoader() *CachingContentLoader {
+	c := cache.NewCache(1000, 50*1024*1024, time.Minute*20)
+	c.LogEvery(time.Second * 5)
 	return &CachingContentLoader{
 		httpContentLoader: NewHttpContentLoader(),
 		fileContentLoader: NewFileContentLoader(),
-		cache:             cache.NewCache(10000),
+		cache:             c,
 	}
 }
 
 func (loader *CachingContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	hash := fd.Hash()
 
-	if c, exist := loader.cache.Get(hash); exist {
-		println("found: " + fd.URL + " " + hash)
-		return c.(Content), nil
-	} else {
-		println("not found: " + fd.URL + " " + hash)
-
+	if cFromCache, exist := loader.cache.Get(hash); exist {
+		logging.Cacheinfo(fd.URL, true)
+		return cFromCache.(Content), nil
 	}
-
+	logging.Cacheinfo(fd.URL, false)
 	c, err := loader.load(fd)
 	if err == nil {
 		if fd.IsCachable(c.HttpStatusCode(), c.HttpHeader()) {
-			println("Set: " + fd.URL + " " + hash)
-			loader.cache.Set(hash, c.MemorySize(), c)
-		} else {
-			println("Not cachable: " + fd.URL + " " + hash)
+			loader.cache.Set(hash, fd.URL, c.MemorySize(), c)
 		}
 	}
 	return c, err
