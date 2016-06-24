@@ -54,14 +54,15 @@ const (
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
-	URL        string
-	Timeout    time.Duration
-	Required   bool
-	Header     http.Header
-	Method     string
-	Body       io.Reader
-	RespProc   ResponseProcessor
-	ErrHandler ErrorHandler
+	URL             string
+	Timeout         time.Duration
+	Required        bool
+	FollowRedirects bool
+	Header          http.Header
+	Method          string
+	Body            io.Reader
+	RespProc        ResponseProcessor
+	ErrHandler      ErrorHandler
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -77,11 +78,12 @@ func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *Fe
 		errHandler = NewDefaultErrorHandler()
 	}
 	return &FetchDefinition{
-		URL:        url,
-		Timeout:    DefaultTimeout,
-		Required:   true,
-		Method:     "GET",
-		ErrHandler: errHandler,
+		URL:             url,
+		Timeout:         DefaultTimeout,
+		FollowRedirects: false,
+		Required:        true,
+		Method:          "GET",
+		ErrHandler:      errHandler,
 	}
 }
 
