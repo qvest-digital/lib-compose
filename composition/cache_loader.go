@@ -1,7 +1,6 @@
 package composition
 
 import (
-	"github.com/tarent/lib-compose/cache"
 	"github.com/tarent/lib-compose/logging"
 	"strings"
 	"time"
@@ -13,13 +12,11 @@ type CachingContentLoader struct {
 	cache             Cache
 }
 
-func NewCachingContentLoader() *CachingContentLoader {
-	c := cache.NewCache(1000, 50*1024*1024, time.Minute*20)
-	c.LogEvery(time.Second * 5)
+func NewCachingContentLoader(cache Cache) *CachingContentLoader {
 	return &CachingContentLoader{
 		httpContentLoader: NewHttpContentLoader(),
 		fileContentLoader: NewFileContentLoader(),
-		cache:             c,
+		cache:             cache,
 	}
 }
 

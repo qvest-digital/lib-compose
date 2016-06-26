@@ -16,6 +16,8 @@ var Logger *logrus.Logger
 // The of cookies which should not be logged
 var AccessLogCookiesBlacklist = []string{}
 
+var LifecycleEnvVars = []string{"BUILD_NUMBER", "BUILD_HASH", "BUILD_DATE"}
+
 func init() {
 	Set("info", false)
 }
@@ -88,7 +90,7 @@ func access(r *http.Request, start time.Time, statusCode int, err error) *logrus
 		fields[logrus.ErrorKey] = err.Error()
 	}
 
-	setCorrelationIds(fields, r)
+	setCorrelationIds(fields, r.Header)
 
 	cookies := map[string]string{}
 	for _, c := range r.Cookies() {
@@ -119,7 +121,7 @@ func Call(r *http.Request, resp *http.Response, start time.Time, err error) {
 		"duration":   time.Since(start).Nanoseconds() / 1000000,
 	}
 
-	setCorrelationIds(fields, r)
+	setCorrelationIds(fields, r.Header)
 
 	if err != nil {
 		fields[logrus.ErrorKey] = err.Error()
@@ -165,11 +167,11 @@ func Cacheinfo(url string, hit bool) {
 
 // Return a log entry for application logs,
 // prefilled with the correlation ids out of the supplied request.
-func Application(r *http.Request) *logrus.Entry {
+func Application(h http.Header) *logrus.Entry {
 	fields := logrus.Fields{
 		"type": "application",
 	}
-	setCorrelationIds(fields, r)
+	setCorrelationIds(fields, h)
 	return Logger.WithFields(fields)
 }
 
@@ -187,8 +189,10 @@ func LifecycleStart(appName string, args interface{}) {
 	}
 	fields["type"] = "lifecycle"
 	fields["event"] = "start"
-	if os.Getenv("BUILD_NUMBER") != "" {
-		fields["build_number"] = os.Getenv("BUILD_NUMBER")
+	for _, env := range LifecycleEnvVars {
+		if os.Getenv(env) != "" {
+			fields[strings.ToLower(env)] = os.Getenv(env)
+		}
 	}
 
 	Logger.WithFields(fields).Infof("starting application: %v", appName)
@@ -227,13 +231,13 @@ func getRemoteIp(r *http.Request) string {
 	return strings.Split(r.RemoteAddr, ":")[0]
 }
 
-func setCorrelationIds(fields logrus.Fields, r *http.Request) {
-	correlationId := GetCorrelationId(r.Header)
+func setCorrelationIds(fields logrus.Fields, h http.Header) {
+	correlationId := GetCorrelationId(h)
 	if correlationId != "" {
 		fields["correlation_id"] = correlationId
 	}
 
-	userCorrelationId := GetUserCorrelationId(r)
+	userCorrelationId := GetUserCorrelationId(h)
 	if userCorrelationId != "" {
 		fields["user_correlation_id"] = userCorrelationId
 	}

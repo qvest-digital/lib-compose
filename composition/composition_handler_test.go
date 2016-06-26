@@ -88,10 +88,9 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(302, resp.Code)
-	a.Equal(4, len(resp.Header()))
+	a.Equal(2, len(resp.Header()))
 	a.Equal("/look/somewhere", resp.Header().Get("Location"))
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
-	a.NotEqual("", resp.Header().Get("Content-Length"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
 }
@@ -108,8 +107,9 @@ func Test_CompositionHandler_ReturnStream(t *testing.T) {
 	}
 
 	contentWithReader := &MemoryContent{
-		reader:     ioutil.NopCloser(strings.NewReader("bar")),
-		httpHeader: http.Header{"Content-Type": {"text/plain"}},
+		reader:         ioutil.NopCloser(strings.NewReader("bar")),
+		httpHeader:     http.Header{"Content-Type": {"text/plain"}},
+		httpStatusCode: 201,
 	}
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
@@ -132,7 +132,7 @@ func Test_CompositionHandler_ReturnStream(t *testing.T) {
 
 	a.Equal("bar", string(resp.Body.Bytes()))
 	a.Equal("text/plain", resp.Header().Get("Content-Type"))
-	a.Equal(200, resp.Code)
+	a.Equal(201, resp.Code)
 }
 
 func Test_CompositionHandler_ErrorInMerging(t *testing.T) {

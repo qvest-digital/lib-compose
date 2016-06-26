@@ -14,6 +14,7 @@ import (
 // - memory size limit
 // - ttl for entries
 type Cache struct {
+	name             string
 	lock             sync.RWMutex
 	lruBackend       *simplelru.LRU
 	maxAge           time.Duration
@@ -31,10 +32,11 @@ type CacheEntry struct {
 }
 
 // NewCache creates a new cache
-func NewCache(maxEntries int, maxSizeBytes int32, maxAge time.Duration) *Cache {
+func NewCache(name string, maxEntries int, maxSizeMB int32, maxAge time.Duration) *Cache {
 	c := &Cache{
+		name:         name,
 		maxAge:       maxAge,
-		maxSizeBytes: maxSizeBytes,
+		maxSizeBytes: maxSizeMB * 1024 * 1024,
 	}
 
 	var err error

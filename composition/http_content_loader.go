@@ -7,8 +7,15 @@ import (
 	"strings"
 	"time"
 
+	"errors"
 	"github.com/tarent/lib-compose/logging"
+	"net/url"
 )
+
+var redirectAttemptedError = errors.New("do not follow redirects")
+var noRedirectFunc = func(req *http.Request, via []*http.Request) error {
+	return redirectAttemptedError
+}
 
 type HttpContentLoader struct {
 	parser map[string]ContentParser
@@ -30,7 +37,11 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	c.url = fd.URL
 	c.httpStatusCode = 502
 
-	var err error
+	// redirects can only be stopped by returning an error in the CheckRedirect function
+	if !fd.FollowRedirects {
+		client.CheckRedirect = noRedirectFunc
+	}
+
 	request, err := http.NewRequest(fd.Method, fd.URL, fd.Body)
 	if err != nil {
 		return c, err
@@ -44,28 +55,30 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	start := time.Now()
 
 	resp, err := client.Do(request)
-
+	logging.Call(request, resp, start, err)
 	if resp != nil {
 		c.httpStatusCode = resp.StatusCode
+		c.httpHeader = resp.Header
 	}
 
-	logging.Call(request, resp, start, err)
+	// do not handle our own redirects returns as errors
+	if urlError, ok := err.(*url.Error); ok && urlError.Err == redirectAttemptedError {
+		return c, nil
+	}
+
 	if err != nil {
 		return c, err
 	}
 
 	if fd.RespProc != nil {
-		err = fd.RespProc.Process(resp, fd.URL)
-	}
-	if err != nil {
-		return c, err
+		if err := fd.RespProc.Process(resp, fd.URL); err != nil {
+			return c, err
+		}
 	}
 
 	if c.httpStatusCode < 200 || c.httpStatusCode > 399 {
 		return c, fmt.Errorf("(http %v) on loading url %q", c.httpStatusCode, fd.URL)
 	}
-
-	c.httpHeader = resp.Header
 
 	// take the first parser for the content type
 	// direct access to the map does not work, because the
