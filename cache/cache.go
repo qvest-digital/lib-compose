@@ -32,11 +32,11 @@ type CacheEntry struct {
 }
 
 // NewCache creates a new cache
-func NewCache(name string, maxEntries int, maxSizeMB int32, maxAge time.Duration) *Cache {
+func NewCache(name string, maxEntries int, maxSizeMB int, maxAge time.Duration) *Cache {
 	c := &Cache{
 		name:         name,
 		maxAge:       maxAge,
-		maxSizeBytes: maxSizeMB * 1024 * 1024,
+		maxSizeBytes: int32(maxSizeMB) * 1024 * 1024,
 	}
 
 	var err error
@@ -58,7 +58,7 @@ func (c *Cache) logEvery(d time.Duration) {
 		case <-time.After(d):
 			logging.Logger.WithFields(logrus.Fields{
 				"type":             "metric",
-				"matric_name":      "cachestatus",
+				"metric_name":      "cachestatus",
 				"cache_entries":    c.Len(),
 				"cache_size_bytes": c.SizeByte(),
 			}).Infof("cache status #%v, %vbytes", c.Len(), c.SizeByte())
