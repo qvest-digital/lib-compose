@@ -3,7 +3,6 @@ package composition
 import (
 	"github.com/tarent/lib-compose/logging"
 	"strings"
-	"time"
 )
 
 type CachingContentLoader struct {
