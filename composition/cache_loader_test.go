@@ -21,8 +21,7 @@ func Test_CacheLoader_Found(t *testing.T) {
 	cacheMocK.EXPECT().Get(fd.Hash()).Return(c, true)
 
 	// when: we load the object
-	loader := NewCachingContentLoader()
-	loader.cache = cacheMocK
+	loader := NewCachingContentLoader(cacheMocK)
 
 	// it is returned
 	result, err := loader.Load(fd)
@@ -62,8 +61,7 @@ func Test_CacheLoader_NotFound(t *testing.T) {
 		loaderMock.EXPECT().Load(gomock.Any()).Return(c, nil)
 
 		// when: we load the object
-		loader := NewCachingContentLoader()
-		loader.cache = cacheMocK
+		loader := NewCachingContentLoader(cacheMocK)
 		if test.url == "file:///some/file" {
 			loader.fileContentLoader = loaderMock
 		} else {

@@ -55,15 +55,16 @@ const (
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
-	URL           string
-	Timeout       time.Duration
-	Required      bool
-	Header        http.Header
-	Method        string
-	Body          io.Reader
-	RespProc      ResponseProcessor
-	ErrHandler    ErrorHandler
-	CacheStrategy CacheStrategy
+	URL             string
+	Timeout         time.Duration
+	FollowRedirects bool
+	Required        bool
+	Header          http.Header
+	Method          string
+	Body            io.Reader
+	RespProc        ResponseProcessor
+	ErrHandler      ErrorHandler
+	CacheStrategy   CacheStrategy
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -79,25 +80,27 @@ func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *Fe
 		errHandler = NewDefaultErrorHandler()
 	}
 	return &FetchDefinition{
-		URL:           url,
-		Timeout:       DefaultTimeout,
-		Required:      true,
-		Method:        "GET",
-		ErrHandler:    errHandler,
-		CacheStrategy: cache.DefaultCacheStrategy,
+		URL:             url,
+		Timeout:         DefaultTimeout,
+		FollowRedirects: false,
+		Required:        true,
+		Method:          "GET",
+		ErrHandler:      errHandler,
+		CacheStrategy:   cache.DefaultCacheStrategy,
 	}
 }
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
 	return &FetchDefinition{
-		URL:           url,
-		Timeout:       DefaultTimeout,
-		Required:      true,
-		Method:        "GET",
-		RespProc:      rp,
-		ErrHandler:    NewDefaultErrorHandler(),
-		CacheStrategy: cache.DefaultCacheStrategy,
+		URL:             url,
+		Timeout:         DefaultTimeout,
+		FollowRedirects: false,
+		Required:        true,
+		Method:          "GET",
+		RespProc:        rp,
+		ErrHandler:      NewDefaultErrorHandler(),
+		CacheStrategy:   cache.DefaultCacheStrategy,
 	}
 }
 
@@ -125,14 +128,15 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 	}
 
 	return &FetchDefinition{
-		URL:        baseUrl + fullPath,
-		Timeout:    DefaultTimeout,
-		Header:     copyHeaders(r.Header, nil, ForwardRequestHeaders),
-		Method:     r.Method,
-		Body:       r.Body,
-		Required:   true,
-		RespProc:   rp,
-		ErrHandler: NewDefaultErrorHandler(),
+		URL:             baseUrl + fullPath,
+		Timeout:         DefaultTimeout,
+		FollowRedirects: false,
+		Header:          copyHeaders(r.Header, nil, ForwardRequestHeaders),
+		Method:          r.Method,
+		Body:            r.Body,
+		Required:        true,
+		RespProc:        rp,
+		ErrHandler:      NewDefaultErrorHandler(),
 	}
 }
 
