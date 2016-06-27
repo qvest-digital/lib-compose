@@ -55,7 +55,6 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	start := time.Now()
 
 	resp, err := client.Do(request)
-	logging.Call(request, resp, start, err)
 	if resp != nil {
 		c.httpStatusCode = resp.StatusCode
 		c.httpHeader = resp.Header
@@ -63,8 +62,10 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 
 	// do not handle our own redirects returns as errors
 	if urlError, ok := err.(*url.Error); ok && urlError.Err == redirectAttemptedError {
+		logging.Call(request, resp, start, nil)
 		return c, nil
 	}
+	logging.Call(request, resp, start, err)
 
 	if err != nil {
 		return c, err
