@@ -194,14 +194,13 @@ func Test_Logger_Application(t *testing.T) {
 
 	// given:
 	UserCorrelationCookie = "user_id"
-	r, _ := http.NewRequest("GET", "http://www.example.org/foo?q=bar", nil)
-	r.Header = http.Header{
+	header := http.Header{
 		CorrelationIdHeader: {"correlation-123"},
 		"Cookie":            {"user_id=user-id-xyz;"},
 	}
 
 	// when:
-	entry := Application(r)
+	entry := Application(header)
 
 	// then:
 	a.Equal("correlation-123", entry.Data["correlation_id"])

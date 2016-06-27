@@ -1,7 +1,7 @@
 package composition
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"github.com/tarent/lib-compose/logging"
 	"io"
 	"net/http"
 	"strconv"
@@ -57,11 +57,11 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			mergeContext.AddContent(res)
 
 		} else if res.Def.Required {
-			log.WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
+			logging.Application(r.Header).WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
 			res.Def.ErrHandler.Handle(res.Err, res.Content.HttpStatusCode(), w, r)
 			return
 		} else {
-			log.WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
+			logging.Application(r.Header).WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
 		}
 	}
 
@@ -79,7 +79,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	html, err := mergeContext.GetHtml()
 	if err != nil {
-		log.Error(err.Error())
+		logging.Application(r.Header).Error(err.Error())
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
 		return
 	}
