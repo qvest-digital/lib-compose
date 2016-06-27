@@ -5,7 +5,7 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	
+	composition "github.com/tarent/lib-compose/composition"
 	io "io"
 	http "net/http"
 )
@@ -72,9 +72,9 @@ func (_m *MockContentLoader) EXPECT() *_MockContentLoaderRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentLoader) Load(_param0 *FetchDefinition) (Content, error) {
+func (_m *MockContentLoader) Load(_param0 *composition.FetchDefinition) (composition.Content, error) {
 	ret := _m.ctrl.Call(_m, "Load", _param0)
-	ret0, _ := ret[0].(Content)
+	ret0, _ := ret[0].(composition.Content)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -104,9 +104,9 @@ func (_m *MockContent) EXPECT() *_MockContentRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContent) Body() map[string]Fragment {
+func (_m *MockContent) Body() map[string]composition.Fragment {
 	ret := _m.ctrl.Call(_m, "Body")
-	ret0, _ := ret[0].(map[string]Fragment)
+	ret0, _ := ret[0].(map[string]composition.Fragment)
 	return ret0
 }
 
@@ -114,9 +114,9 @@ func (_mr *_MockContentRecorder) Body() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Body")
 }
 
-func (_m *MockContent) BodyAttributes() Fragment {
+func (_m *MockContent) BodyAttributes() composition.Fragment {
 	ret := _m.ctrl.Call(_m, "BodyAttributes")
-	ret0, _ := ret[0].(Fragment)
+	ret0, _ := ret[0].(composition.Fragment)
 	return ret0
 }
 
@@ -124,9 +124,9 @@ func (_mr *_MockContentRecorder) BodyAttributes() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "BodyAttributes")
 }
 
-func (_m *MockContent) Head() Fragment {
+func (_m *MockContent) Head() composition.Fragment {
 	ret := _m.ctrl.Call(_m, "Head")
-	ret0, _ := ret[0].(Fragment)
+	ret0, _ := ret[0].(composition.Fragment)
 	return ret0
 }
 
@@ -184,9 +184,9 @@ func (_mr *_MockContentRecorder) Reader() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Reader")
 }
 
-func (_m *MockContent) RequiredContent() []*FetchDefinition {
+func (_m *MockContent) RequiredContent() []*composition.FetchDefinition {
 	ret := _m.ctrl.Call(_m, "RequiredContent")
-	ret0, _ := ret[0].([]*FetchDefinition)
+	ret0, _ := ret[0].([]*composition.FetchDefinition)
 	return ret0
 }
 
@@ -194,9 +194,9 @@ func (_mr *_MockContentRecorder) RequiredContent() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "RequiredContent")
 }
 
-func (_m *MockContent) Tail() Fragment {
+func (_m *MockContent) Tail() composition.Fragment {
 	ret := _m.ctrl.Call(_m, "Tail")
-	ret0, _ := ret[0].(Fragment)
+	ret0, _ := ret[0].(composition.Fragment)
 	return ret0
 }
 
@@ -235,7 +235,7 @@ func (_m *MockContentMerger) EXPECT() *_MockContentMergerRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentMerger) AddContent(_param0 *FetchResult) {
+func (_m *MockContentMerger) AddContent(_param0 *composition.FetchResult) {
 	_m.ctrl.Call(_m, "AddContent", _param0)
 }
 
@@ -275,7 +275,7 @@ func (_m *MockContentParser) EXPECT() *_MockContentParserRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentParser) Parse(_param0 *MemoryContent, _param1 io.Reader) error {
+func (_m *MockContentParser) Parse(_param0 *composition.MemoryContent, _param1 io.Reader) error {
 	ret := _m.ctrl.Call(_m, "Parse", _param0, _param1)
 	ret0, _ := ret[0].(error)
 	return ret0

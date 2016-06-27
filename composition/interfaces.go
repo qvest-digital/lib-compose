@@ -1,8 +1,8 @@
 package composition
 
 //go:generate go get github.com/golang/mock/mockgen
-//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor
-//go:generate sed -ie "s/composition .lib-compose\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
+//go:generate mockgen -self_package composition -package composition -destination interface_mocks_test.go github.com/tarent/lib-compose/composition Fragment,ContentLoader,Content,ContentMerger,ContentParser,ResponseProcessor,Cache
+//go:generate sed -ie "s/composition .github.com\\/tarent\\/lib-compose\\/composition.//g;s/composition\\.//g" interface_mocks_test.go
 //go:generate sh ../scripts/mockgen.sh
 
 import (
@@ -12,6 +12,9 @@ import (
 
 type Fragment interface {
 	Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error
+
+	// MemorySize return the estimated size in bytes, for this object in memory
+	MemorySize() int
 }
 
 type ContentLoader interface {
@@ -31,6 +34,11 @@ type FetchResultSupplier interface {
 
 	// MetaJSON returns the composed meta JSON object
 	MetaJSON() map[string]interface{}
+}
+
+type CacheStrategy interface {
+	Hash(method string, url string, requestHeader http.Header) string
+	IsCachable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool
 }
 
 // Vontent is the abstration over includable data.
@@ -71,6 +79,9 @@ type Content interface {
 
 	// HttpStatusCode() returns the http statuc code of the fetch job
 	HttpStatusCode() int
+
+	// MemorySize return the estimated size in bytes, for this object in memory
+	MemorySize() int
 }
 
 type ContentMerger interface {
@@ -90,4 +101,9 @@ type ResponseProcessor interface {
 type ErrorHandler interface {
 	// handle http request errors
 	Handle(err error, status int, w http.ResponseWriter, r *http.Request)
+}
+
+type Cache interface {
+	Get(hash string) (cacheObject interface{}, found bool)
+	Set(hash string, label string, memorySize int, cacheObject interface{})
 }

@@ -262,6 +262,33 @@ func Test_Logger_LifecycleStop(t *testing.T) {
 	a.Equal("b666", data["build_number"])
 }
 
+func Test_Logger_Cacheinfo(t *testing.T) {
+	a := assert.New(t)
+
+	// given a logger
+	Set("debug", false)
+	defer Set("info", false)
+	b := bytes.NewBuffer(nil)
+	Logger.Out = b
+
+	// when a positive cachinfo is logged
+	Cacheinfo("/foo", true)
+
+	// then: it is logged
+	data := mapFromBuffer(b)
+	a.Equal("/foo", data["url"])
+	a.Equal("cacheinfo", data["type"])
+	a.Equal(true, data["hit"])
+	a.Equal("cache hit: /foo", data["message"])
+
+	b.Reset()
+	// logging a non hit
+	Cacheinfo("/foo", false)
+	data = mapFromBuffer(b)
+	a.Equal(false, data["hit"])
+	a.Equal("cache miss: /foo", data["message"])
+}
+
 func logRecordFromBuffer(b *bytes.Buffer) *logReccord {
 	data := &logReccord{}
 	err := json.Unmarshal(b.Bytes(), data)

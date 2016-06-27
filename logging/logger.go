@@ -148,6 +148,23 @@ func Call(r *http.Request, resp *http.Response, start time.Time, err error) {
 	Logger.WithFields(fields).Warn("call, but no response given")
 }
 
+// Cacheinfo logs the hit information a accessing a ressource
+func Cacheinfo(url string, hit bool) {
+	var msg string
+	if hit {
+		msg = fmt.Sprintf("cache hit: %v", url)
+	} else {
+		msg = fmt.Sprintf("cache miss: %v", url)
+	}
+	Logger.WithFields(
+		logrus.Fields{
+			"type": "cacheinfo",
+			"url":  url,
+			"hit":  hit,
+		}).
+		Debug(msg)
+}
+
 // Return a log entry for application logs,
 // prefilled with the correlation ids out of the supplied request.
 func Application(h http.Header) *logrus.Entry {
