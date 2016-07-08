@@ -2,9 +2,9 @@ package composition
 
 import (
 	"bytes"
+	"github.com/tarent/lib-compose/logging"
 	"io"
 	"io/ioutil"
-	"lib-compose/logging"
 	"strings"
 )
 
