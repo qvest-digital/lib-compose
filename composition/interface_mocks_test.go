@@ -5,7 +5,7 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	
+
 	io "io"
 	http "net/http"
 )
@@ -192,6 +192,14 @@ func (_m *MockContent) RequiredContent() []*FetchDefinition {
 
 func (_mr *_MockContentRecorder) RequiredContent() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "RequiredContent")
+}
+
+func (_m *MockContent) SetReader(_param0 io.ReadCloser) {
+	_m.ctrl.Call(_m, "SetReader", _param0)
+}
+
+func (_mr *_MockContentRecorder) SetReader(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "SetReader", arg0)
 }
 
 func (_m *MockContent) Tail() Fragment {

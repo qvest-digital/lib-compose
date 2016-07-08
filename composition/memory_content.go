@@ -79,6 +79,10 @@ func (c *MemoryContent) Reader() io.ReadCloser {
 	return c.reader
 }
 
+func (c *MemoryContent) SetReader(r io.ReadCloser) {
+	c.reader = r
+}
+
 func (c *MemoryContent) HttpHeader() http.Header {
 	return c.httpHeader
 }
