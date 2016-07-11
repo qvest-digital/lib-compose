@@ -103,6 +103,14 @@ func (c *Cache) Set(key string, label string, sizeBytes int, cacheObject interfa
 	}
 }
 
+func (c *Cache) Invalidate() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.lruBackend.Purge()
+	c.currentSizeBytes = 0
+	return
+}
+
 // SizeByte returns the total memory consumption of the cache
 func (c *Cache) SizeByte() int {
 	return int(atomic.LoadInt32(&c.currentSizeBytes))
