@@ -130,6 +130,20 @@ func Test_CacheLoader_NotFound_With_Stream(t *testing.T) {
 	}
 }
 
+func Test_Content_Wrapper_Reader(t *testing.T) {
+	//given
+	toTest := &ContentWrapper{streamBytes: []byte("foobar")}
+
+	//when
+	result, err := ioutil.ReadAll(toTest.Reader())
+	resultStr := string(result)
+
+	//then
+	assert.NoError(t, err)
+	assert.Equal(t, "foobar", resultStr)
+
+}
+
 type CWMatcher struct {
 }
 
