@@ -122,8 +122,10 @@ func Test_CacheLoader_NotFound_With_Stream(t *testing.T) {
 
 		// it is returned
 		result, err := loader.Load(fd)
+		resultbytes, err := ioutil.ReadAll(result.Reader())
+		resultstring := string(resultbytes)
 		a.NoError(err)
-		a.Equal(c, result)
+		a.Equal("foobar", resultstring)
 		ctrl.Finish()
 	}
 }
