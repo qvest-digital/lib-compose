@@ -13,7 +13,7 @@ func Test_CacheInvalidationHandler_Invalidation(t *testing.T) {
 
 	//given
 	cacheMocK := NewMockCache(ctrl)
-	cih := &CacheInvalidationHandler{cache: cacheMocK}
+	cih := NewCacheInvalidationHandler(cacheMocK, nil)
 	request, _ := http.NewRequest(http.MethodDelete, "internal/cache", nil)
 
 	//when
@@ -28,7 +28,7 @@ func Test_CacheInvalidationHandler_Delegate_Is_Called(t *testing.T) {
 	//given
 	handlerMock := mockhttp.NewMockHandler(ctrl)
 	cacheMocK := NewMockCache(ctrl)
-	cih := &CacheInvalidationHandler{cache: cacheMocK, next: handlerMock}
+	cih := NewCacheInvalidationHandler(cacheMocK, handlerMock)
 	request, _ := http.NewRequest(http.MethodDelete, "internal/cache", nil)
 
 	//when
