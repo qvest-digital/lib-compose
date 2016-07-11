@@ -58,8 +58,8 @@ func (c *Cache) logEvery(d time.Duration) {
 	for {
 		select {
 		case <-time.After(d):
+			c.PurgeOldEntries()
 			c.calculateStats(d)
-			//c.RemoveOldEntries(d)
 		}
 	}
 }
@@ -117,6 +117,10 @@ func (c *Cache) Set(key string, label string, sizeBytes int, cacheObject interfa
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	// first remove, to have correct size counting
+	c.lruBackend.Remove(key)
+
 	c.currentSizeBytes += sizeBytes
 	c.lruBackend.Add(key, entry)
 
@@ -132,6 +136,33 @@ func (c *Cache) Set(key string, label string, sizeBytes int, cacheObject interfa
 func (c *Cache) onEvicted(key, value interface{}) {
 	entry := value.(*CacheEntry)
 	c.currentSizeBytes -= entry.size
+}
+
+// PurgeOldEntries removes all entries which are out of their ttl
+func (c *Cache) PurgeOldEntries() {
+	c.lock.RLock()
+	keys := c.lruBackend.Keys()
+	c.lock.RUnlock()
+
+	purged := 0
+	for _, key := range keys {
+		c.lock.RLock()
+		e, found := c.lruBackend.Peek(key)
+		c.lock.RUnlock()
+
+		if found {
+			entry := e.(*CacheEntry)
+			if time.Since(entry.fetchTime) > c.maxAge {
+				c.lock.Lock()
+				c.lruBackend.Remove(key)
+				c.lock.Unlock()
+				purged++
+			}
+		}
+	}
+	logging.Logger.
+		WithFields(logrus.Fields(c.stats)).
+		Infof("purged %v out of %v cache entries", purged, len(keys))
 }
 
 // SizeByte returns the total memory consumption of the cache
