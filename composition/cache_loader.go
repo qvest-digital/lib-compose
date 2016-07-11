@@ -36,12 +36,14 @@ func (loader *CachingContentLoader) Load(fd *FetchDefinition) (Content, error) {
 			if c.Reader() != nil {
 				var streamBytes []byte
 				streamBytes, err = ioutil.ReadAll(c.Reader())
-				cw := &ContentWrapper{
-					Content:     c,
-					streamBytes: streamBytes,
+				if err == nil {
+					cw := &ContentWrapper{
+						Content:     c,
+						streamBytes: streamBytes,
+					}
+					loader.cache.Set(hash, fd.URL, c.MemorySize(), cw)
+					c.SetReader(cw.Reader())
 				}
-				loader.cache.Set(hash, fd.URL, c.MemorySize(), cw)
-				c.SetReader(cw.Reader())
 			} else {
 				loader.cache.Set(hash, fd.URL, c.MemorySize(), c)
 			}
