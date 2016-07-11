@@ -65,8 +65,6 @@ type FetchDefinition struct {
 	RespProc        ResponseProcessor
 	ErrHandler      ErrorHandler
 	CacheStrategy   CacheStrategy
-
-	IsStaticError   bool
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
