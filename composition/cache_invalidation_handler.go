@@ -1,6 +1,9 @@
 package composition
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 type CacheInvalidationHandler struct {
 	cache Cache
@@ -8,7 +11,11 @@ type CacheInvalidationHandler struct {
 }
 
 func (cih *CacheInvalidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cih.cache.Invalidate()
+	if r.Method == "DELETE" &&
+		strings.Contains(r.URL.EscapedPath(), "internal/cache") &&
+		cih.cache != nil {
+		cih.cache.Invalidate()
+	}
 	if cih.next != nil {
 		cih.next.ServeHTTP(w, r)
 	}
