@@ -74,8 +74,6 @@ type Content interface {
 	// If Reader() == nil, no stream is available an it contains parsed data, only.
 	Reader() io.ReadCloser
 
-	SetReader(io.ReadCloser)
-
 	// HttpHeader() returns the http headers of the fetch job
 	HttpHeader() http.Header
 
