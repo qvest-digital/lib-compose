@@ -132,3 +132,22 @@ func Test_Cache_PurgeOldEntries(t *testing.T) {
 	a.Equal(2, c.Len())
 	a.Equal(84, c.SizeByte())
 }
+
+func Test_Cache_Invalidation(t *testing.T) {
+	a := assert.New(t)
+
+	// given a cache of size 3
+	// with 3 entries
+	c := NewCache("my-cache", 3, 100, time.Hour)
+	c.Set("a", "", 0, "a")
+	c.Set("b", "", 0, "b")
+	c.Set("c", "", 0, "c")
+	a.Equal(3, c.Len())
+
+	//when i empty the cache
+	c.Invalidate()
+
+	//then the cache should be empty
+	assert.True(t, c.currentSizeBytes == 0)
+	assert.True(t, c.Len() == 0)
+}

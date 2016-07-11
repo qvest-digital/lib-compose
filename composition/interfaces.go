@@ -34,6 +34,9 @@ type FetchResultSupplier interface {
 
 	// MetaJSON returns the composed meta JSON object
 	MetaJSON() map[string]interface{}
+
+	// True, if no fetch jobs were added
+	Empty() bool
 }
 
 type CacheStrategy interface {
@@ -106,4 +109,5 @@ type ErrorHandler interface {
 type Cache interface {
 	Get(hash string) (cacheObject interface{}, found bool)
 	Set(hash string, label string, memorySize int, cacheObject interface{})
+	Invalidate()
 }

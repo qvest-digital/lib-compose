@@ -163,6 +163,15 @@ func (c *Cache) PurgeOldEntries() {
 	logging.Logger.
 		WithFields(logrus.Fields(c.stats)).
 		Infof("purged %v out of %v cache entries", purged, len(keys))
+
+}
+
+func (c *Cache) Invalidate() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.lruBackend.Purge()
+	c.currentSizeBytes = 0
+	return
 }
 
 // SizeByte returns the total memory consumption of the cache

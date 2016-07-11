@@ -33,6 +33,32 @@ func Test_CacheLoader_Found(t *testing.T) {
 	a.Equal(c, result)
 }
 
+func Test_CacheLoader_NoLookupForPostRequests(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	// given:
+	fd := NewFetchDefinition("/foo")
+	fd.Method = "POST"
+	c := NewMemoryContent()
+	c.url = "/foo"
+
+	// and a cache returning nothing
+	cacheMocK := NewMockCache(ctrl)
+	httpLoaderMocK := NewMockContentLoader(ctrl)
+	httpLoaderMocK.EXPECT().Load(gomock.Any()).Return(c, nil)
+
+	// when: we load the object
+	loader := NewCachingContentLoader(cacheMocK)
+	loader.httpContentLoader = httpLoaderMocK
+
+	// it is returned
+	result, err := loader.Load(fd)
+	a.NoError(err)
+	a.Equal(c, result)
+}
+
 func Test_CacheLoader_NotFound(t *testing.T) {
 	tests := []struct {
 		url      string
@@ -41,7 +67,6 @@ func Test_CacheLoader_NotFound(t *testing.T) {
 	}{
 		{"http://example.de", "GET", true},
 		{"file:///some/file", "GET", true},
-		{"http://example.de", "POST", false},
 	}
 	for _, test := range tests {
 		ctrl := gomock.NewController(t)
