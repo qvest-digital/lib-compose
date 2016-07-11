@@ -34,6 +34,21 @@ func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
 	meta := fetcher.MetaJSON()
 	a.Equal("bar", meta["foo"])
 	a.Equal("bla", meta["bli"])
+
+	a.False(fetcher.Empty())
+}
+
+func Test_ContentFetcher_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	loader := NewMockContentLoader(ctrl)
+
+	fetcher := NewContentFetcher(nil)
+	fetcher.Loader = loader
+
+	a.True(fetcher.Empty())
 }
 
 func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoader, url string, requiredContent []*FetchDefinition, loaderBlocking time.Duration, metaJSON map[string]interface{}) *FetchDefinition {

@@ -190,6 +190,24 @@ func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	a.Equal(502, resp.Code)
 }
 
+func Test_CompositionHandler_ErrorEmptyFetchersList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{}
+	}
+	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	aggregator.ServeHTTP(resp, r)
+
+	a.Equal("Internal server error", string(resp.Body.Bytes()))
+	a.Equal(500, resp.Code)
+}
+
 func Test_metadataForRequest(t *testing.T) {
 	a := assert.New(t)
 	r, _ := http.NewRequest("GET", "https://example.com/nothing?foo=bar", nil)
@@ -265,3 +283,8 @@ func (m MockFetchResultSupplier) WaitForResults() []*FetchResult {
 func (m MockFetchResultSupplier) MetaJSON() map[string]interface{} {
 	return nil
 }
+
+func (m MockFetchResultSupplier) Empty() bool {
+	return len([]*FetchResult(m)) == 0
+}
+

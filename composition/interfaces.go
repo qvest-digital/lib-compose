@@ -34,6 +34,9 @@ type FetchResultSupplier interface {
 
 	// MetaJSON returns the composed meta JSON object
 	MetaJSON() map[string]interface{}
+
+	// True, if no fetch jobs were added
+	Empty() bool
 }
 
 type CacheStrategy interface {
