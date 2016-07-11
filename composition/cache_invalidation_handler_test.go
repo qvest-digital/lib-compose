@@ -12,7 +12,7 @@ func Test_CacheInvalidationHandler_Invalidation(t *testing.T) {
 
 	//given
 	cacheMocK := NewMockCache(ctrl)
-	cih := &CacheInvalidationHandler{Cache: cacheMocK}
+	cih := &CacheInvalidationHandler{cache: cacheMocK}
 
 	//when
 	cacheMocK.EXPECT().Invalidate().Times(1)
@@ -26,7 +26,7 @@ func Test_CacheInvalidationHandler_Delegate_Is_Called(t *testing.T) {
 	//given
 	handlerMock := http.NewMockHandler(ctrl)
 	cacheMocK := NewMockCache(ctrl)
-	cih := &CacheInvalidationHandler{Cache: cacheMocK, Next: handlerMock}
+	cih := &CacheInvalidationHandler{cache: cacheMocK, next: handlerMock}
 
 	//when
 	cacheMocK.EXPECT().Invalidate().AnyTimes()

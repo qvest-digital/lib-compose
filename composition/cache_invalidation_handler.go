@@ -3,13 +3,17 @@ package composition
 import "net/http"
 
 type CacheInvalidationHandler struct {
-	Cache Cache
-	Next  http.Handler
+	cache Cache
+	next  http.Handler
 }
 
 func (cih *CacheInvalidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cih.Cache.Invalidate()
-	if cih.Next != nil {
-		cih.Next.ServeHTTP(w, r)
+	cih.cache.Invalidate()
+	if cih.next != nil {
+		cih.next.ServeHTTP(w, r)
 	}
+}
+
+func NewCacheInvalidationHandler(cache Cache, next http.Handler) *CacheInvalidationHandler {
+	return &CacheInvalidationHandler{cache: cache, next: next}
 }
