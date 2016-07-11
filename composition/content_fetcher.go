@@ -108,6 +108,12 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	}()
 }
 
+func (fetcher *ContentFetcher) Empty() bool {
+	fetcher.r.mutex.Lock()
+	defer fetcher.r.mutex.Unlock()
+	return len(fetcher.r.results) == 0
+}
+
 // isAlreadySheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.
 // The method has to be called in a locked mutex block.
 func (fetcher *ContentFetcher) isAlreadySheduled(fetchDefinitionHash string) bool {

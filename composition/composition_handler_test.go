@@ -265,3 +265,8 @@ func (m MockFetchResultSupplier) WaitForResults() []*FetchResult {
 func (m MockFetchResultSupplier) MetaJSON() map[string]interface{} {
 	return nil
 }
+
+func (m MockFetchResultSupplier) Empty() bool {
+	return false
+}
+

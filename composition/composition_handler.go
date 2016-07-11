@@ -32,6 +32,12 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	fetcher := agg.contentFetcherFactory(r)
 
+	if fetcher.Empty() {
+		w.WriteHeader(500)
+		w.Write([]byte("Internal server error"))
+		return
+	}
+
 	// fetch all contents
 	results := fetcher.WaitForResults()
 
