@@ -106,4 +106,5 @@ type ErrorHandler interface {
 type Cache interface {
 	Get(hash string) (cacheObject interface{}, found bool)
 	Set(hash string, label string, memorySize int, cacheObject interface{})
+	Invalidate()
 }
