@@ -1,8 +1,8 @@
 package composition
 
 import (
-	mockhttp "content-ui-service/mocks/net/http"
 	"github.com/golang/mock/gomock"
+	mockhttp "github.com/tarent/lib-compose/composition/mocks/net/http"
 	"net/http"
 	"testing"
 )
