@@ -97,3 +97,20 @@ func Test_Cache_MaxBytes(t *testing.T) {
 	_, found = c.Get("d")
 	a.True(found)
 }
+
+func Test_Cache_Stats(t *testing.T) {
+	a := assert.New(t)
+
+	c := NewCache("my-cache", 3, 100, time.Hour)
+	c.Set("a", "", 42, "a")
+	c.Get("a")
+	c.Get("a")
+	c.Get("b")
+
+	c.calculateStats(time.Hour)
+	a.Equal(1, c.stats["cache_entries"])
+	a.Equal(42, c.stats["cache_size_bytes"])
+	a.Equal(2, c.stats["cache_hits"])
+	a.Equal(1, c.stats["cache_misses"])
+	a.Equal(66, c.stats["cache_hit_ratio"])
+}
