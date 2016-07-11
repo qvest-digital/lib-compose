@@ -42,7 +42,7 @@ func (loader *CachingContentLoader) Load(fd *FetchDefinition) (Content, error) {
 						streamBytes: streamBytes,
 					}
 					loader.cache.Set(hash, fd.URL, c.MemorySize(), cw)
-					return cw, err
+					return cw, nil
 				}
 			} else {
 				loader.cache.Set(hash, fd.URL, c.MemorySize(), c)
