@@ -222,7 +222,7 @@ func Test_HttpContentLoader_FollowRedirects(t *testing.T) {
 func Test_HttpContentLoader_DoNotFollowRedirects(t *testing.T) {
 	a := assert.New(t)
 
-	for _, status := range []int{301, 302, 303} {
+	for _, status := range []int{301, 302, 303, 305, 307, 308} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != "/redirected" {
 				http.Redirect(w, r, "/redirected", status)
