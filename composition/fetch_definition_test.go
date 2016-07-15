@@ -24,7 +24,7 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 
 	fd := NewFetchDefinitionFromRequest("http://upstream:8080/", r)
 	a.Equal("http://upstream:8080/content?foo=bar", fd.URL)
-	a.Equal(10*time.Second, fd.Timeout)
+	a.Equal(40*time.Second, fd.Timeout)
 	a.Equal(true, fd.Required)
 
 	a.Equal("text/html", fd.Header.Get("Content-Type"))

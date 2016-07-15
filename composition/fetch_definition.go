@@ -49,7 +49,7 @@ var ForwardResponseHeaders = []string{
 	"WWW-Authenticate"}
 
 const (
-	DefaultTimeout time.Duration = 10 * time.Second
+	DefaultTimeout time.Duration = 40 * time.Second
 	FileURLPrefix                = "file://"
 )
 
