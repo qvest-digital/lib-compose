@@ -248,6 +248,11 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 		placeholder = placeholder[1:]
 	}
 
+	attr, found := getAttr(attrs, "discoveredBy")
+	if found {
+		fd.DiscoveredBy(attr.Val)
+	}
+
 	return fd, fmt.Sprintf("§[> %s]§", placeholder), nil
 }
 

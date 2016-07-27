@@ -175,7 +175,7 @@ func Test_CacheStrategy_IsCachable(t *testing.T) {
 	}
 
 	for _, t := range tests {
-		cacheable := t.strategy.IsCachable(t.method, "", t.statusCode, t.requestHeader, t.responseHeader)
+		cacheable := t.strategy.IsCacheable(t.method, "", t.statusCode, t.requestHeader, t.responseHeader)
 		message := fmt.Sprintf("%v = isCacheable(%q, %q, %v, %v, %v)", cacheable, t.method, "", t.statusCode, t.requestHeader, t.responseHeader)
 		if t.isCacheable {
 			a.True(cacheable, message)

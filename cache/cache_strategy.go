@@ -102,7 +102,7 @@ func (tcs *CacheStrategy) HashWithParameters(method string, url string, requestH
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func (tcs *CacheStrategy) IsCachable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool {
+func (tcs *CacheStrategy) IsCacheable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool {
 	// TODO: it is expensive to create a request object only for passing to the cachecontrol library
 	req := &http.Request{Method: method, Header: requestHeader}
 	reasons, _, err := cacheobject.UsingRequestResponse(req, statusCode, responseHeader, true)

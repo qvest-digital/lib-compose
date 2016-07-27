@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"errors"
 	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/lib-servicediscovery/servicediscovery"
 	"net/url"
+	"net"
 )
 
 var redirectAttemptedError = errors.New("do not follow redirects")
@@ -42,7 +43,16 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 		client.CheckRedirect = noRedirectFunc
 	}
 
-	request, err := http.NewRequest(fd.Method, fd.URL, fd.Body)
+	fetchUrl := fd.URL
+	if fd.ServiceDiscoveryActive {
+		discoveredUrl, err := loader.discoverServiceInUrl(fetchUrl, fd.ServiceDiscovery)
+		if err != nil {
+			return c, err
+		}
+		fetchUrl = discoveredUrl
+	}
+
+	request, err := http.NewRequest(fd.Method, fetchUrl, fd.Body)
 	if err != nil {
 		return c, err
 	}
@@ -107,4 +117,34 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 
 	c.reader = resp.Body
 	return c, nil
+}
+
+func (loader *HttpContentLoader) discoverServiceInUrl(rawUrl string, serviceDiscovery servicediscovery.ServiceDiscovery) (string, error) {
+
+	parsedUrl, err := url.Parse(rawUrl)
+	if err != nil {
+		return "", err
+	}
+
+	host, origPort, err := net.SplitHostPort(parsedUrl.Host)
+	if err != nil {
+		if !strings.Contains(err.Error(), "missing port") {
+			return "", err
+		}
+		host = parsedUrl.Host
+	}
+
+	if net.ParseIP(host) == nil {
+		if origPort != "" {
+			return "", fmt.Errorf("Service name with port given, this is not allowed. The port will be resolved by service discovery!")
+		}
+		ip, port, err := serviceDiscovery.DiscoverService(parsedUrl.Host)
+		if err != nil {
+			return "", err
+		}
+		parsedUrl.Host = net.JoinHostPort(ip, port)
+	}
+
+	return parsedUrl.String(), nil
+
 }

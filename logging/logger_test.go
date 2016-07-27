@@ -289,6 +289,30 @@ func Test_Logger_Cacheinfo(t *testing.T) {
 	a.Equal("cache miss: /foo", data["message"])
 }
 
+func Test_Logger_GetRemoteIp1(t *testing.T) {
+	a := assert.New(t)
+	req, _ := http.NewRequest("GET", "test.com", nil)
+	req.Header["X-Cluster-Client-Ip"] = []string {"1234"}
+	ret := getRemoteIp(req)
+	a.Equal("1234", ret)
+}
+
+func Test_Logger_GetRemoteIp2(t *testing.T) {
+	a := assert.New(t)
+	req, _ := http.NewRequest("GET", "test.com", nil)
+	req.Header["X-Real-Ip"] = []string {"1234"}
+	ret := getRemoteIp(req)
+	a.Equal("1234", ret)
+}
+
+func Test_Logger_GetRemoteIp3(t *testing.T) {
+	a := assert.New(t)
+	req, _ := http.NewRequest("GET", "test.com", nil)
+	req.RemoteAddr = "1234:80"
+	ret := getRemoteIp(req)
+	a.Equal("1234", ret)
+}
+
 func logRecordFromBuffer(b *bytes.Buffer) *logReccord {
 	data := &logReccord{}
 	err := json.Unmarshal(b.Bytes(), data)
