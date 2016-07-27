@@ -128,7 +128,6 @@ func (loader *HttpContentLoader) discoverServiceInUrl(rawUrl string, serviceDisc
 
 	host, origPort, err := net.SplitHostPort(parsedUrl.Host)
 	if err != nil {
-		fmt.Println(err)
 		if !strings.Contains(err.Error(), "missing port") {
 			return "", err
 		}
