@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"github.com/tarent/lib-servicediscovery/servicediscovery"
 )
 
 // ForwardRequestHeaders are those headers,
@@ -55,16 +56,18 @@ const (
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
-	URL             string
-	Timeout         time.Duration
-	FollowRedirects bool
-	Required        bool
-	Header          http.Header
-	Method          string
-	Body            io.Reader
-	RespProc        ResponseProcessor
-	ErrHandler      ErrorHandler
-	CacheStrategy   CacheStrategy
+	URL                    string
+	Timeout                time.Duration
+	FollowRedirects        bool
+	Required               bool
+	Header                 http.Header
+	Method                 string
+	Body                   io.Reader
+	RespProc               ResponseProcessor
+	ErrHandler             ErrorHandler
+	CacheStrategy          CacheStrategy
+	ServiceDiscoveryActive bool
+	ServiceDiscovery       servicediscovery.ServiceDiscovery
 	//ServeResponseHeaders bool
 	//IsPrimary            bool
 	//FallbackURL string
@@ -105,13 +108,13 @@ func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *
 }
 
 // NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the sheme, host and port with the provided base url
+// from the request path, but replaces the scheme, host and port with the provided base url
 func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
 	return NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl, r, nil)
 }
 
 // NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the sheme, host and port with the provided base url
+// from the request path, but replaces the scheme, host and port with the provided base url
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 // Only those headers, defined in ForwardRequestHeaders are copied to the FetchDefinition.
 func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor) *FetchDefinition {
@@ -150,9 +153,9 @@ func (def *FetchDefinition) Hash() string {
 	return def.URL
 }
 
-func (def *FetchDefinition) IsCachable(responseStatus int, responseHeaders http.Header) bool {
+func (def *FetchDefinition) IsCacheable(responseStatus int, responseHeaders http.Header) bool {
 	if def.CacheStrategy != nil {
-		return def.CacheStrategy.IsCachable(def.Method, def.URL, responseStatus, def.Header, responseHeaders)
+		return def.CacheStrategy.IsCacheable(def.Method, def.URL, responseStatus, def.Header, responseHeaders)
 	}
 	return false
 }
@@ -185,3 +188,4 @@ func NewDefaultErrorHandler() *DefaultErrorHandler {
 func (der *DefaultErrorHandler) Handle(err error, status int, w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Error: "+err.Error(), status)
 }
+

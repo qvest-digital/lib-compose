@@ -34,7 +34,7 @@ func (loader *CachingContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	logging.Cacheinfo(fd.URL, false)
 	c, err := loader.load(fd)
 	if err == nil {
-		if fd.IsCachable(c.HttpStatusCode(), c.HttpHeader()) {
+		if fd.IsCacheable(c.HttpStatusCode(), c.HttpHeader()) {
 			if c.Reader() != nil {
 				var streamBytes []byte
 				streamBytes, err = ioutil.ReadAll(c.Reader())

@@ -47,7 +47,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	for _, res := range results {
 		if res.Err == nil && res.Content != nil {
 
-			if res.Content.HttpStatusCode() >= 300 && res.Content.HttpStatusCode() <= 308 {
+			if res.Content.HttpStatusCode() == 301 || res.Content.HttpStatusCode() == 302 || res.Content.HttpStatusCode() == 303 {
 				copyHeaders(res.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
 				w.WriteHeader(res.Content.HttpStatusCode())
 				return
