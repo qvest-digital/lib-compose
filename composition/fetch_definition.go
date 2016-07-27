@@ -68,9 +68,6 @@ type FetchDefinition struct {
 	CacheStrategy          CacheStrategy
 	ServiceDiscoveryActive bool
 	ServiceDiscovery       servicediscovery.ServiceDiscovery
-	//ServeResponseHeaders bool
-	//IsPrimary            bool
-	//FallbackURL string
 }
 
 // Creates a fetch definition
