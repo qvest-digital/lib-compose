@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"github.com/tarent/lib-servicediscovery/servicediscovery"
+	"fmt"
 )
 
 func Test_HttpContentLoader_Load(t *testing.T) {
@@ -243,6 +245,80 @@ func Test_HttpContentLoader_DoNotFollowRedirects(t *testing.T) {
 		server.Close()
 	}
 }
+
+func Test_HttpContentLoader_DiscoverServiceInUrl(t *testing.T) {
+
+	a := assert.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// given
+	loader := &HttpContentLoader{}
+
+	mockServiceDiscovery := servicediscovery.NewMockServiceDiscovery(ctrl)
+	mockServiceDiscovery.EXPECT().DiscoverService("serviceName").Return("10.0.0.1", "42", nil)
+
+	// when
+	url, _ := loader.discoverServiceInUrl("http://serviceName/test.jpg", mockServiceDiscovery)
+
+	// then
+	a.Equal(url, "http://10.0.0.1:42/test.jpg")
+}
+
+
+
+func Test_HttpContentLoader_DiscoverServiceInUrlRawIp(t *testing.T) {
+
+	a := assert.New(t)
+
+	cases := [][]string {
+		{"http://127.0.0.1:80/test.jpg", "http://127.0.0.1:80/test.jpg"},
+		{"http://127.0.0.1/test.jpg", "http://127.0.0.1/test.jpg"},
+	}
+
+	for _, v := range cases {
+
+		fmt.Println(v)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// given
+		loader := &HttpContentLoader{}
+
+		mockServiceDiscovery := servicediscovery.NewMockServiceDiscovery(ctrl)
+
+		// when
+		url, _ := loader.discoverServiceInUrl(v[0], mockServiceDiscovery)
+
+		// then
+		a.Equal(url, v[1])
+	}
+
+}
+
+func Test_HttpContentLoader_DiscoverServiceInUrlWithPortError(t *testing.T) {
+
+	a := assert.New(t)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// given
+	loader := &HttpContentLoader{}
+
+	mockServiceDiscovery := servicediscovery.NewMockServiceDiscovery(ctrl)
+
+	// when
+	url, err := loader.discoverServiceInUrl("http://serviceName:80/test.jpg", mockServiceDiscovery)
+
+	// then
+	a.Equal(url, "")
+	a.EqualError(err, "Service name with port given, this is not allowed. The port will be resolved by service discovery!")
+
+}
+
 
 func testServer(content string, timeout time.Duration) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
