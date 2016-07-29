@@ -125,11 +125,11 @@ func urlToFragmentName(url string) string {
 
 // Generates String for the missing Fragment error message. It adds all existing fragments from the body
 func generateMissingFragmentString(body map[string]Fragment, fragmentName string) string {
-	text := "Fragment does not exist: " + fragmentName + " . Existing fragments: "
+	text := "Fragment does not exist: " + fragmentName + ". Existing fragments: "
 	index := 0
 	for k, _ := range body {
 
-		if k != "" && !strings.Contains(k, "#") {
+		if k != "" {
 			if index == 0 {
 				text += k
 			} else {
