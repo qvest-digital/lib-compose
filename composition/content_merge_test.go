@@ -62,6 +62,22 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 type MockPage1BodyFragment struct {
 }
 
+func Test_GenerateMissingFragmentString(t *testing.T) {
+	body := map[string]Fragment{
+		"footer": nil,
+		"header": nil,
+		"":       nil,
+	}
+	fragmentName := "body"
+	fragmentString := generateMissingFragmentString(body, fragmentName)
+
+	a := assert.New(t)
+	a.Contains(fragmentString, "Fragment does not exist: body.")
+	a.Contains(fragmentString, "footer")
+	a.Contains(fragmentString, "header")
+
+}
+
 func (f MockPage1BodyFragment) Execute(w io.Writer, data map[string]interface{}, executeNestedFragment func(nestedFragmentName string) error) error {
 	w.Write([]byte("<page1-body-main>\n"))
 	if err := executeNestedFragment("page2-a"); err != nil {
@@ -86,7 +102,7 @@ func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	cm := NewContentMerge(nil)
 	_, err := cm.GetHtml()
 	a.Error(err)
-	a.Equal("Fragment does not exist: ", err.Error())
+	a.Equal("Fragment does not exist: . Existing fragments: ", err.Error())
 }
 
 type closedWriterMock struct {

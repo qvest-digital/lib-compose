@@ -80,6 +80,7 @@ func access(r *http.Request, start time.Time, statusCode int, err error) *logrus
 		"method":     r.Method,
 		"proto":      r.Proto,
 		"duration":   time.Since(start).Nanoseconds() / 1000000,
+		"User_Agent": r.Header.Get("User-Agent"),
 	}
 
 	if statusCode != 0 {

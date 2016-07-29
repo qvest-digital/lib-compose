@@ -1,12 +1,12 @@
 package composition
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 	"errors"
+	"fmt"
 	"github.com/tarent/lib-compose/logging"
 	"github.com/tarent/lib-servicediscovery/servicediscovery"
 	"net/url"

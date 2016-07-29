@@ -28,6 +28,7 @@ type logReccord struct {
 	Error             string            `json:"error"`
 	Message           string            `json:"message"`
 	Level             string            `json:"level"`
+	UserAgent         string            `json:"User_Agent"`
 }
 
 func Test_Logger_Set(t *testing.T) {
@@ -122,11 +123,14 @@ func Test_Logger_Access(t *testing.T) {
 	AccessLogCookiesBlacklist = []string{"ignore", "user_id"}
 	UserCorrelationCookie = "user_id"
 
+	// Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36
+
 	// and a request
 	r, _ := http.NewRequest("GET", "http://www.example.org/foo?q=bar", nil)
 	r.Header = http.Header{
 		CorrelationIdHeader: {"correlation-123"},
 		"Cookie":            {"user_id=user-id-xyz; ignore=me; foo=bar;"},
+		"User-Agent":        {"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36"},
 	}
 	r.RemoteAddr = "127.0.0.1"
 
@@ -153,6 +157,7 @@ func Test_Logger_Access(t *testing.T) {
 	a.Equal("access", data.Type)
 	a.Equal("/foo?q=bar", data.URL)
 	a.Equal("user-id-xyz", data.UserCorrelationId)
+	a.Equal("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36", data.UserAgent)
 }
 
 func Test_Logger_Access_ErrorCases(t *testing.T) {
