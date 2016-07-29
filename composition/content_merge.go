@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	//	"fmt"
 )
 
 const (
@@ -42,7 +43,8 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	executeFragment = func(fragmentName string) error {
 		f, exist := cntx.Body[fragmentName]
 		if !exist {
-			return errors.New("Fragment does not exist: " + fragmentName)
+			missingFragmentString := generateMissingFragmentString(cntx.Body, fragmentName)
+			return errors.New(missingFragmentString)
 		}
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
@@ -119,4 +121,22 @@ func urlToFragmentName(url string) string {
 	url = strings.Replace(url, `§[`, `\§\[`, -1)
 	url = strings.Replace(url, `]§`, `\]\§`, -1)
 	return url
+}
+
+// Generates String for the missing Fragment error message. It adds all existing fragments from the body
+func generateMissingFragmentString(body map[string]Fragment, fragmentName string) string {
+	text := "Fragment does not exist: " + fragmentName + " . Existing fragments: "
+	index := 0
+	for k, _ := range body {
+
+		if k != "" && !strings.Contains(k, "#") {
+			if index == 0 {
+				text += k
+			} else {
+				text += ", " + k
+			}
+			index++
+		}
+	}
+	return text
 }

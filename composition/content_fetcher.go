@@ -100,10 +100,14 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 				}
 			}
 		} else {
-			logging.Logger.WithError(fetchResult.Err).
-				WithField("fetchDefinition", d).
-				WithField("correlation_id", logging.GetCorrelationId(definitionCopy.Header)).
-				Errorf("failed fetching %v", d.URL)
+			// 404 Error already become logged in logger.go
+			if fetchResult.Content.HttpStatusCode() != 404 {
+				logging.Logger.WithError(fetchResult.Err).
+					WithField("fetchDefinition", d).
+					WithField("correlation_id", logging.GetCorrelationId(definitionCopy.Header)).
+					Errorf("failed fetching %v", d.URL)
+			}
+
 		}
 	}()
 }
