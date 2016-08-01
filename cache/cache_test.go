@@ -137,12 +137,16 @@ func Test_Cache_PurgeEntries(t *testing.T) {
 	a := assert.New(t)
 
 	c := NewCache("my-cache", 100, 100, time.Millisecond)
-	c.Set("hashString", "", 1, nil)
+	c.Set("hashStringToPurge", "", 1, nil)
+	c.Set("hashStringToStay", "", 1, nil)
 
-	c.PurgeEntries([]string{"hashString"})
-	_, foundInCache := c.Get("hashString")
+	c.PurgeEntries([]string{"hashStringToPurge"})
 
-	a.False(foundInCache)
+	_, foundInCachePurge := c.Get("hashStringToPurge")
+	_, foundInCacheStay := c.Get("hashStringToStay")
+
+	a.False(foundInCachePurge)
+	a.True(foundInCacheStay)
 }
 
 func Test_Cache_Invalidation(t *testing.T) {
