@@ -89,6 +89,14 @@ func Test_ContentMerge_MainFragmentDoesNotExist(t *testing.T) {
 	a.Equal("Fragment does not exist: ", err.Error())
 }
 
+func Test_ContentMerge_FdHashes(t *testing.T) {
+	a := assert.New(t)
+	cm := NewContentMerge(nil)
+
+	cm.addFdHash("testHash")
+	a.Equal(cm.GetHashes()[0], "testHash")
+}
+
 type closedWriterMock struct {
 }
 

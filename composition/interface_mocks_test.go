@@ -6,7 +6,6 @@ package composition
 import (
 	gomock "github.com/golang/mock/gomock"
 	io "io"
-
 	http "net/http"
 )
 
@@ -243,6 +242,16 @@ func (_mr *_MockContentMergerRecorder) AddContent(arg0 interface{}) *gomock.Call
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddContent", arg0)
 }
 
+func (_m *MockContentMerger) GetHashes() []string {
+	ret := _m.ctrl.Call(_m, "GetHashes")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+func (_mr *_MockContentMergerRecorder) GetHashes() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetHashes")
+}
+
 func (_m *MockContentMerger) GetHtml() ([]byte, error) {
 	ret := _m.ctrl.Call(_m, "GetHtml")
 	ret0, _ := ret[0].([]byte)
@@ -354,6 +363,14 @@ func (_m *MockCache) Invalidate() {
 
 func (_mr *_MockCacheRecorder) Invalidate() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Invalidate")
+}
+
+func (_m *MockCache) PurgeEntries(_param0 []string) {
+	_m.ctrl.Call(_m, "PurgeEntries", _param0)
+}
+
+func (_mr *_MockCacheRecorder) PurgeEntries(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "PurgeEntries", arg0)
 }
 
 func (_m *MockCache) Set(_param0 string, _param1 string, _param2 int, _param3 interface{}) {

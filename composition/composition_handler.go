@@ -15,6 +15,7 @@ type ContentFetcherFactory func(r *http.Request) FetchResultSupplier
 type CompositionHandler struct {
 	contentFetcherFactory ContentFetcherFactory
 	contentMergerFactory  func(metaJSON map[string]interface{}) ContentMerger
+	cache                 Cache
 }
 
 // NewCompositionHandler creates a new Handler with the supplied defualtData,
@@ -25,6 +26,17 @@ func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *Composi
 		contentMergerFactory: func(metaJSON map[string]interface{}) ContentMerger {
 			return NewContentMerge(metaJSON)
 		},
+		cache: nil,
+	}
+}
+
+func NewCompositionHandlerWithCache(contentFetcherFactory ContentFetcherFactory, cache Cache) *CompositionHandler {
+	return &CompositionHandler{
+		contentFetcherFactory: contentFetcherFactory,
+		contentMergerFactory: func(metaJSON map[string]interface{}) ContentMerger {
+			return NewContentMerge(metaJSON)
+		},
+		cache: cache,
 	}
 }
 
@@ -86,6 +98,9 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	html, err := mergeContext.GetHtml()
 	if err != nil {
+		if agg.cache != nil {
+			agg.cache.PurgeEntries(mergeContext.GetHashes())
+		}
 		logging.Application(r.Header).Error(err.Error())
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
 		return

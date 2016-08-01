@@ -93,6 +93,9 @@ type ContentMerger interface {
 
 	// Return the html as byte array
 	GetHtml() ([]byte, error)
+
+	// Return initial hashes related to the given contents
+	GetHashes() []string
 }
 
 type ResponseProcessor interface {
@@ -110,4 +113,5 @@ type Cache interface {
 	Get(hash string) (cacheObject interface{}, found bool)
 	Set(hash string, label string, memorySize int, cacheObject interface{})
 	Invalidate()
+	PurgeEntries(keys []string)
 }

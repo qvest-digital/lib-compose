@@ -20,6 +20,7 @@ type ContentMerge struct {
 	Body      map[string]Fragment
 	Tail      []Fragment
 	Buffered  bool
+	FdHashes  []string
 }
 
 // NewContentMerge creates a new buffered ContentMerge
@@ -31,6 +32,7 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 		Body:      make(map[string]Fragment),
 		Tail:      make([]Fragment, 0, 0),
 		Buffered:  true,
+		FdHashes:  make([]string, 0, 0),
 	}
 	return cntx
 }
@@ -86,6 +88,11 @@ func (cntx *ContentMerge) AddContent(fetchResult *FetchResult) {
 	cntx.addBodyAttributes(fetchResult.Content.BodyAttributes())
 	cntx.addBody(fetchResult.Def.URL, fetchResult.Content.Body())
 	cntx.addTail(fetchResult.Content.Tail())
+	cntx.addFdHash(fetchResult.Hash)
+}
+
+func (cntx *ContentMerge) GetHashes() []string {
+	return cntx.FdHashes
 }
 
 func (cntx *ContentMerge) addHead(f Fragment) {
@@ -111,6 +118,12 @@ func (cntx *ContentMerge) addBody(url string, bodyFragmentMap map[string]Fragmen
 func (cntx *ContentMerge) addTail(f Fragment) {
 	if f != nil {
 		cntx.Tail = append(cntx.Tail, f)
+	}
+}
+
+func (cntx *ContentMerge) addFdHash(hash string) {
+	if hash != "" {
+		cntx.FdHashes = append(cntx.FdHashes, hash)
 	}
 }
 
