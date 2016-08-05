@@ -149,6 +149,18 @@ func Test_Cache_PurgeEntries(t *testing.T) {
 	a.True(foundInCacheStay)
 }
 
+func Test_Cache_purgedKeysAsString(t *testing.T) {
+	a := assert.New(t)
+
+	c := NewCache("my-cache", 100, 100, time.Millisecond)
+
+	purgedKeysString := c.PurgedKeysAsString([]string{"eins", "zwei"})
+	purgedKeyString := c.PurgedKeysAsString([]string{"eins"})
+
+	a.Equal(purgedKeysString, "eins, zwei")
+	a.Equal(purgedKeyString, "eins")
+}
+
 func Test_Cache_Invalidation(t *testing.T) {
 	a := assert.New(t)
 

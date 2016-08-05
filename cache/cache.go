@@ -167,6 +167,7 @@ func (c *Cache) PurgeOldEntries() {
 // Purge Entries with a specific hash
 func (c *Cache) PurgeEntries(keys []string) {
 	purged := 0
+	purgedKeys := []string{}
 	for _, key := range keys {
 		c.lock.RLock()
 		_, found := c.lruBackend.Peek(key)
@@ -177,11 +178,26 @@ func (c *Cache) PurgeEntries(keys []string) {
 			c.lruBackend.Remove(key)
 			c.lock.Unlock()
 			purged++
+			purgedKeys = append(purgedKeys, key)
 		}
 	}
 	logging.Logger.
 		WithFields(logrus.Fields(c.stats)).
-		Infof("purged %v out of %v cache entries", purged, len(keys))
+		Infof("Following cache entries become purged: %v", c.PurgedKeysAsString(keys))
+}
+
+func (c *Cache) PurgedKeysAsString(keys []string) string {
+	count := 0
+	keyString := ""
+	for _, key := range keys {
+		if count != 0 {
+			keyString += ", " + key
+		} else {
+			keyString += key
+		}
+		count ++
+	}
+	return keyString
 }
 
 func (c *Cache) Invalidate() {

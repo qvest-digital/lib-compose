@@ -53,6 +53,36 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	a.Equal(200, resp.Code)
 }
 
+func Test_CompositionHandler_PositiveCaseWithCache(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment("Hello World\n"),
+					},
+				},
+				Hash:    "hashString",
+			},
+		}
+	}
+	ch := NewCompositionHandlerWithCache(ContentFetcherFactory(contentFetcherFactory), cache.NewCache("my-cache", 100, 100, time.Millisecond))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.cache.Set("hashString", "", 1, nil)
+	ch.ServeHTTP(resp, r)
+
+	_, foundInCache := ch.cache.Get("hashString")
+	a.True(foundInCache)
+
+}
+
 func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
