@@ -19,6 +19,7 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 	r.Header = http.Header{
 		"Content-Type":    {"text/html"},
 		"Cookie":          {"aa=bb;"},
+		"X-Feature-Toggle": {"true"},
 		"Accept-Encoding": {"gzip"}, // should not be copied
 	}
 
@@ -29,6 +30,7 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 
 	a.Equal("text/html", fd.Header.Get("Content-Type"))
 	a.Equal("aa=bb;", fd.Header.Get("Cookie"))
+	a.Equal("true", fd.Header.Get("X-Feature-Toggle"))
 	a.Equal("", fd.Header.Get("Accept-Encoding"))
 
 	a.Equal("POST", fd.Method)

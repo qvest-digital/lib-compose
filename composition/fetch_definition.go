@@ -28,6 +28,7 @@ var ForwardRequestHeaders = []string{
 	"Transfer-Encoding",
 	"X-Forwarded-Host",
 	"X-Correlation-Id",
+	"X-Feature-Toggle",
 }
 
 // ForwardResponseHeaders are those headers,
