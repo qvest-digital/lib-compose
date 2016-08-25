@@ -133,6 +133,34 @@ func Test_Cache_PurgeOldEntries(t *testing.T) {
 	a.Equal(84, c.SizeByte())
 }
 
+func Test_Cache_PurgeEntries(t *testing.T) {
+	a := assert.New(t)
+
+	c := NewCache("my-cache", 100, 100, time.Millisecond)
+	c.Set("hashStringToPurge", "", 1, nil)
+	c.Set("hashStringToStay", "", 1, nil)
+
+	c.PurgeEntries([]string{"hashStringToPurge"})
+
+	_, foundInCachePurge := c.Get("hashStringToPurge")
+	_, foundInCacheStay := c.Get("hashStringToStay")
+
+	a.False(foundInCachePurge)
+	a.True(foundInCacheStay)
+}
+
+func Test_Cache_purgedKeysAsString(t *testing.T) {
+	a := assert.New(t)
+
+	c := NewCache("my-cache", 100, 100, time.Millisecond)
+
+	purgedKeysString := c.PurgedKeysAsString([]string{"eins", "zwei"})
+	purgedKeyString := c.PurgedKeysAsString([]string{"eins"})
+
+	a.Equal(purgedKeysString, "eins, zwei")
+	a.Equal(purgedKeyString, "eins")
+}
+
 func Test_Cache_Invalidation(t *testing.T) {
 	a := assert.New(t)
 

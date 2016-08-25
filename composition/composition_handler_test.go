@@ -5,12 +5,14 @@ import (
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/tarent/lib-compose/cache"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Test_CompositionHandler_PositiveCase(t *testing.T) {
@@ -49,6 +51,36 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 `
 	a.Equal(expected, string(resp.Body.Bytes()))
 	a.Equal(200, resp.Code)
+}
+
+func Test_CompositionHandler_PositiveCaseWithCache(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment("Hello World\n"),
+					},
+				},
+				Hash:    "hashString",
+			},
+		}
+	}
+	ch := NewCompositionHandlerWithCache(ContentFetcherFactory(contentFetcherFactory), cache.NewCache("my-cache", 100, 100, time.Millisecond))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.cache.Set("hashString", "", 1, nil)
+	ch.ServeHTTP(resp, r)
+
+	_, foundInCache := ch.cache.Get("hashString")
+	a.True(foundInCache)
+
 }
 
 func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
@@ -159,8 +191,47 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
+
 	aggregator.ServeHTTP(resp, r)
 
+	a.Equal("Internal Server Error: an error\n", string(resp.Body.Bytes()))
+	a.Equal(500, resp.Code)
+}
+
+func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def:     NewFetchDefinition("/foo"),
+				Content: &MemoryContent{},
+				Err:     nil,
+				Hash:    "hashString",
+			},
+		}
+	}
+
+	aggregator := NewCompositionHandlerWithCache(ContentFetcherFactory(contentFetcherFactory), cache.NewCache("my-cache", 100, 100, time.Millisecond))
+	aggregator.cache.Set("hashString", "", 1, nil)
+	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
+		merger := NewMockContentMerger(ctrl)
+		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
+		merger.EXPECT().GetHashes().Return([]string{"hashString"})
+		return merger
+	}
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+
+	aggregator.ServeHTTP(resp, r)
+
+	_, foundInCache := aggregator.cache.Get("hashString")
+
+	a.False(foundInCache)
 	a.Equal("Internal Server Error: an error\n", string(resp.Body.Bytes()))
 	a.Equal(500, resp.Code)
 }
@@ -287,4 +358,3 @@ func (m MockFetchResultSupplier) MetaJSON() map[string]interface{} {
 func (m MockFetchResultSupplier) Empty() bool {
 	return len([]*FetchResult(m)) == 0
 }
-
