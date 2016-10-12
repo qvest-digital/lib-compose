@@ -76,8 +76,8 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			mergeContext.AddContent(res)
 
 		} else if res.Def.Required {
-			// 404 Error already become logged in logger.go
-			if res.Content.HttpStatusCode() != 404 {
+			// 404 and 502 Error already become logged in logger.go
+			if res.Content.HttpStatusCode() != 404 && res.Content.HttpStatusCode() != 502 {
 				logging.Application(r.Header).WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
 			}
 			res.Def.ErrHandler.Handle(res.Err, res.Content.HttpStatusCode(), w, r)
