@@ -53,6 +53,7 @@ var ForwardResponseHeaders = []string{
 const (
 	DefaultTimeout time.Duration = 10 * time.Second
 	FileURLPrefix                = "file://"
+	DefaultPriority              = 0
 )
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
@@ -69,14 +70,23 @@ type FetchDefinition struct {
 	CacheStrategy          CacheStrategy
 	ServiceDiscoveryActive bool
 	ServiceDiscovery       servicediscovery.ServiceDiscovery
+	Priority               int
 }
 
 // Creates a fetch definition
 func NewFetchDefinition(url string) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessor(url, nil)
+	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, DefaultPriority)
+}
+
+func NewFetchDefinitionWithPriority(url string, priority int) *FetchDefinition {
+	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, priority)
 }
 
 func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
+	return NewFetchDefinitionWithErrorHandlerAndPriority(url, errHandler, DefaultPriority)
+}
+
+func NewFetchDefinitionWithErrorHandlerAndPriority(url string, errHandler ErrorHandler, priority int) *FetchDefinition {
 	if errHandler == nil {
 		errHandler = NewDefaultErrorHandler()
 	}
@@ -88,11 +98,18 @@ func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *Fe
 		Method:          "GET",
 		ErrHandler:      errHandler,
 		CacheStrategy:   cache.DefaultCacheStrategy,
+		Priority:	 priority,
 	}
 }
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
+	return NewFetchDefinitionWithResponseProcessorAndPriority(url, rp, DefaultPriority)
+}
+
+// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
+// Priority is used to determine which property from which head has to be taken by collision of multiple fetches
+func NewFetchDefinitionWithResponseProcessorAndPriority(url string, rp ResponseProcessor, priority int) *FetchDefinition {
 	return &FetchDefinition{
 		URL:             url,
 		Timeout:         DefaultTimeout,
@@ -102,13 +119,20 @@ func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *
 		RespProc:        rp,
 		ErrHandler:      NewDefaultErrorHandler(),
 		CacheStrategy:   cache.DefaultCacheStrategy,
+		Priority:        priority,
 	}
 }
 
 // NewFetchDefinitionFromRequest creates a fetch definition
 // from the request path, but replaces the scheme, host and port with the provided base url
 func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl, r, nil)
+	return NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl, r, nil, DefaultPriority)
+}
+
+// NewFetchDefinitionFromRequest creates a fetch definition
+// from the request path, but replaces the scheme, host and port with the provided base url
+func NewFetchDefinitionWithPriorityFromRequest(baseUrl string, r *http.Request, priority int) *FetchDefinition {
+	return NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl, r, nil, priority)
 }
 
 // NewFetchDefinitionFromRequest creates a fetch definition
@@ -116,6 +140,11 @@ func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefini
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 // Only those headers, defined in ForwardRequestHeaders are copied to the FetchDefinition.
 func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor) *FetchDefinition {
+	return NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl, r, rp, DefaultPriority)
+}
+
+// NewFetchDefinitionWithResponseProcessorFromRequest with priority setting for head property collision handling
+func NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor, priority int) *FetchDefinition {
 	if strings.HasSuffix(baseUrl, "/") {
 		baseUrl = baseUrl[:len(baseUrl)-1]
 	}
@@ -138,6 +167,7 @@ func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.
 		Required:        true,
 		RespProc:        rp,
 		ErrHandler:      NewDefaultErrorHandler(),
+		Priority:        priority,
 	}
 }
 

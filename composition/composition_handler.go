@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sort"
 )
 
 // A ContentFetcherFactory returns a configured fetch job for a request
@@ -53,6 +54,17 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	// fetch all contents
 	results := fetcher.WaitForResults()
+
+
+	priorityExists := hasPrioritySetting(results)
+	if (priorityExists) {
+		sort.Sort(FetchResults(results))
+		//TODO hier oder anders wo
+		// für alle fragmente in aufsteigender prioritätsreihenfolge:
+		// extrahiere alle meta-tags (inkl. entfernen) und schreibe sie in eine map
+		// fragmente mit höherer Priorität können werte mit gleichem key überschreiben.
+		// schreibe die meta-tags in den head des letzten fragments
+	}
 
 	mergeContext := agg.contentMergerFactory(fetcher.MetaJSON())
 
@@ -142,4 +154,13 @@ func getHostFromRequest(r *http.Request) string {
 		host = hostParts[0]
 	}
 	return host
+}
+
+func hasPrioritySetting(results []*FetchResult) bool {
+	for _, res := range results {
+		if(res.Def.Priority > 0){
+			return true
+		}
+	}
+	return false
 }

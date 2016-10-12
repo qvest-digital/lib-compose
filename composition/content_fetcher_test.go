@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+        "sort"
 )
 
 func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
@@ -73,4 +74,24 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 		Return(content, nil)
 
 	return fd
+}
+
+func Test_ContentFetchResultPrioritySort(t *testing.T) {
+        a := assert.New(t)
+
+        barFd := NewFetchDefinitionWithPriority("/bar", 30)
+        fooFd := NewFetchDefinitionWithPriority("/foo", 10)
+        bazzFd := NewFetchDefinitionWithPriority("/bazz", 5)
+
+        results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
+
+        a.Equal(30, results[0].Def.Priority)
+        a.Equal(10, results[1].Def.Priority)
+        a.Equal(5, results[2].Def.Priority)
+
+        sort.Sort(FetchResults(results))
+
+        a.Equal(5, results[0].Def.Priority)
+        a.Equal(10, results[1].Def.Priority)
+        a.Equal(30, results[2].Def.Priority)
 }
