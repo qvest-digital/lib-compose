@@ -51,11 +51,13 @@ func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
+	metaTagMap :=  make(map[string]string)
 
 forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
+		titleExists := false
 		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
 		attrs = readAttributes(z, attrs)
 
@@ -67,6 +69,18 @@ forloop:
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
+				continue
+			}
+			if string(tag) == "meta" {
+				metaTagMap = parseHtmlMeta(string(tag), attrs, metaTagMap)
+				headBuff.Write(raw)
+				continue
+			}
+			if string(tag) == "title" {
+				if (titleExists == false) {
+					headBuff.Write(raw)
+					titleExists = true
+				}
 				continue
 			}
 			if string(tag) == "script" && attrHasValue(attrs, "type", ScriptTypeMeta) {
@@ -87,6 +101,10 @@ forloop:
 	st := strings.Trim(s, " \n")
 	if len(st) > 0 {
 		c.head = StringFragment(st)
+	}
+	// log-DEBUGGING:
+	for k, v := range metaTagMap {
+		fmt.Println("Key:", k, ", Value:", v)
 	}
 	return nil
 }
@@ -254,6 +272,33 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 	}
 
 	return fd, fmt.Sprintf("§[> %s]§", placeholder), nil
+}
+
+func parseHtmlMeta(tagName string, attrs []html.Attribute, metaMap map[string]string) map[string]string {
+	if (len(attrs) == 0) {
+		return metaMap
+	}
+
+	key := tagName
+	value := ""
+	// TODO: check explizit for attrName "http-equiv" || "name" || "charset" ?
+
+	// e.g.: <meta charset="utf-8">
+	if (len(attrs) == 1) {
+		key = tagName + "_" + attrs[0].Key
+		value = attrs[0].Val
+	}
+
+	if (len(attrs) > 1) {
+		key = tagName + "_" + attrs[0].Key + "_" + attrs[0].Val
+		value = attrs[1].Key + "_" + attrs[1].Val
+	}
+
+	if (metaMap[key] == "") {
+		metaMap[key] = value
+	}
+
+	return metaMap
 }
 
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {

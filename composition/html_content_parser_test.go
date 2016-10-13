@@ -9,6 +9,202 @@ import (
 	"time"
 )
 
+var productUiGeneratedHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>navigationservice</title>
+
+
+    <!-- START Include legacy styles - emulate integration -->
+
+    <!-- END Include legacy styles -->
+
+    <link rel="stylesheet" href="/navigationservice/stylesheets/main-ffc9b54a22.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script>
+        // Define global SCRIPTS variable and
+        // global loadScript() method to loading scripts
+        // async but in order.
+        // Each module register it's javascript by calling
+        // this method:
+        //
+        // loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+        //
+        SCRIPTS = ['/navigationservice/javascripts/vendor/jquery-8101d596b2.min.js', '/navigationservice/javascripts/main-680c12b0b1.js'];
+        isLegacy = function() {
+            return typeof Object.assign === 'function' ? false : true;
+        };
+
+        loadScript = function(script, legacyOnly) {
+            for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+            if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+                SCRIPTS.push(script);
+            }
+        };
+    </script>
+
+    <!-- fonts.com - Async Font Loading -->
+    <script type="text/javascript">
+        (function() {
+            var fontsComPath = '//fast.fonts.net/jsapi/0d47d266-cd84-4ef7-adb8-5a44ad7011ef.js',
+                    fontsComJS = document.createElement('script');
+            fontsComJS.type = 'text/javascript';
+            fontsComJS.async = true;
+            fontsComJS.src = fontsComPath;
+            var head = document.getElementsByTagName("head")[0];
+            head.appendChild(fontsComJS);
+        })();
+    </script><meta charset="utf-8">
+    <!--
+        This website is powered by TYPO3 - inspiring people to share!
+        TYPO3 is a free open source Content Management Framework initially created by Kasper Skaarhoj and licensed under GNU/GPL.
+        TYPO3 is copyright 1998-2016 of Kasper Skaarhoj. Extensions are copyright of their respective owners.
+        Information and contribution at http://typo3.org/
+    -->
+
+    <base href="/">
+
+
+    <meta name="generator" content="TYPO3 CMS">
+    <meta name="content-language" content="de">
+
+    <link rel="stylesheet" type="text/css" href="typo3temp/compressor/merged-d0ed097d2e70237fa36186d357e1268f-4e221af468cdd1d3a44789532134127c.css?1476243484" media="all">
+
+
+
+
+    <script src="typo3temp/compressor/merged-f6a1f7cc0a094340acf2489928881fc7-956c525da07a115d310e68d089faa490.js?1476243484" type="text/javascript"></script>
+
+
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="cleartype" content="on">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <link rel="stylesheet" href="typo3conf/ext/bra_projectfiles_toom/Resources/Public/website/css/main.css">
+
+    <link rel="shortcut icon" href="favicon.ico" type="image/ico" />
+    <link rel="icon" href="favicon.ico" type="image/ico" />
+
+    <!-- picturefill:start -->
+    <script src="typo3conf/ext/bra_projectfiles_toom/Resources/Public/website/js/libs/vendor/picturefill/picturefill.min.js" async></script>
+    <!-- picturefill:end --><link href="http://www.toom-baumarkt.de/navigation/" rel="canonical"><meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="cleartype" content="on">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <link type="text/css" rel="stylesheet" href="//fast.fonts.net/cssapi/0d47d266-cd84-4ef7-adb8-5a44ad7011ef.css"/>
+
+    <link rel="stylesheet" href="/rebrush/assets/typo/stylesheets/main-61a49a7baa.css">
+
+    <!-- picturefill:start -->
+    <script src="/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js" async></script>
+    <!-- picturefill:end --><meta charset="utf-8">
+    <title>navigationservice</title>
+
+
+    <!-- START Include legacy styles - emulate integration -->
+
+    <!-- END Include legacy styles -->
+
+    <link rel="stylesheet" href="/navigationservice/stylesheets/main-ffc9b54a22.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script>
+        // Define global SCRIPTS variable and
+        // global loadScript() method to loading scripts
+        // async but in order.
+        // Each module register it's javascript by calling
+        // this method:
+        //
+        // loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+        //
+        SCRIPTS = ['/navigationservice/javascripts/vendor/jquery-8101d596b2.min.js', '/navigationservice/javascripts/main-680c12b0b1.js'];
+        isLegacy = function() {
+            return typeof Object.assign === 'function' ? false : true;
+        };
+
+        loadScript = function(script, legacyOnly) {
+            for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+            if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+                SCRIPTS.push(script);
+            }
+        };
+    </script>
+
+    <!-- fonts.com - Async Font Loading -->
+    <script type="text/javascript">
+        (function() {
+            var fontsComPath = '//fast.fonts.net/jsapi/0d47d266-cd84-4ef7-adb8-5a44ad7011ef.js',
+                    fontsComJS = document.createElement('script');
+            fontsComJS.type = 'text/javascript';
+            fontsComJS.async = true;
+            fontsComJS.src = fontsComPath;
+            var head = document.getElementsByTagName("head")[0];
+            head.appendChild(fontsComJS);
+        })();
+    </script><meta charset="utf-8">
+    <title>Suchergebnis | toom Baumarkt</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=3.0">
+
+    <link rel="canonical" href="/baumarkt/suche">
+
+    <!-- START Include legacy styles - emulate integration -->
+
+    <!-- END Include legacy styles -->
+
+    <link rel="stylesheet" href="/searchservice/stylesheets/main-ffc9b54a22.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script>
+        // Define global SCRIPTS variable and
+        // global loadScript() method to loading scripts
+        // async but in order.
+        // Each module register it's javascript by calling
+        // this method:
+        //
+        // loadScript('/searchservice/components/molecules/teaser/teaser.js');
+        //
+        SCRIPTS = ['/searchservice/javascripts/vendor/jquery-8101d596b2.min.js', '/searchservice/javascripts/main-680c12b0b1.js'];
+        isLegacy = function() {
+            return typeof Object.assign === 'function' ? false : true;
+        };
+
+        loadScript = function(script, legacyOnly) {
+            for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+            if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+                SCRIPTS.push(script);
+            }
+        };
+    </script>
+
+    <!-- fonts.com - Async Font Loading -->
+    <script type="text/javascript">
+        (function() {
+            var fontsComPath = '//fast.fonts.net/jsapi/0d47d266-cd84-4ef7-adb8-5a44ad7011ef.js',
+                    fontsComJS = document.createElement('script');
+            fontsComJS.type = 'text/javascript';
+            fontsComJS.async = true;
+            fontsComJS.src = fontsComPath;
+            var head = document.getElementsByTagName("head")[0];
+            head.appendChild(fontsComJS);
+        })();
+    </script><meta name="robots" content="noindex">
+</head>
+<body data-ajax-domain="192.168.1.13:33351">
+</body>
+</html>`
+
 var integratedTestHtml = `<html>
   <head>
     <link uic-remove rel="stylesheet" type="text/css" href="testing.css"/>
@@ -97,6 +293,22 @@ func Test_HtmlContentParser_LoadEmptyContent(t *testing.T) {
 	a.Nil(c.Head())
 	a.Nil(c.Tail())
 }
+
+func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := html.NewTokenizer(bytes.NewBufferString(productUiGeneratedHtml))
+
+	z.Next()
+	c := NewMemoryContent()
+	err := parser.parseHead(z, c)
+	a.NoError(err)
+
+	//eqFragment(t, "<xx/><foo>xxx</foo><bar>xxx</bar>", c.Head())
+	//a.True(strings.Contains(string(c.Head()), "navigationservice"))
+}
+
 
 func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a := assert.New(t)
