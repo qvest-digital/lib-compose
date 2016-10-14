@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"lib-ui-service/composition"
+	"github.com/tarent/lib-compose/composition"
 )
 
 func Test_CompositionHandler_PositiveCase(t *testing.T) {
