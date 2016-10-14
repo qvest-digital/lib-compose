@@ -76,11 +76,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			mergeContext.AddContent(res)
 
 		} else if res.Def.Required {
-			// 404 and 502 Error already become logged in logger.go
-			if res.Content.HttpStatusCode() != 404 && res.Content.HttpStatusCode() != 502 {
-				logging.Application(r.Header).WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
-			}
-			res.Def.ErrHandler.Handle(res.Err, res.Content.HttpStatusCode(), w, r)
+			LogFetchResultLoadingError(res, w, r)
 			return
 		} else {
 			logging.Application(r.Header).WithField("fetchResult", res).Warnf("optional content not loaded: %v", res.Def.URL)
@@ -112,6 +108,14 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Length", strconv.Itoa(len(html)))
 	w.WriteHeader(status)
 	w.Write(html)
+}
+
+func LogFetchResultLoadingError(res *FetchResult, w http.ResponseWriter, r *http.Request) {
+	// 404 and 502 Error already become logged in logger.go
+	if res.Content.HttpStatusCode() != 404 && res.Content.HttpStatusCode() != 502 {
+		logging.Application(r.Header).WithField("fetchResult", res).Errorf("error loading content from: %v", res.Def.URL)
+	}
+	res.Def.ErrHandler.Handle(res.Err, res.Content.HttpStatusCode(), w, r)
 }
 
 func MetadataForRequest(r *http.Request) map[string]interface{} {
