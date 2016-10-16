@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+_	"regexp"
 )
 
 var productUiGeneratedHtml = `<!DOCTYPE html>
@@ -630,4 +631,203 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 	if expectedStripped != sfStripped {
 		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual:  ", sf)
 	}
+}
+
+
+func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
+	a := assert.New(t)
+
+	originalHeadString := `<meta charset="utf-8">
+	<title>navigationservice</title>
+
+
+
+	<!-- START Include legacy styles - emulate integration -->
+
+	<!-- END Include legacy styles -->
+
+	<!-- START Include jquery lib - add to SCRIPTS again after last JS from legacy system is removed -->
+
+	<!-- END Include jquery lib -->
+
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<script>
+	// Define global SCRIPTS variable and
+	// global loadScript() method to loading scripts
+	// async but in order.
+	// Each module register it's javascript by calling
+	// this method:
+	//
+	// loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+	//
+		SCRIPTS = ['/navigationservice/javascripts/main-e566a7bb73.js'];
+	isLegacy = function() {
+		return typeof Object.assign === 'function' ? false : true;
+	};
+
+	loadScript = function(script, legacyOnly) {
+		for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+		if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+		SCRIPTS.push(script);
+		}
+	};
+	</script>
+
+	<!-- fonts.com - Async Font Loading -->`
+
+	expectedParsedHead := `<meta charset="utf-8">
+
+
+
+
+	<!-- START Include legacy styles - emulate integration -->
+
+	<!-- END Include legacy styles -->
+
+	<!-- START Include jquery lib - add to SCRIPTS again after last JS from legacy system is removed -->
+
+	<!-- END Include jquery lib -->
+
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<script>
+	// Define global SCRIPTS variable and
+	// global loadScript() method to loading scripts
+	// async but in order.
+	// Each module register it's javascript by calling
+	// this method:
+	//
+	// loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+	//
+		SCRIPTS = ['/navigationservice/javascripts/main-e566a7bb73.js'];
+	isLegacy = function() {
+		return typeof Object.assign === 'function' ? false : true;
+	};
+
+	loadScript = function(script, legacyOnly) {
+		for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+		if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+		SCRIPTS.push(script);
+		}
+	};
+	</script>
+
+	<!-- fonts.com - Async Font Loading -->`
+
+	headPropertyMap := make(map[string]string)
+	headPropertyMap["title"]="title"
+	headFragment := StringFragment(originalHeadString)
+
+	ParseHeadFragment(&headFragment, headPropertyMap)
+
+	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
+	resultString := removeTabsAndNewLines(string(headFragment))
+
+	a.Equal(expectedParsedHead, resultString)
+}
+
+func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
+	a := assert.New(t)
+
+	originalHeadString := `<meta charset="utf-8">
+
+	<title>navigationservice</title>
+
+
+
+	<!-- START Include legacy styles - emulate integration -->
+
+	<!-- END Include legacy styles -->
+
+	<!-- START Include jquery lib - add to SCRIPTS again after last JS from legacy system is removed -->
+
+	<!-- END Include jquery lib -->
+
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="blub" content="width=device-width, initial-scale=1.0">
+	<script>
+	// Define global SCRIPTS variable and
+	// global loadScript() method to loading scripts
+	// async but in order.
+	// Each module register it's javascript by calling
+	// this method:
+	//
+	// loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+	//
+		SCRIPTS = ['/navigationservice/javascripts/main-e566a7bb73.js'];
+	isLegacy = function() {
+		return typeof Object.assign === 'function' ? false : true;
+	};
+
+	loadScript = function(script, legacyOnly) {
+		for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+		if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+		SCRIPTS.push(script);
+		}
+	};
+	</script>
+
+	<!-- fonts.com - Async Font Loading -->`
+
+	expectedParsedHead := `
+	<title>navigationservice</title>
+
+
+
+	<!-- START Include legacy styles - emulate integration -->
+
+	<!-- END Include legacy styles -->
+
+	<!-- START Include jquery lib - add to SCRIPTS again after last JS from legacy system is removed -->
+
+	<!-- END Include jquery lib -->
+
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<meta name="blub" content="width=device-width, initial-scale=1.0">
+
+	<script>
+	// Define global SCRIPTS variable and
+	// global loadScript() method to loading scripts
+	// async but in order.
+	// Each module register it's javascript by calling
+	// this method:
+	//
+	// loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+	//
+		SCRIPTS = ['/navigationservice/javascripts/main-e566a7bb73.js'];
+	isLegacy = function() {
+		return typeof Object.assign === 'function' ? false : true;
+	};
+
+	loadScript = function(script, legacyOnly) {
+		for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+		if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+		SCRIPTS.push(script);
+		}
+	};
+	</script>
+
+	<!-- fonts.com - Async Font Loading -->`
+
+	headMetaPropertyMap := make(map[string]string)
+	headMetaPropertyMap["meta_charset"] = "whatever"
+	headMetaPropertyMap["meta_name_viewport"] = "already_exists"
+
+	headFragment := StringFragment(originalHeadString)
+	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+
+	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
+	resultString := removeTabsAndNewLines(string(headFragment))
+
+	a.Equal(expectedParsedHead, resultString)
+}
+
+func removeTabsAndNewLines(stringToProcess string) string{
+	stringToProcess = strings.Replace(stringToProcess, "\n", "", -1)
+	stringToProcess = strings.Replace(stringToProcess, "\t", "", -1)
+	return stringToProcess
 }

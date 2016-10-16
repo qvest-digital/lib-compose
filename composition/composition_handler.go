@@ -55,15 +55,9 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	// fetch all contents
 	results := fetcher.WaitForResults()
 
-
-	priorityExists := hasPrioritySetting(results)
-	if (priorityExists) {
+	//check if priority order is defined and sort results
+	if (hasPrioritySetting(results)) {
 		sort.Sort(FetchResults(results))
-		//TODO hier oder anders wo
-		// für alle fragmente in aufsteigender prioritätsreihenfolge:
-		// extrahiere alle meta-tags (inkl. entfernen) und schreibe sie in eine map
-		// fragmente mit höherer Priorität können werte mit gleichem key überschreiben.
-		// schreibe die meta-tags in den head des letzten fragments
 	}
 
 	mergeContext := agg.contentMergerFactory(fetcher.MetaJSON())
