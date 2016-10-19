@@ -161,8 +161,10 @@ func generateMissingFragmentString(body map[string]Fragment, fragmentName string
         return text
 }
 
+// Processes all heads to remove duplicate meta and title tags, respecting the priority of head fragments
 func (cntx *ContentMerge) processMetaPriorityParsing() {
         headPropertyMap := make(map[string]string)
+
         for i := len(cntx.Head) - 1; i >= 0; i-- {
                 var currentHead interface{} = cntx.Head[i];
                 if (currentHead != nil) {

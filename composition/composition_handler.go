@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sort"
 )
 
 // A ContentFetcherFactory returns a configured fetch job for a request
@@ -19,7 +18,7 @@ type CompositionHandler struct {
 	cache                 Cache
 }
 
-// NewCompositionHandler creates a new Handler with the supplied defualtData,
+// NewCompositionHandler creates a new Handler with the supplied defaultData,
 // which is used for each request.
 func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
 	return &CompositionHandler{
@@ -54,11 +53,6 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	// fetch all contents
 	results := fetcher.WaitForResults()
-
-	//check if priority order is defined and sort results
-	if (hasPrioritySetting(results)) {
-		sort.Sort(FetchResults(results))
-	}
 
 	mergeContext := agg.contentMergerFactory(fetcher.MetaJSON())
 

@@ -253,12 +253,14 @@ func Test_LogFetchResultLoadingError(t *testing.T) {
 		}
 	}
 
+
 	aggregator := NewCompositionHandler(contentFetcherFactory)
 	mockCompositionHandler := MockCompositionHandler()
 
 	aggregator2 := composition.NewCompositionHandler(contentFetcherFactory())
 	//Expect
 	aggregator2.ServeHTTP()
+
 }
 
 

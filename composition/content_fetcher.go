@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/tarent/lib-compose/logging"
 	"sync"
+	"sort"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -70,7 +71,14 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
 
-	return fetcher.r.results
+	results := fetcher.r.results
+
+	//to keep initial order if no priority settings are given, do a check before for sorting
+	if(hasPrioritySetting(results)) {
+		sort.Sort(FetchResults(results))
+	}
+
+	return results
 }
 
 // AddFetchJob addes one job to the fetcher and recursively adds the dependencies also.
