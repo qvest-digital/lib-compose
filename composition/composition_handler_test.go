@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"github.com/tarent/lib-compose/composition"
 )
 
 func Test_CompositionHandler_PositiveCase(t *testing.T) {
