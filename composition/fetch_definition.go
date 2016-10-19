@@ -9,6 +9,7 @@ import (
 	"github.com/tarent/lib-servicediscovery/servicediscovery"
 )
 
+const MAX_PRIORITY int = 4294967295
 // ForwardRequestHeaders are those headers,
 // which are incuded from the original client request to the backend request.
 // TODO: Add Host header to an XFF header
