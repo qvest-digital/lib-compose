@@ -33,6 +33,42 @@ func Test_CacheLoader_Found(t *testing.T) {
 	a.Equal(c, result)
 }
 
+func Test_CacheLoader_No_Cache_Lookup_For_Uncachable_Objects(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	// given a uncachable fetchdefinition (no cache strategy):
+	fd := NewFetchDefinition("/foo")
+	fd.CacheStrategy = nil
+
+	// and a mocked cache
+	cacheMocK := NewMockCache(ctrl)
+
+	// and mocked Content Loaders
+	fileContentLoaderMock := NewMockContentLoader(ctrl)
+	httpContentLoaderMock := NewMockContentLoader(ctrl)
+	loader := NewCachingContentLoader(cacheMocK)
+	loader.fileContentLoader = fileContentLoaderMock
+	loader.httpContentLoader = httpContentLoaderMock
+
+	// and a mocked Content
+	contentMock := NewMockContent(ctrl)
+
+	// and a cache returning the memory content by the hash
+	fileContentLoaderMock.EXPECT().Load(gomock.Any()).Times(0)
+	httpContentLoaderMock.EXPECT().Load(fd).Times(1).Return(contentMock, nil)
+	contentMock.EXPECT().HttpHeader().Times(1).Return(nil)
+	contentMock.EXPECT().HttpStatusCode().Times(1).Return(0)
+	cacheMocK.EXPECT().Get(fd.Hash()).Times(0)
+
+	// when: we load the object
+
+	// it is returned
+	_, err := loader.Load(fd)
+	a.NoError(err)
+}
+
 func Test_CacheLoader_NoLookupForPostRequests(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

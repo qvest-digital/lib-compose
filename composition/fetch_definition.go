@@ -2,11 +2,11 @@ package composition
 
 import (
 	"github.com/tarent/lib-compose/cache"
+	"github.com/tarent/lib-servicediscovery/servicediscovery"
 	"io"
 	"net/http"
 	"strings"
 	"time"
-	"github.com/tarent/lib-servicediscovery/servicediscovery"
 )
 
 // ForwardRequestHeaders are those headers,
@@ -158,6 +158,10 @@ func (def *FetchDefinition) IsCacheable(responseStatus int, responseHeaders http
 	return false
 }
 
+func (def *FetchDefinition) IsReadableFromCache() bool {
+	return def.IsCacheable(200, nil)
+}
+
 // copyHeaders copies only the header contained in the the whitelist
 // from src to test. If dest is nil, it will be created.
 // The dest will also be returned.
@@ -186,4 +190,3 @@ func NewDefaultErrorHandler() *DefaultErrorHandler {
 func (der *DefaultErrorHandler) Handle(err error, status int, w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Error: "+err.Error(), status)
 }
-
