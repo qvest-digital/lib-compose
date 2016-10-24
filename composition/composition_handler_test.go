@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"github.com/tarent/lib-compose/composition"
 )
 
 func Test_CompositionHandler_PositiveCase(t *testing.T) {
@@ -236,31 +235,6 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 	a.Equal("Internal Server Error: an error\n", string(resp.Body.Bytes()))
 	a.Equal(500, resp.Code)
 }
-
-
-func Test_LogFetchResultLoadingError(t *testing.T) {
-	//Prepare
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
-		return MockFetchResultSupplier{
-			&FetchResult{
-				Def:     NewFetchDefinition("/foo"),
-				Content: &MemoryContent{},
-				Err:     nil,
-				Hash:    "hashString",
-			},
-		}
-	}
-
-	aggregator := NewCompositionHandler(contentFetcherFactory)
-	mockCompositionHandler := MockCompositionHandler()
-
-	aggregator2 := composition.NewCompositionHandler(contentFetcherFactory())
-	//Expect
-	aggregator2.ServeHTTP()
-}
-
 
 func Test_CompositionHandler_ErrorInFetching(t *testing.T) {
 	ctrl := gomock.NewController(t)
