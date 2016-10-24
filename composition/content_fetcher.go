@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/tarent/lib-compose/logging"
 	"sync"
+	"sort"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -18,6 +19,20 @@ type FetchResult struct {
 	Content Content
 	Hash    string // the hash of the FetchDefinition
 }
+
+//Provide implementation for sorting FetchResults by priority with sort.Sort
+type FetchResults []*FetchResult
+
+func (fr FetchResults) Len() int {
+	return len(fr)
+}
+func (fr FetchResults) Swap(i, j int) {
+	fr[i], fr[j] = fr[j], fr[i]
+}
+func (fr FetchResults) Less(i, j int) bool {
+	return fr[i].Def.Priority < fr[j].Def.Priority
+}
+
 
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
 type ContentFetcher struct {
@@ -56,7 +71,14 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
 
-	return fetcher.r.results
+	results := fetcher.r.results
+
+	//to keep initial order if no priority settings are given, do a check before for sorting
+	if(hasPrioritySetting(results)) {
+		sort.Sort(FetchResults(results))
+	}
+
+	return results
 }
 
 // AddFetchJob addes one job to the fetcher and recursively adds the dependencies also.

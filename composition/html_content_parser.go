@@ -256,6 +256,108 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 	return fd, fmt.Sprintf("§[> %s]§", placeholder), nil
 }
 
+func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]string) error {
+	attrs := make([]html.Attribute, 0, 10)
+	headBuff := bytes.NewBuffer(nil)
+	z := html.NewTokenizer(strings.NewReader(string(*fragment)))
+	forloop:
+	for {
+		tt := z.Next()
+		tag, _ := z.TagName()
+		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
+		attrs = readAttributes(z, attrs)
+
+		switch {
+		case tt == html.ErrorToken:
+			if z.Err() != io.EOF {
+				return z.Err()
+			}
+			break forloop
+		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
+
+			if string(tag) == "meta" {
+				if(processMetaTag(string(tag), attrs, headPropertyMap)) {
+					headBuff.Write(raw)
+				}
+				continue
+			}
+			if string(tag) == "title" {
+				if(headPropertyMap["title"] == "") {
+					headPropertyMap["title"] = "title"
+					headBuff.Write(raw)
+				} else if (tt != html.SelfClosingTagToken) {
+					skipCompleteTag(z, "title")
+					continue
+				}
+			} else {
+				headBuff.Write(raw)
+			}
+		default:
+			headBuff.Write(raw)
+		}
+
+	}
+
+	s := headBuff.String()
+
+	if len(s) > 0 {
+		*fragment = StringFragment(s)
+	}
+	return nil
+}
+
+
+func skipCompleteTag(z *html.Tokenizer, tagName string) error {
+	forloop:
+	for {
+		tt := z.Next()
+		tag, _ := z.TagName()
+		switch {
+		case tt == html.ErrorToken:
+			if z.Err() != io.EOF {
+				return z.Err()
+			}
+			break forloop
+		case tt == html.EndTagToken:
+			tagAsString := string(tag)
+			if tagAsString == tagName {
+				break forloop
+			}
+		}
+	}
+	return nil
+}
+
+
+
+func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]string) bool {
+	if (len(attrs) == 0) {
+		return true
+	}
+
+	key := tagName
+	value := ""
+	// TODO: check explizit for attrName "http-equiv" || "name" || "charset" ?
+
+	// e.g.: <meta charset="utf-8">
+	if (len(attrs) == 1) {
+		key = tagName + "_" + attrs[0].Key
+		value = attrs[0].Val
+	}
+
+	if (len(attrs) > 1) {
+		key = tagName + "_" + attrs[0].Key + "_" + attrs[0].Val
+		value = attrs[1].Key + "_" + attrs[1].Val
+	}
+
+	if (metaMap[key] == "") {
+		metaMap[key] = value
+		return true
+
+	}
+	return false
+}
+
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {
 	tt := z.Next()
 	if tt != html.TextToken {

@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+        "sort"
 )
 
 func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
@@ -73,4 +74,54 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 		Return(content, nil)
 
 	return fd
+}
+
+func Test_ContentFetchResultPrioritySort(t *testing.T) {
+        a := assert.New(t)
+
+        barFd := NewFetchDefinitionWithPriority("/bar", 30)
+        fooFd := NewFetchDefinitionWithPriority("/foo", 10)
+        bazzFd := NewFetchDefinitionWithPriority("/bazz", 5)
+
+        results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
+
+        a.Equal(30, results[0].Def.Priority)
+        a.Equal(10, results[1].Def.Priority)
+        a.Equal(5, results[2].Def.Priority)
+
+        sort.Sort(FetchResults(results))
+
+        a.Equal(5, results[0].Def.Priority)
+        a.Equal(10, results[1].Def.Priority)
+        a.Equal(30, results[2].Def.Priority)
+}
+
+
+func Test_ContentFetcher_PriorityOrderAfterFetchCompletion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	loader := NewMockContentLoader(ctrl)
+	barFd := getFetchDefinitionMock(ctrl, loader, "/bar", nil, time.Millisecond*2, map[string]interface{}{"foo": "bar"})
+	barFd.Priority = 1024
+	fooFd := getFetchDefinitionMock(ctrl, loader, "/foo", nil, time.Millisecond*2, map[string]interface{}{"bli": "bla"})
+	fooFd.Priority = 211
+	bazzFd := getFetchDefinitionMock(ctrl, loader, "/bazz", nil, time.Millisecond, map[string]interface{}{})
+	bazzFd.Priority = 412
+
+	fetcher := NewContentFetcher(nil)
+	fetcher.Loader = loader
+
+	fetcher.AddFetchJob(barFd)
+	fetcher.AddFetchJob(fooFd)
+	fetcher.AddFetchJob(bazzFd)
+
+
+	results := fetcher.WaitForResults()
+
+	a.Equal(211, results[0].Def.Priority)
+	a.Equal(412, results[1].Def.Priority)
+	a.Equal(1024, results[2].Def.Priority)
+
 }

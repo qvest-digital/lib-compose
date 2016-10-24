@@ -45,3 +45,42 @@ func Test_FetchDefinition_use_DefaultErrorHandler_if_not_set(t *testing.T) {
 	fd := NewFetchDefinitionWithErrorHandler("http://upstream:8080/", nil)
 	a.Equal(NewDefaultErrorHandler(), fd.ErrHandler)
 }
+
+
+func Test_FetchDefinition_NewFunctions_have_default_priority(t *testing.T) {
+	a := assert.New(t)
+	fd1 := NewFetchDefinition("foo")
+	fd2 := NewFetchDefinitionWithErrorHandler("baa", nil)
+	fd3 := NewFetchDefinitionWithResponseProcessor("blub", nil)
+
+	r, err := http.NewRequest("POST", "https://example.com/content?foo=bar", nil)
+	a.NoError(err)
+
+	fd4 := NewFetchDefinitionWithResponseProcessorFromRequest("bla", r, nil)
+
+
+	a.Equal(fd1.Priority, DefaultPriority)
+	a.Equal(fd2.Priority, DefaultPriority)
+	a.Equal(fd3.Priority, DefaultPriority)
+	a.Equal(fd4.Priority, DefaultPriority)
+}
+
+func Test_FetchDefinition_NewFunctions_have_parameter_priority(t *testing.T) {
+	a := assert.New(t)
+	fd1 := NewFetchDefinitionWithPriority("foo", 42)
+	fd2 := NewFetchDefinitionWithErrorHandlerAndPriority("baa", nil, 54)
+	fd3 := NewFetchDefinitionWithResponseProcessorAndPriority("blub", nil, 74)
+
+
+	r, err := http.NewRequest("POST", "https://example.com/content?foo=bar", nil)
+	a.NoError(err)
+
+	fd4 := NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest("bla", r, nil, 90)
+	fd5 := NewFetchDefinitionWithPriorityFromRequest("faa", r, 2014)
+
+	a.Equal(fd1.Priority, 42)
+	a.Equal(fd2.Priority, 54)
+	a.Equal(fd3.Priority, 74)
+	a.Equal(fd4.Priority, 90)
+	a.Equal(fd5.Priority, 2014)
+}

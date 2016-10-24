@@ -88,7 +88,7 @@ type Content interface {
 }
 
 type ContentMerger interface {
-	// Add content to the meger
+	// Add content to the merger
 	AddContent(fetchResult *FetchResult)
 
 	// Return the html as byte array

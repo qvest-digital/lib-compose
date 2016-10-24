@@ -18,7 +18,7 @@ type CompositionHandler struct {
 	cache                 Cache
 }
 
-// NewCompositionHandler creates a new Handler with the supplied defualtData,
+// NewCompositionHandler creates a new Handler with the supplied defaultData,
 // which is used for each request.
 func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *CompositionHandler {
 	return &CompositionHandler{
@@ -146,4 +146,13 @@ func getHostFromRequest(r *http.Request) string {
 		host = hostParts[0]
 	}
 	return host
+}
+
+func hasPrioritySetting(results []*FetchResult) bool {
+	for _, res := range results {
+		if(res.Def.Priority > 0){
+			return true
+		}
+	}
+	return false
 }
