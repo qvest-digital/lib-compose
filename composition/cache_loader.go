@@ -25,7 +25,7 @@ func NewCachingContentLoader(cache Cache) *CachingContentLoader {
 func (loader *CachingContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	hash := fd.Hash()
 
-	if fd.Method == "GET" {
+	if fd.Method == "GET" && fd.IsReadableFromCache() {
 		if cFromCache, exist := loader.cache.Get(hash); exist {
 			logging.Cacheinfo(fd.URL, true)
 			return cFromCache.(Content), nil
