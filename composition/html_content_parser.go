@@ -281,6 +281,12 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 				}
 				continue
 			}
+			if string(tag) == "link" {
+                                if(processLinkTag(attrs, headPropertyMap)) {
+                                        headBuff.Write(raw)
+                                }
+				continue
+                        }
 			if string(tag) == "title" {
 				if(headPropertyMap["title"] == "") {
 					headPropertyMap["title"] = "title"
@@ -328,8 +334,6 @@ func skipCompleteTag(z *html.Tokenizer, tagName string) error {
 	return nil
 }
 
-
-
 func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]string) bool {
 	if (len(attrs) == 0) {
 		return true
@@ -337,14 +341,14 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 
 	key := tagName
 	value := ""
-	// TODO: check explizit for attrName "http-equiv" || "name" || "charset" ?
 
-	// e.g.: <meta charset="utf-8">
+	// e.g.: <meta charset="utf-8"> => key = meta_charset; val = utf-8
 	if (len(attrs) == 1) {
 		key = tagName + "_" + attrs[0].Key
 		value = attrs[0].Val
 	}
 
+	// e.g.: <meta name="content-language" content="de"> => key = meta_name_content-language; val = content_de
 	if (len(attrs) > 1) {
 		key = tagName + "_" + attrs[0].Key + "_" + attrs[0].Val
 		value = attrs[1].Key + "_" + attrs[1].Val
@@ -353,9 +357,41 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 	if (metaMap[key] == "") {
 		metaMap[key] = value
 		return true
-
 	}
 	return false
+}
+
+/**
+Returns true if a link tag can be processed.
+Checks if a <link> tag contains a canonical relation and avoids multiple canonical definitions.
+ */
+func processLinkTag(attrs []html.Attribute, metaMap map[string]string) bool {
+	if (len(attrs) == 0) {
+		return true
+	}
+
+        const canonical = "canonical"
+        key := ""
+        value := ""
+
+        // e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
+        for i := 0; i < len(attrs); i++ {
+                if (attrs[i].Key == "rel" && attrs[i].Val == canonical) {
+                        key = canonical
+                }
+                if (attrs[i].Key == "href") {
+                        value = attrs[i].Val
+                }
+        }
+        if (key == canonical && metaMap[canonical] != "") {
+                // if canonical is already in map then don't process this link tag
+                return false
+        }
+
+        if (key != "" && value != "") {
+                metaMap[key] = value
+        }
+	return true
 }
 
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {

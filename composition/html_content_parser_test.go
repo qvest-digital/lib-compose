@@ -15,15 +15,12 @@ var productUiGeneratedHtml = `<!DOCTYPE html>
 <head>
     <meta charset="utf-8">
     <title>navigationservice</title>
-
-
     <!-- START Include legacy styles - emulate integration -->
 
     <!-- END Include legacy styles -->
-
     <link rel="stylesheet" href="/navigationservice/stylesheets/main-ffc9b54a22.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <link rel="canonical" href="/baumarkt/suche">
     <script>
         // Define global SCRIPTS variable and
         // global loadScript() method to loading scripts
@@ -64,29 +61,18 @@ var productUiGeneratedHtml = `<!DOCTYPE html>
         TYPO3 is copyright 1998-2016 of Kasper Skaarhoj. Extensions are copyright of their respective owners.
         Information and contribution at http://typo3.org/
     -->
-
     <base href="/">
-
-
     <meta name="generator" content="TYPO3 CMS">
     <meta name="content-language" content="de">
-
     <link rel="stylesheet" type="text/css" href="typo3temp/compressor/merged-d0ed097d2e70237fa36186d357e1268f-4e221af468cdd1d3a44789532134127c.css?1476243484" media="all">
-
-
-
-
     <script src="typo3temp/compressor/merged-f6a1f7cc0a094340acf2489928881fc7-956c525da07a115d310e68d089faa490.js?1476243484" type="text/javascript"></script>
-
-
-
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="cleartype" content="on">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-
+    <link rel="canonical" href="/navigationservice">
     <link rel="stylesheet" href="typo3conf/ext/bra_projectfiles_toom/Resources/Public/website/css/main.css">
 
     <link rel="shortcut icon" href="favicon.ico" type="image/ico" />
@@ -295,7 +281,7 @@ func Test_HtmlContentParser_LoadEmptyContent(t *testing.T) {
 	a.Nil(c.Tail())
 }
 
-func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles(t *testing.T) {
+func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles_and_Canonicals(t *testing.T) {
 	a := assert.New(t)
 
 	parser := &HtmlContentParser{}
@@ -306,8 +292,7 @@ func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles(t *testing
 	err := parser.parseHead(z, c)
 	a.NoError(err)
 
-	//eqFragment(t, "<xx/><foo>xxx</foo><bar>xxx</bar>", c.Head())
-	//a.True(strings.Contains(string(c.Head()), "navigationservice"))
+        containsFragment(t, "<title>navigationservice</title>", c.Head())
 }
 
 
@@ -633,6 +618,20 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 	}
 }
 
+func containsFragment(t *testing.T, contained string, f Fragment) {
+	if f == nil {
+		t.Error("Fragment is nil, but expected:", contained)
+		return
+	}
+	sf := f.(StringFragment)
+	sfStripped := strings.Replace(string(sf), " ", "", -1)
+	sfStripped = strings.Replace(string(sfStripped), "\n", "", -1)
+
+	if !strings.Contains(sfStripped, contained) {
+		t.Error("Fragment is not equal: \nexpected: ", contained, "\nactual:  ", sf)
+	}
+}
+
 
 func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 	a := assert.New(t)
@@ -820,6 +819,124 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 	headFragment := StringFragment(originalHeadString)
 	ParseHeadFragment(&headFragment, headMetaPropertyMap)
 
+	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
+	resultString := removeTabsAndNewLines(string(headFragment))
+
+	a.Equal(expectedParsedHead, resultString)
+}
+
+func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
+	a := assert.New(t)
+
+        // GIVEN
+	originalHeadString := `<meta charset="utf-8">
+
+	<link rel="canonical" href="/navigationservice">
+
+	<title>navigationservice</title>
+	<!-- START Include jquery lib - add to SCRIPTS again after last JS from legacy system is removed -->
+	<!-- END Include jquery lib -->
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="blub" content="width=device-width, initial-scale=1.0">
+	<script>
+	// Define global SCRIPTS variable and
+	// global loadScript() method to loading scripts
+	// async but in order.
+	// Each module register it's javascript by calling
+	// this method:
+	//
+	// loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+	//
+		SCRIPTS = ['/navigationservice/javascripts/main-e566a7bb73.js'];
+	isLegacy = function() {
+		return typeof Object.assign === 'function' ? false : true;
+	};
+	loadScript = function(script, legacyOnly) {
+		for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+		if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+		SCRIPTS.push(script);
+		}
+	};
+	</script>
+	<!-- fonts.com - Async Font Loading -->`
+
+	expectedParsedHead := `<meta charset="utf-8">
+
+
+
+	<title>navigationservice</title>
+	<!-- START Include jquery lib - add to SCRIPTS again after last JS from legacy system is removed -->
+	<!-- END Include jquery lib -->
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="blub" content="width=device-width, initial-scale=1.0">
+	<script>
+	// Define global SCRIPTS variable and
+	// global loadScript() method to loading scripts
+	// async but in order.
+	// Each module register it's javascript by calling
+	// this method:
+	//
+	// loadScript('/navigationservice/components/molecules/teaser/teaser.js');
+	//
+		SCRIPTS = ['/navigationservice/javascripts/main-e566a7bb73.js'];
+	isLegacy = function() {
+		return typeof Object.assign === 'function' ? false : true;
+	};
+	loadScript = function(script, legacyOnly) {
+		for(var i=0; i < SCRIPTS.length; i++) if(SCRIPTS[i] === script) return false;
+		if((legacyOnly && isLegacy()) || (!legacyOnly)) {
+		SCRIPTS.push(script);
+		}
+	};
+	</script>
+	<!-- fonts.com - Async Font Loading -->`
+
+	headMetaPropertyMap := make(map[string]string)
+	headMetaPropertyMap["canonical"] = "/baumarkt/suche"
+
+	headFragment := StringFragment(originalHeadString)
+        // WHEN
+	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+
+        // THEN
+	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
+	resultString := removeTabsAndNewLines(string(headFragment))
+
+	a.Equal(expectedParsedHead, resultString)
+}
+
+func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *testing.T) {
+        // GIVEN
+	a := assert.New(t)
+
+	originalHeadString := `
+	<link rel="stylesheet" href="/searchservice/stylesheets/main-36b9f2e88a.css">
+	<link />
+	<link rel="canonical" href="/baumarkt/bauen-renovieren/suche">
+        <meta charset="utf-8" />
+	<link rel="canonical"
+	        href="/navigationservice">
+	<title>navigationservice</title>
+	`
+
+	expectedParsedHead := `
+	<link rel="stylesheet" href="/searchservice/stylesheets/main-36b9f2e88a.css">
+	<link />
+	<link rel="canonical" href="/baumarkt/bauen-renovieren/suche">
+        <meta charset="utf-8" />
+
+	<title>navigationservice</title>
+	`
+
+	headMetaPropertyMap := make(map[string]string)
+
+	headFragment := StringFragment(originalHeadString)
+        // WHEN
+	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+
+        // THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
 	resultString := removeTabsAndNewLines(string(headFragment))
 
