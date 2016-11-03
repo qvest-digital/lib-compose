@@ -918,6 +918,7 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
         <meta charset="utf-8" />
 	<link rel="canonical"
 	        href="/navigationservice">
+	<foo bar=""/>
 	<title>navigationservice</title>
 	`
 
@@ -926,7 +927,7 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
 	<link />
 	<link rel="canonical" href="/baumarkt/bauen-renovieren/suche">
         <meta charset="utf-8" />
-
+	<foo bar=""/>
 	<title>navigationservice</title>
 	`
 

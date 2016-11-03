@@ -273,31 +273,32 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 				return z.Err()
 			}
 			break forloop
+
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 
-			if string(tag) == "meta" {
-				if(processMetaTag(string(tag), attrs, headPropertyMap)) {
-					headBuff.Write(raw)
-				}
-				continue
-			}
-			if string(tag) == "link" {
-                                if(processLinkTag(attrs, headPropertyMap)) {
+                        switch {
+                        case string(tag) == "meta":
+                                if (processMetaTag(string(tag), attrs, headPropertyMap)) {
                                         headBuff.Write(raw)
                                 }
-				continue
+                                continue forloop
+                        case string(tag) == "link":
+                                if (processLinkTag(attrs, headPropertyMap)) {
+                                        headBuff.Write(raw)
+                                }
+                                continue forloop
+                        case string(tag) == "title":
+                                if (headPropertyMap["title"] == "") {
+                                        headPropertyMap["title"] = "title"
+                                        headBuff.Write(raw)
+                                } else if (tt != html.SelfClosingTagToken) {
+                                        skipCompleteTag(z, "title")
+                                }
+                                continue forloop
+                        default:
+                                headBuff.Write(raw)
                         }
-			if string(tag) == "title" {
-				if(headPropertyMap["title"] == "") {
-					headPropertyMap["title"] = "title"
-					headBuff.Write(raw)
-				} else if (tt != html.SelfClosingTagToken) {
-					skipCompleteTag(z, "title")
-					continue
-				}
-			} else {
-				headBuff.Write(raw)
-			}
+
 		default:
 			headBuff.Write(raw)
 		}
@@ -371,16 +372,16 @@ func processLinkTag(attrs []html.Attribute, metaMap map[string]string) bool {
 	}
 
         const canonical = "canonical"
-        key := ""
-        value := ""
+	var key string
+	var value string
 
         // e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
-        for i := 0; i < len(attrs); i++ {
-                if (attrs[i].Key == "rel" && attrs[i].Val == canonical) {
+	for _, attr := range attrs {
+                if (attr.Key == "rel" && attr.Val == canonical) {
                         key = canonical
                 }
-                if (attrs[i].Key == "href") {
-                        value = attrs[i].Val
+                if (attr.Key == "href") {
+                        value = attr.Val
                 }
         }
         if (key == canonical && metaMap[canonical] != "") {
