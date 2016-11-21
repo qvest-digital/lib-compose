@@ -44,32 +44,30 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	fetcher := agg.contentFetcherFactory(r)
 
-	if fetcher.Empty() {
-		w.WriteHeader(500)
-		w.Write([]byte("Internal server error"))
-		logging.Application(r.Header).Error("No fetchers available for composition, throwing error 500")
+	if agg.handleEmptyFetcher(fetcher, w, r) {
 		return
 	}
 
 	// fetch all contents
 	results := fetcher.WaitForResults()
 
+	// Allow HEAD requests and disable composition of body fragments
+	if agg.handleHeadRequests(results, w, r) {
+		return
+	}
+
 	mergeContext := agg.contentMergerFactory(fetcher.MetaJSON())
 
 	for _, res := range results {
 		if res.Err == nil && res.Content != nil {
 
-			if res.Content.HttpStatusCode() >= 300 && res.Content.HttpStatusCode() <= 308 {
-				copyHeaders(res.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
-				w.WriteHeader(res.Content.HttpStatusCode())
+			if agg.handleForwardingRequests(res, w, r) {
+				// Return if it's a forwarded request
 				return
 			}
 
-			if res.Content.Reader() != nil {
-				copyHeaders(res.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
-				w.WriteHeader(res.Content.HttpStatusCode())
-				io.Copy(w, res.Content.Reader())
-				res.Content.Reader().Close()
+			if agg.handleRequestsWithBody(res, w, r) {
+				// Return if it's a request body
 				return
 			}
 
@@ -83,18 +81,34 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	status := 200
-	// Take status code and headers from first fetch definition
-	if len(results) > 0 {
-		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
-		if results[0].Content.HttpStatusCode() != 0 {
-			status = results[0].Content.HttpStatusCode()
-		}
-	}
+	status := agg.extractStatusCode(results, w, r)
 
 	// Overwrite Content-Type to ensure, that the encoding is correct
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
+	html, err := agg.processHtml(mergeContext, w, r)
+	// Return if an error occured within the html aggregation
+	if err {
+		return
+	}
+
+	w.Header().Set("Content-Length", strconv.Itoa(len(html)))
+	w.WriteHeader(status)
+	w.Write(html)
+}
+
+func (agg *CompositionHandler) extractStatusCode(results []*FetchResult, w http.ResponseWriter, r *http.Request) (statusCode int) {
+	// Take status code and headers from first fetch definition
+	if len(results) > 0 {
+		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
+		if results[0].Content.HttpStatusCode() != 0 {
+			return results[0].Content.HttpStatusCode()
+		}
+	}
+	return 200
+}
+
+func (agg *CompositionHandler) processHtml(mergeContext ContentMerger, w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 	html, err := mergeContext.GetHtml()
 	if err != nil {
 		if agg.cache != nil {
@@ -102,12 +116,48 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 		logging.Application(r.Header).Error(err.Error())
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
-		return
+		return nil, true
 	}
+	return html, false
+}
 
-	w.Header().Set("Content-Length", strconv.Itoa(len(html)))
-	w.WriteHeader(status)
-	w.Write(html)
+func (agg *CompositionHandler) handleHeadRequests(results []*FetchResult, w http.ResponseWriter, r *http.Request) bool {
+	if r.Method == "HEAD" && len(results) > 0 {
+		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
+		w.WriteHeader(results[0].Content.HttpStatusCode())
+		return true
+	}
+	return false
+}
+
+func (agg *CompositionHandler) handleEmptyFetcher(fetcher FetchResultSupplier, w http.ResponseWriter, r *http.Request) bool {
+	if fetcher.Empty() {
+		w.WriteHeader(500)
+		w.Write([]byte("Internal server error"))
+		logging.Application(r.Header).Error("No fetchers available for composition, throwing error 500")
+		return true
+	}
+	return false
+}
+
+func (agg *CompositionHandler) handleForwardingRequests(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
+	if result.Content.HttpStatusCode() >= 300 && result.Content.HttpStatusCode() <= 308 {
+		copyHeaders(result.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
+		w.WriteHeader(result.Content.HttpStatusCode())
+		return true
+	}
+	return false
+}
+
+func (agg *CompositionHandler) handleRequestsWithBody(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
+	if result.Content.Reader() != nil {
+		copyHeaders(result.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
+		w.WriteHeader(result.Content.HttpStatusCode())
+		io.Copy(w, result.Content.Reader())
+		result.Content.Reader().Close()
+		return true
+	}
+	return false
 }
 
 func LogFetchResultLoadingError(res *FetchResult, w http.ResponseWriter, r *http.Request) {
@@ -150,7 +200,7 @@ func getHostFromRequest(r *http.Request) string {
 
 func hasPrioritySetting(results []*FetchResult) bool {
 	for _, res := range results {
-		if(res.Def.Priority > 0){
+		if res.Def.Priority > 0 {
 			return true
 		}
 	}
