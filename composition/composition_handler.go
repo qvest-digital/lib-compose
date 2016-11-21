@@ -61,13 +61,8 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	for _, res := range results {
 		if res.Err == nil && res.Content != nil {
 
-			if agg.handleForwardingRequests(res, w, r) {
-				// Return if it's a forwarded request
-				return
-			}
-
-			if agg.handleRequestsWithBody(res, w, r) {
-				// Return if it's a request body
+			// Handle responses with 30x status code or with response bodies
+			if agg.handleNonMergeableResponses(res, w, r) {
 				return
 			}
 
@@ -83,6 +78,8 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	status := agg.extractStatusCode(results, w, r)
 
+	agg.copyHeadersIfNeeded(results, w, r)
+
 	// Overwrite Content-Type to ensure, that the encoding is correct
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -97,15 +94,35 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	w.Write(html)
 }
 
+func (agg *CompositionHandler) handleNonMergeableResponses(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
+
+	if agg.handle30xResponses(result, w, r) {
+		// Return if it's a forwarded status code
+		return true
+	}
+
+	if agg.handleStreamResponses(result, w, r) {
+		// Return if it's a response with body
+		return true
+	}
+
+	return false
+}
+
 func (agg *CompositionHandler) extractStatusCode(results []*FetchResult, w http.ResponseWriter, r *http.Request) (statusCode int) {
-	// Take status code and headers from first fetch definition
 	if len(results) > 0 {
-		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
 		if results[0].Content.HttpStatusCode() != 0 {
 			return results[0].Content.HttpStatusCode()
 		}
 	}
 	return 200
+}
+
+func (agg *CompositionHandler) copyHeadersIfNeeded(results []*FetchResult, w http.ResponseWriter, r *http.Request) {
+	// Take status code and headers from first fetch definition
+	if len(results) > 0 {
+		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
+	}
 }
 
 func (agg *CompositionHandler) processHtml(mergeContext ContentMerger, w http.ResponseWriter, r *http.Request) ([]byte, bool) {
@@ -140,7 +157,7 @@ func (agg *CompositionHandler) handleEmptyFetcher(fetcher FetchResultSupplier, w
 	return false
 }
 
-func (agg *CompositionHandler) handleForwardingRequests(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
+func (agg *CompositionHandler) handle30xResponses(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
 	if result.Content.HttpStatusCode() >= 300 && result.Content.HttpStatusCode() <= 308 {
 		copyHeaders(result.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
 		w.WriteHeader(result.Content.HttpStatusCode())
@@ -149,7 +166,7 @@ func (agg *CompositionHandler) handleForwardingRequests(result *FetchResult, w h
 	return false
 }
 
-func (agg *CompositionHandler) handleRequestsWithBody(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
+func (agg *CompositionHandler) handleStreamResponses(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
 	if result.Content.Reader() != nil {
 		copyHeaders(result.Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
 		w.WriteHeader(result.Content.HttpStatusCode())
