@@ -11,6 +11,7 @@ import (
 )
 
 const MAX_PRIORITY int = 4294967295
+
 // ForwardRequestHeaders are those headers,
 // which are included from the original client request to the backend request.
 // TODO: Add Host header to an XFF header
@@ -53,9 +54,9 @@ var ForwardResponseHeaders = []string{
 	"WWW-Authenticate"}
 
 const (
-	DefaultTimeout time.Duration = 10 * time.Second
-	FileURLPrefix                = "file://"
-	DefaultPriority              = 0
+	DefaultTimeout  time.Duration = 10 * time.Second
+	FileURLPrefix                 = "file://"
+	DefaultPriority               = 0
 )
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
@@ -100,7 +101,7 @@ func NewFetchDefinitionWithErrorHandlerAndPriority(url string, errHandler ErrorH
 		Method:          "GET",
 		ErrHandler:      errHandler,
 		CacheStrategy:   cache.DefaultCacheStrategy,
-		Priority:	 priority,
+		Priority:        priority,
 	}
 }
 
@@ -195,7 +196,7 @@ func (def *FetchDefinition) IsReadableFromCache() bool {
 }
 
 // copyHeaders copies only the header contained in the the whitelist
-// from src to test. If dest is nil, it will be created.
+// from src to dest. If dest is nil, it will be created.
 // The dest will also be returned.
 func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 	if dest == nil {
