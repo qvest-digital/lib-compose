@@ -92,6 +92,13 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// But also allow other fetch definitions to set cookies, if Set-Cookie ist globaly allowed
+	if len(results) > 1 && contains(ForwardResponseHeaders, "Set-Cookie") {
+		for _, r := range results[1:] {
+			copyHeaders(r.Content.HttpHeader(), w.Header(), []string{"Set-Cookie"})
+		}
+	}
+
 	// Overwrite Content-Type to ensure, that the encoding is correct
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -150,7 +157,16 @@ func getHostFromRequest(r *http.Request) string {
 
 func hasPrioritySetting(results []*FetchResult) bool {
 	for _, res := range results {
-		if(res.Def.Priority > 0){
+		if res.Def.Priority > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(list []string, item string) bool {
+	for _, v := range list {
+		if item == v {
 			return true
 		}
 	}
