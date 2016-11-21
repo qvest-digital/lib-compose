@@ -67,7 +67,7 @@ func Test_CompositionHandler_PositiveCaseWithCache(t *testing.T) {
 						"": StringFragment("Hello World\n"),
 					},
 				},
-				Hash:    "hashString",
+				Hash: "hashString",
 			},
 		}
 	}
@@ -98,6 +98,56 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 					},
 					httpHeader: http.Header{
 						"Transfer-Encoding": {"gzip"}, // removed
+						"Set-Cookie": {
+							"cookie-content 1",
+							"cookie-content 2",
+						},
+					},
+					httpStatusCode: 201,
+				},
+			},
+			&FetchResult{
+				Def: NewFetchDefinition("..."),
+				Content: &MemoryContent{
+					httpHeader: http.Header{
+						"Set-Cookie": {
+							"cookie-content 3",
+						},
+					},
+					httpStatusCode: 200,
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(201, resp.Code)
+	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Lenth
+	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 3")
+}
+
+func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturnedOnRedirect(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment(""),
+					},
+					httpHeader: http.Header{
+						"Transfer-Encoding": {"gzip"}, // removed
 						"Location":          {"/look/somewhere"},
 						"Set-Cookie": {
 							"cookie-content 1",
@@ -108,8 +158,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 				},
 			},
 			&FetchResult{
-				Def:     NewFetchDefinition("..."),
-				Content: &MemoryContent{},
+				Def: NewFetchDefinition("..."),
 			},
 		}
 	}
