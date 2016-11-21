@@ -95,7 +95,6 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 func (agg *CompositionHandler) handleNonMergeableResponses(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
-
 	if agg.handle30xResponses(result, w, r) {
 		// Return if it's a forwarded status code
 		return true
@@ -119,9 +118,16 @@ func (agg *CompositionHandler) extractStatusCode(results []*FetchResult, w http.
 }
 
 func (agg *CompositionHandler) copyHeadersIfNeeded(results []*FetchResult, w http.ResponseWriter, r *http.Request) {
-	// Take status code and headers from first fetch definition
+	// Take headers from first fetch definition
 	if len(results) > 0 {
 		copyHeaders(results[0].Content.HttpHeader(), w.Header(), ForwardResponseHeaders)
+	}
+
+	// But also allow results from other fetch definitions to set cookies, if Set-Cookie ist globaly allowed
+	if len(results) > 1 && contains(ForwardResponseHeaders, "Set-Cookie") {
+		for _, r := range results[1:] {
+			copyHeaders(r.Content.HttpHeader(), w.Header(), []string{"Set-Cookie"})
+		}
 	}
 }
 
@@ -218,6 +224,15 @@ func getHostFromRequest(r *http.Request) string {
 func hasPrioritySetting(results []*FetchResult) bool {
 	for _, res := range results {
 		if res.Def.Priority > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(list []string, item string) bool {
+	for _, v := range list {
+		if item == v {
 			return true
 		}
 	}
