@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/tarent/lib-compose/logging"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -25,8 +26,19 @@ func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	if fd.RespProc != nil {
 		return nil, ResponseProcessorsNotApplicable
 	}
-	filename := strings.TrimPrefix(fd.URL, FileURLPrefix)
-	f, err := os.Open(filename)
+
+	path := strings.TrimPrefix(fd.URL, FileURLPrefix)
+	stat, err := os.Stat(path)
+	if err == nil && stat.IsDir() {
+		path = filepath.Join(path, "index.html")
+	} else if os.IsNotExist(err) {
+		c := NewMemoryContent()
+		c.url = fd.URL
+		c.httpStatusCode = 404
+		return c, err
+	}
+
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file %v: %v", fd.URL, err)
 	}
@@ -35,7 +47,7 @@ func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	c.url = fd.URL
 	c.httpStatusCode = 200
 
-	if strings.HasSuffix(filename, ".html") {
+	if strings.HasSuffix(path, ".html") {
 		parsingStart := time.Now()
 		err := loader.parser.Parse(c, f)
 		logging.Logger.
