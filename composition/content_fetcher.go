@@ -3,8 +3,8 @@ package composition
 import (
 	"errors"
 	"github.com/tarent/lib-compose/logging"
-	"sync"
 	"sort"
+	"sync"
 )
 
 // IsFetchable returns, whether the fetch definition refers to a fetchable resource
@@ -32,7 +32,6 @@ func (fr FetchResults) Swap(i, j int) {
 func (fr FetchResults) Less(i, j int) bool {
 	return fr[i].Def.Priority < fr[j].Def.Priority
 }
-
 
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
 type ContentFetcher struct {
@@ -74,7 +73,7 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	results := fetcher.r.results
 
 	//to keep initial order if no priority settings are given, do a check before for sorting
-	if(hasPrioritySetting(results)) {
+	if hasPrioritySetting(results) {
 		sort.Sort(FetchResults(results))
 	}
 
@@ -123,7 +122,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			}
 		} else {
 			// 404 Error already become logged in logger.go
-			if fetchResult.Content.HttpStatusCode() != 404 {
+			if fetchResult.Content == nil || fetchResult.Content.HttpStatusCode() != 404 {
 				logging.Logger.WithError(fetchResult.Err).
 					WithField("fetchDefinition", d).
 					WithField("correlation_id", logging.GetCorrelationId(definitionCopy.Header)).
