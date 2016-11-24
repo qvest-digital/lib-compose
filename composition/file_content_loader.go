@@ -33,7 +33,7 @@ func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error) {
 		path = filepath.Join(path, "index.html")
 	} else if os.IsNotExist(err) {
 		c := NewMemoryContent()
-		c.url = fd.URL
+		c.name = fd.Name
 		c.httpStatusCode = 404
 		return c, err
 	}
@@ -44,14 +44,14 @@ func (loader *FileContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	}
 
 	c := NewMemoryContent()
-	c.url = fd.URL
+	c.name = fd.Name
 	c.httpStatusCode = 200
 
 	if strings.HasSuffix(path, ".html") {
 		parsingStart := time.Now()
 		err := loader.parser.Parse(c, f)
 		logging.Logger.
-			WithField("full_url", c.URL()).
+			WithField("full_url", fd.URL).
 			WithField("duration", time.Since(parsingStart)).
 			Debug("content parsing")
 		f.Close()

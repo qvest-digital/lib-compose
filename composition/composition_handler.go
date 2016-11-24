@@ -66,7 +66,7 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 				return
 			}
 
-			mergeContext.AddContent(res)
+			mergeContext.AddContent(res.Content, res.Def.Priority)
 
 		} else if res.Def.Required {
 			LogFetchResultLoadingError(res, w, r)

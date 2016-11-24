@@ -60,6 +60,8 @@ const (
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
+	// The name of the fetch definition
+	Name                   string
 	URL                    string
 	Timeout                time.Duration
 	FollowRedirects        bool
@@ -93,6 +95,7 @@ func NewFetchDefinitionWithErrorHandlerAndPriority(url string, errHandler ErrorH
 		errHandler = NewDefaultErrorHandler()
 	}
 	return &FetchDefinition{
+		Name:            urlToName(url), // the name defauls to the url
 		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
@@ -113,6 +116,7 @@ func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *
 // Priority is used to determine which property from which head has to be taken by collision of multiple fetches
 func NewFetchDefinitionWithResponseProcessorAndPriority(url string, rp ResponseProcessor, priority int) *FetchDefinition {
 	return &FetchDefinition{
+		Name:            urlToName(url), // the name defauls to the url
 		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
@@ -159,8 +163,10 @@ func NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl strin
 		fullPath += "?" + r.URL.RawQuery
 	}
 
+	url := baseUrl + fullPath
 	return &FetchDefinition{
-		URL:             baseUrl + fullPath,
+		Name:            urlToName(url), // the name defauls to the url
+		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
 		Header:          copyHeaders(r.Header, nil, ForwardRequestHeaders),
@@ -192,6 +198,13 @@ func (def *FetchDefinition) IsCacheable(responseStatus int, responseHeaders http
 
 func (def *FetchDefinition) IsReadableFromCache() bool {
 	return def.IsCacheable(200, nil)
+}
+
+// Returns a name from a url, which has template placeholders eliminated
+func urlToName(url string) string {
+	url = strings.Replace(url, `§[`, `\§\[`, -1)
+	url = strings.Replace(url, `]§`, `\]\§`, -1)
+	return url
 }
 
 // copyHeaders copies only the header contained in the the whitelist
