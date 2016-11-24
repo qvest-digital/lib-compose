@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"github.com/tarent/lib-compose/logging"
 )
 
 const MAX_PRIORITY int = 4294967295
 // ForwardRequestHeaders are those headers,
-// which are incuded from the original client request to the backend request.
+// which are included from the original client request to the backend request.
 // TODO: Add Host header to an XFF header
 var ForwardRequestHeaders = []string{
 	"Authorization",
@@ -33,7 +34,7 @@ var ForwardRequestHeaders = []string{
 }
 
 // ForwardResponseHeaders are those headers,
-// which are incuded from the servers backend response to the client.
+// which are included from the servers backend response to the client.
 var ForwardResponseHeaders = []string{
 	"Age",
 	"Allow",
@@ -206,6 +207,10 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 			dest.Add(k, v)
 		}
 	}
+
+	//Set the correlation-id in the http header, so the services will retrieve and use it for further logging
+        dest.Add("correlation_id", logging.GetCorrelationId(dest))
+
 	return dest
 }
 
