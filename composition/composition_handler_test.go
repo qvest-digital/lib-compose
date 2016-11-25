@@ -126,7 +126,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(200, resp.Code)
-	a.Equal(4, len(resp.Header())) // Set-Cookie + Content-Type + Content-Length
+	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Length
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
@@ -170,7 +170,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned_onRedirect(t *te
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(302, resp.Code)
-	a.Equal(3, len(resp.Header()))
+	a.Equal(2, len(resp.Header()))
 	a.Equal("/look/somewhere", resp.Header().Get("Location"))
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
@@ -211,7 +211,7 @@ func Test_CompositionHandler_HeadRequest_CorrectHeaderAndStatusCodeReturned(t *t
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(200, resp.Code)
-	a.Equal(3, len(resp.Header()))
+	a.Equal(2, len(resp.Header()))
 	a.Equal("/look/somewhere", resp.Header().Get("Location"))
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
@@ -255,7 +255,7 @@ func Test_CompositionHandler_CorrectStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(200, resp.Code)
-	a.Equal(5, len(resp.Header()))
+	a.Equal(4, len(resp.Header()))
 	a.Equal("/look/somewhere", resp.Header().Get("Location"))
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
