@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"github.com/tarent/lib-compose/logging"
 )
 
 const MAX_PRIORITY int = 4294967295
@@ -208,9 +207,6 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 			dest.Add(k, v)
 		}
 	}
-
-	//Set the correlation-id in the http header, so the services will retrieve and use it for further logging
-        dest.Add("X-Correlation-Id", logging.GetCorrelationId(dest))
 
 	return dest
 }
