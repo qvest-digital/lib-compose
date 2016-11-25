@@ -210,7 +210,7 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 	}
 
 	//Set the correlation-id in the http header, so the services will retrieve and use it for further logging
-        dest.Add("correlation_id", logging.GetCorrelationId(dest))
+        dest.Add("X-Correlation-Id", logging.GetCorrelationId(dest))
 
 	return dest
 }
