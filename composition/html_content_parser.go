@@ -226,6 +226,7 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 	} else {
 		fd.URL = srcString
 	}
+	fd.Name = urlToName(fd.URL)
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
 		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
@@ -245,9 +246,6 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 
 	// TODO !!!!!!! How to handle the has in name resolving???
 	placeholder := urlToName(srcString)
-	if strings.HasPrefix(placeholder, "#") {
-		placeholder = placeholder[1:]
-	}
 
 	attr, found := getAttr(attrs, "discoveredBy")
 	if found {

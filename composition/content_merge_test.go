@@ -113,6 +113,51 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 	a.Equal(expected, string(html))
 }
 
+func Test_ContentMerge_LookupByDifferentFragmentNames(t *testing.T) {
+	a := assert.New(t)
+
+	fragmentA := StringFragment("a")
+	fragmentB := StringFragment("b")
+
+	c := NewMemoryContent()
+	c.name = "main"
+	c.body[""] = fragmentA
+	c.body["b"] = fragmentB
+
+	cm := NewContentMerge(nil)
+	cm.AddContent(c, 0)
+
+	// fragment a
+	f, exist := cm.GetBodyFragmentByName("")
+	a.True(exist)
+	a.Equal(fragmentA, f)
+
+	f, exist = cm.GetBodyFragmentByName("main")
+	a.True(exist)
+	a.Equal(fragmentA, f)
+
+	f, exist = cm.GetBodyFragmentByName("main#")
+	a.True(exist)
+	a.Equal(fragmentA, f)
+
+	f, exist = cm.GetBodyFragmentByName("#")
+	a.True(exist)
+	a.Equal(fragmentA, f)
+
+	// fragment b
+	f, exist = cm.GetBodyFragmentByName("b")
+	a.True(exist)
+	a.Equal(fragmentB, f)
+
+	f, exist = cm.GetBodyFragmentByName("main#b")
+	a.True(exist)
+	a.Equal(fragmentB, f)
+
+	f, exist = cm.GetBodyFragmentByName("#b")
+	a.True(exist)
+	a.Equal(fragmentB, f)
+}
+
 func Test_GenerateMissingFragmentString(t *testing.T) {
 	body := map[string]Fragment{
 		"footer": nil,

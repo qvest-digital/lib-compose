@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strings"
 )
 
 const (
@@ -19,7 +20,9 @@ type ContentMerge struct {
 	BodyAttrs []Fragment
 
 	// Aggregator for the Body Fragments of the results.
-	// Each fragment is insertes twice with full name and local name.
+	// Each fragment is insertes twice with full name and local name,
+	// The full name only ends with a '#', if the local name is not empty
+	// and the local name is always prefixed with '#'.
 	Body map[string]Fragment
 
 	// Aggregator for the Tail Fragments of the results.
@@ -55,7 +58,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 
 	var executeFragment func(fragmentName string) error
 	executeFragment = func(fragmentName string) error {
-		f, exist := cntx.Body[fragmentName]
+		f, exist := cntx.GetBodyFragmentByName(fragmentName)
 		if !exist {
 			missingFragmentString := generateMissingFragmentString(cntx.Body, fragmentName)
 			return errors.New(missingFragmentString)
@@ -83,7 +86,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	io.WriteString(w, ">\n    ")
 
 	startFragmentName := ""
-	if _, exist := cntx.Body[LayoutFragmentName]; exist {
+	if _, exist := cntx.GetBodyFragmentByName(LayoutFragmentName); exist {
 		startFragmentName = LayoutFragmentName
 	}
 
@@ -100,6 +103,26 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	io.WriteString(w, "\n  </body>\n</html>\n")
 
 	return w.Bytes(), nil
+}
+
+// GetBodyFragmentByName returns a fragment by ists name.
+// If the name does not contain a '#', and no such fragment is found.
+// also a lookup for '#name' is done, to check, if there is a local name matching.
+// The bool return value indicates, if the fragment was found.
+func (cntx *ContentMerge) GetBodyFragmentByName(name string) (Fragment, bool) {
+	f, found := cntx.Body[name]
+
+	// Normalize main# as main
+	if !found && strings.HasSuffix(name, "#") {
+		f, found = cntx.Body[name[0:len(name)-1]]
+	}
+
+	// search also for local fragment if nothing else found
+	if !found && !strings.Contains(name, "#") {
+		f, found = cntx.Body["#"+name]
+	}
+
+	return f, found
 }
 
 func (cntx *ContentMerge) AddContent(c Content, priority int) {
@@ -133,8 +156,12 @@ func (cntx *ContentMerge) addBody(c Content) {
 
 	for loalName, f := range c.Body() {
 		// add twice: local and full qualified name
-		cntx.Body[loalName] = f
-		cntx.Body[c.Name()+"#"+loalName] = f
+		cntx.Body["#"+loalName] = f
+		fqn := c.Name()
+		if loalName != "" {
+			fqn += "#" + loalName
+		}
+		cntx.Body[fqn] = f
 	}
 }
 
@@ -155,15 +182,12 @@ func generateMissingFragmentString(body map[string]Fragment, fragmentName string
 	text := "Fragment does not exist: " + fragmentName + ". Existing fragments: "
 	index := 0
 	for k, _ := range body {
-
-		if k != "" {
-			if index == 0 {
-				text += k
-			} else {
-				text += ", " + k
-			}
-			index++
+		if index == 0 {
+			text += `"` + k + `"`
+		} else {
+			text += `, "` + k + `"`
 		}
+		index++
 	}
 	return text
 }

@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
+	_ "regexp"
 	"strings"
 	"testing"
 	"time"
-_	"regexp"
 )
 
 var productUiGeneratedHtml = `<!DOCTYPE html>
@@ -310,7 +310,6 @@ func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles(t *testing
 	//a.True(strings.Contains(string(c.Head()), "navigationservice"))
 }
 
-
 func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a := assert.New(t)
 
@@ -391,17 +390,20 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a.Equal(3, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
+		Name:     "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, c.requiredContent["example.com/foo"])
 
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/optional",
+		Name:     "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, c.requiredContent["example.com/optional"])
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/tail",
+		Name:     "example.com/tail",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, c.requiredContent["example.com/tail"])
@@ -427,6 +429,7 @@ func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 	a.Equal(1, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
+		Name:     "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, c.requiredContent["example.com/foo"])
@@ -492,12 +495,14 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	a.Equal(2, len(deps))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
+		Name:     "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, deps[0])
 
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/optional",
+		Name:     "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, deps[1])
@@ -633,7 +638,6 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 	}
 }
 
-
 func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 	a := assert.New(t)
 
@@ -718,7 +722,7 @@ func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 	<!-- fonts.com - Async Font Loading -->`
 
 	headPropertyMap := make(map[string]string)
-	headPropertyMap["title"]="title"
+	headPropertyMap["title"] = "title"
 	headFragment := StringFragment(originalHeadString)
 
 	ParseHeadFragment(&headFragment, headPropertyMap)
@@ -826,7 +830,7 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 	a.Equal(expectedParsedHead, resultString)
 }
 
-func removeTabsAndNewLines(stringToProcess string) string{
+func removeTabsAndNewLines(stringToProcess string) string {
 	stringToProcess = strings.Replace(stringToProcess, "\n", "", -1)
 	stringToProcess = strings.Replace(stringToProcess, "\t", "", -1)
 	return stringToProcess
