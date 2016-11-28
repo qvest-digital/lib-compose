@@ -85,13 +85,25 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	html, err := agg.processHtml(mergeContext, w, r)
 	// Return if an error occured within the html aggregation
-	if err {
+	if err != nil {
+		agg.purgeCacheEntries(results)
 		return
 	}
 
 	w.Header().Set("Content-Length", strconv.Itoa(len(html)))
 	w.WriteHeader(status)
 	w.Write(html)
+}
+
+// Purge the documents with the supplied hashes out of the cache.
+func (agg *CompositionHandler) purgeCacheEntries(results []*FetchResult) {
+	if agg.cache != nil {
+		hashes := []string{}
+		for _, r := range results {
+			hashes = append(hashes, r.Hash)
+		}
+		agg.cache.PurgeEntries(hashes)
+	}
 }
 
 func (agg *CompositionHandler) handleNonMergeableResponses(result *FetchResult, w http.ResponseWriter, r *http.Request) bool {
@@ -131,17 +143,13 @@ func (agg *CompositionHandler) copyHeadersIfNeeded(results []*FetchResult, w htt
 	}
 }
 
-func (agg *CompositionHandler) processHtml(mergeContext ContentMerger, w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+func (agg *CompositionHandler) processHtml(mergeContext ContentMerger, w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	html, err := mergeContext.GetHtml()
 	if err != nil {
-		if agg.cache != nil {
-			agg.cache.PurgeEntries(mergeContext.GetHashes())
-		}
 		logging.Application(r.Header).Error(err.Error())
 		http.Error(w, "Internal Server Error: "+err.Error(), 500)
-		return nil, true
 	}
-	return html, false
+	return html, err
 }
 
 func (agg *CompositionHandler) handleHeadRequests(results []*FetchResult, w http.ResponseWriter, r *http.Request) bool {

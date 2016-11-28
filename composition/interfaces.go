@@ -93,9 +93,6 @@ type ContentMerger interface {
 
 	// Return the html as byte array
 	GetHtml() ([]byte, error)
-
-	// Return hashes related to the given contents
-	GetHashes() []string
 }
 
 type ResponseProcessor interface {

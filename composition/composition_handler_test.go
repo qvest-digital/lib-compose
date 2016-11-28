@@ -355,7 +355,6 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 		merger := NewMockContentMerger(ctrl)
 		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
-		merger.EXPECT().GetHashes().Return([]string{"hashString"})
 		return merger
 	}
 

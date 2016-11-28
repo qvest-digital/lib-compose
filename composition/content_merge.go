@@ -28,7 +28,6 @@ type ContentMerge struct {
 	// Aggregator for the Tail Fragments of the results.
 	Tail     []Fragment
 	Buffered bool
-	FdHashes []string
 
 	// merge priorities for the content objects
 	// no entry means priority == 0
@@ -44,7 +43,6 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 		Body:       make(map[string]Fragment),
 		Tail:       make([]Fragment, 0, 0),
 		Buffered:   true,
-		FdHashes:   make([]string, 0, 0),
 		priorities: make(map[Content]int),
 	}
 	return cntx
@@ -130,14 +128,9 @@ func (cntx *ContentMerge) AddContent(c Content, priority int) {
 	cntx.addBodyAttributes(c.BodyAttributes())
 	cntx.addBody(c)
 	cntx.addTail(c.Tail())
-	//	cntx.addFdHash(fetchResult.Hash)
 	if priority > 0 {
 		cntx.priorities[c] = priority
 	}
-}
-
-func (cntx *ContentMerge) GetHashes() []string {
-	return cntx.FdHashes
 }
 
 func (cntx *ContentMerge) addHead(f Fragment) {
@@ -168,12 +161,6 @@ func (cntx *ContentMerge) addBody(c Content) {
 func (cntx *ContentMerge) addTail(f Fragment) {
 	if f != nil {
 		cntx.Tail = append(cntx.Tail, f)
-	}
-}
-
-func (cntx *ContentMerge) addFdHash(hash string) {
-	if hash != "" {
-		cntx.FdHashes = append(cntx.FdHashes, hash)
 	}
 }
 
