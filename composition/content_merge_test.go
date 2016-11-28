@@ -32,35 +32,36 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 		`<page1-body-main>
       §[> page2-a]§
       §[> example.com#page2-b]§
-      §[> page3-a]§
+      §[> page3]§
     </page1-body-main>
 `)
 
 	cm := NewContentMerge(nil)
 
 	cm.AddContent(&MemoryContent{
-		name:           "example.com",
+		name:           LayoutFragmentName,
 		head:           StringFragment("<page1-head/>\n"),
 		bodyAttributes: StringFragment(`a="b"`),
 		tail:           StringFragment("    <page1-tail/>\n"),
 		body:           map[string]Fragment{"": body},
 	}, 0)
 
-	page2 := NewMemoryContent()
-	page2.name = "example.com"
-	page2.head = StringFragment("    <page2-head/>\n")
-	page2.bodyAttributes = StringFragment(`foo="bar"`)
-	page2.tail = StringFragment("    <page2-tail/>")
-	page2.body["page2-a"] = StringFragment("<page2-body-a/>")
-	page2.body["page2-b"] = StringFragment("<page2-body-b/>")
+	cm.AddContent(&MemoryContent{
+		name:           "example.com",
+		head:           StringFragment("    <page2-head/>\n"),
+		bodyAttributes: StringFragment(`foo="bar"`),
+		tail:           StringFragment("    <page2-tail/>"),
+		body: map[string]Fragment{
+			"page2-a": StringFragment("<page2-body-a/>"),
+			"page2-b": StringFragment("<page2-body-b/>"),
+		}}, 0)
 
-	page3 := NewMemoryContent()
-	page3.name = "example.com"
-	page3.head = StringFragment("    <page3-head/>")
-	page3.body["page3-a"] = StringFragment("<page3-body-a/>")
-
-	cm.AddContent(page2, 0)
-	cm.AddContent(page3, 0)
+	cm.AddContent(&MemoryContent{
+		name: "page3",
+		head: StringFragment("    <page3-head/>"),
+		body: map[string]Fragment{
+			"": StringFragment("<page3-body-a/>"),
+		}}, 0)
 
 	html, err := cm.GetHtml()
 	a.NoError(err)
@@ -85,28 +86,30 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 </html>
 `
 
-	page1 := NewMemoryContent()
-	page1.name = LayoutFragmentName
-	page1.body[""] = StringFragment(
-		`<page1-body-main>
-      §[> page2-a]§
-      §[> example.com#page2-b]§
-      §[> page3-a]§
-    </page1-body-main>`)
-
-	page2 := NewMemoryContent()
-	page2.name = "example.com"
-	page2.body["page2-a"] = StringFragment("<page2-body-a/>")
-	page2.body["page2-b"] = StringFragment("<page2-body-b/>")
-
-	page3 := NewMemoryContent()
-	page3.name = "example.com"
-	page3.body["page3-a"] = StringFragment("<page3-body-a/>")
-
 	cm := NewContentMerge(nil)
-	cm.AddContent(page1, 0)
-	cm.AddContent(page2, 0)
-	cm.AddContent(page3, 0)
+
+	cm.AddContent(&MemoryContent{
+		name: LayoutFragmentName,
+		body: map[string]Fragment{
+			"": StringFragment(
+				`<page1-body-main>
+      §[> page2-a]§
+      §[> example1.com#page2-b]§
+      §[> page3-a]§
+    </page1-body-main>`)}}, 0)
+
+	cm.AddContent(&MemoryContent{
+		name: "example1.com",
+		body: map[string]Fragment{
+			"page2-a": StringFragment("<page2-body-a/>"),
+			"page2-b": StringFragment("<page2-body-b/>"),
+		}}, 0)
+
+	cm.AddContent(&MemoryContent{
+		name: "example2.com",
+		body: map[string]Fragment{
+			"page3-a": StringFragment("<page3-body-a/>"),
+		}}, 0)
 
 	html, err := cm.GetHtml()
 	a.NoError(err)
@@ -119,13 +122,13 @@ func Test_ContentMerge_LookupByDifferentFragmentNames(t *testing.T) {
 	fragmentA := StringFragment("a")
 	fragmentB := StringFragment("b")
 
-	c := NewMemoryContent()
-	c.name = "main"
-	c.body[""] = fragmentA
-	c.body["b"] = fragmentB
-
 	cm := NewContentMerge(nil)
-	cm.AddContent(c, 0)
+	cm.AddContent(&MemoryContent{
+		name: "main",
+		body: map[string]Fragment{
+			"":  fragmentA,
+			"b": fragmentB,
+		}}, 0)
 
 	// fragment a
 	f, exist := cm.GetBodyFragmentByName("")
