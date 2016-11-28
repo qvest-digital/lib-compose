@@ -243,16 +243,6 @@ func (_mr *_MockContentMergerRecorder) AddContent(arg0, arg1 interface{}) *gomoc
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddContent", arg0, arg1)
 }
 
-func (_m *MockContentMerger) GetHashes() []string {
-	ret := _m.ctrl.Call(_m, "GetHashes")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-func (_mr *_MockContentMergerRecorder) GetHashes() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetHashes")
-}
-
 func (_m *MockContentMerger) GetHtml() ([]byte, error) {
 	ret := _m.ctrl.Call(_m, "GetHtml")
 	ret0, _ := ret[0].([]byte)
