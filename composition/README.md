@@ -1,37 +1,36 @@
 # lib-ui-service: composition
 
-This library contains code for the composition of HTML pages out of multiple HTML page containing fragments.
+This library contains code for the composition of HTML pages out of multiple HTML pages, containing fragments.
 
 ### Key Concept
-Every Service delivers a functional HTML user interface in form of complete HTML pages in the way, that a service can be developed and tested
+Every service delivers a functional HTML user interface in form of complete HTML pages. This way a service is self contained and can be developed and tested
 by it's own. A UI-Service can request multiple pages from different services and compose them to one HTML page. To support this, the HTML pages
 from the services contain a special HTML vocabular.
 
 ### Composition Process
 The composition is done in the following steps:
 
-1. The UI-Service has a `CompositionHandler` in it's handler chain, which answers these which need composition.
+1. An UI-Service has a `CompositionHandler` in it's handler chain, which answers these which need composition.
 2. The `CompositionHandler` has a callback from the UI-Service. This callback gets a `http.Request` object as argument and returns a List of FetchResult.
 3. For each request this callback is triggered. So the UI-Service can add a `ContentFetcher` for this request and adds FetchDefinitions for Page using `ContentFetcher.AddFetchJob()`.
 4. The ContentFetchter loads the Pages and recursively it's dependencies in parallel. For the actual loading and parsing, it uses the `HtmlContentParser`.
 5. When all `Content` objects are loaded, the `CompositionHandler` merges them together, using `ContentMerge`.
 
 ### Merging
-The it self is very simple:
+The merging it self is very simple:
 
 - The MetaJSON is calculated by adding all fields of the loaded MetaJSON to one global map.
 - All Head fragments are concatenated within the `<head>`.
-- The Default Body Fragment of the first Content object is executed and may recursively include other Fragments Content objects.
+- For rendering of the body part, the default fragment of the page with the name `layout` is rendered first. This rendering may recursively include other fragments.
 - All Tail fragments are concatenated at the end of the `<body>`.
 
 ### Execution Order
 **Attention**: The execution order of the Content Objects is determined by the order in which they are returned from the `ContentFetcher`.
 Currently this is only deterministic within the FetchDefinitions added by `ContentFetcher.AddFetchJob()`. The recursive dependencies are loaded from them are in a random order.
-This may cause not deterministic behaviour, if the contain equal named fragments or provide the same MetaJSON attributes.
+This may cause not deterministic behaviour, if they contain equal named fragments or provide the same MetaJSON attributes.
 
 ### Caching
-At a later point, the ContentFetcher may provide Caching of FetchDefinitions.
-
+Caching is proveded at the level of framents, if a cache from caching package is configured.
 
 
 ## HTML Composition Vocabulary
