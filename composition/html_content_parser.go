@@ -244,7 +244,6 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 		}
 	}
 
-	// TODO !!!!!!! How to handle the has in name resolving???
 	placeholder := urlToName(srcString)
 
 	attr, found := getAttr(attrs, "discoveredBy")

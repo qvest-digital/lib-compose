@@ -9,6 +9,7 @@ import (
 
 const (
 	LayoutFragmentName = "layout"
+	FragmentSeparater  = "#"
 	DefaultBufferSize  = 1024 * 100
 )
 
@@ -21,8 +22,8 @@ type ContentMerge struct {
 
 	// Aggregator for the Body Fragments of the results.
 	// Each fragment is insertes twice with full name and local name,
-	// The full name only ends with a '#', if the local name is not empty
-	// and the local name is always prefixed with '#'.
+	// The full name only ends with a FragmentSeparater ('#'), if the local name is not empty
+	// and the local name is always prefixed with FragmentSeparater ('#').
 	Body map[string]Fragment
 
 	// Aggregator for the Tail Fragments of the results.
@@ -104,20 +105,20 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 }
 
 // GetBodyFragmentByName returns a fragment by ists name.
-// If the name does not contain a '#', and no such fragment is found.
+// If the name does not contain a FragmentSeparater ('#'), and no such fragment is found.
 // also a lookup for '#name' is done, to check, if there is a local name matching.
 // The bool return value indicates, if the fragment was found.
 func (cntx *ContentMerge) GetBodyFragmentByName(name string) (Fragment, bool) {
 	f, found := cntx.Body[name]
 
-	// Normalize main# as main
-	if !found && strings.HasSuffix(name, "#") {
+	// Normalize: e.g. main# -> main
+	if !found && strings.HasSuffix(name, FragmentSeparater) {
 		f, found = cntx.Body[name[0:len(name)-1]]
 	}
 
 	// search also for local fragment if nothing else found
-	if !found && !strings.Contains(name, "#") {
-		f, found = cntx.Body["#"+name]
+	if !found && !strings.Contains(name, FragmentSeparater) {
+		f, found = cntx.Body[FragmentSeparater+name]
 	}
 
 	return f, found
@@ -147,12 +148,12 @@ func (cntx *ContentMerge) addBodyAttributes(f Fragment) {
 
 func (cntx *ContentMerge) addBody(c Content) {
 
-	for loalName, f := range c.Body() {
+	for localName, f := range c.Body() {
 		// add twice: local and full qualified name
-		cntx.Body["#"+loalName] = f
+		cntx.Body[FragmentSeparater+localName] = f
 		fqn := c.Name()
-		if loalName != "" {
-			fqn += "#" + loalName
+		if localName != "" {
+			fqn += FragmentSeparater + localName
 		}
 		cntx.Body[fqn] = f
 	}
