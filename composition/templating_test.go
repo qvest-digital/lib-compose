@@ -137,6 +137,22 @@ func Test_Templating_Includes(t *testing.T) {
 			expected:    "xxx-",
 			expectedErr: errors.New("Fragment does not exist: not_existent_fragment"),
 		},
+		// Optional includes with alternative text
+		{
+			fragments: map[string]string{"foo": "bar"},
+			template:  "xxx-§[#> foo]§ alternative text §[/foo]§-yyy",
+			expected:  "xxx-bar-yyy",
+		},
+		{
+			fragments: map[string]string{},
+			template:  "xxx-§[#> foo]§ alternative text §[/foo]§-yyy",
+			expected:  "xxx- alternative text -yyy",
+		},
+		{
+			fragments:   map[string]string{},
+			template:    "xxx-§[#> foo]§ alternative text §-yyy",
+			expectedErr: errors.New("Fragment parsing error, missing ending block: §[/foo]§"),
+		},
 	}
 
 	for _, test := range tests {
@@ -150,9 +166,9 @@ func Test_Templating_Includes(t *testing.T) {
 		}
 		err := executeTemplate(buf, test.template, nil, executeNestedFragment)
 
-		a.Equal(test.expected, buf.String())
 		if test.expectedErr == nil {
 			a.NoError(err)
+			a.Equal(test.expected, buf.String())
 		} else {
 			a.Equal(test.expectedErr, err)
 		}
@@ -169,11 +185,11 @@ func Test_Templating_ParsingErrors(t *testing.T) {
 	}{
 		{
 			template:          "xxx-§[-yyy",
-			expectedErrString: "Fragment Parsing error, missing ending separator:",
+			expectedErrString: "Fragment parsing error, missing ending separator:",
 		},
 		{
 			template:          "xxx-]§§[-yyy",
-			expectedErrString: "Fragment Parsing error, missing ending separator:",
+			expectedErrString: "Fragment parsing error, missing ending separator:",
 		},
 	}
 
