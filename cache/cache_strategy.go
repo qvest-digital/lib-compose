@@ -100,7 +100,6 @@ func (tcs *CacheStrategy) HashWithParameters(method string, url string, requestH
 	}
 
 	hash := hex.EncodeToString(hasher.Sum(nil))
-//	logging.Logger.Error("HASH = " + hash + ", url = " + url + ", host = " + requestHeader.Get("Host"))
 	return hash
 }
 
