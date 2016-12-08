@@ -21,6 +21,7 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 		"Cookie":          {"aa=bb;"},
 		"X-Feature-Toggle": {"true"},
 		"Accept-Encoding": {"gzip"}, // should not be copied
+		"X-Correlation-Id": {"foobar123"},
 	}
 
 	fd := NewFetchDefinitionFromRequest("http://upstream:8080/", r)
@@ -32,6 +33,7 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 	a.Equal("aa=bb;", fd.Header.Get("Cookie"))
 	a.Equal("true", fd.Header.Get("X-Feature-Toggle"))
 	a.Equal("", fd.Header.Get("Accept-Encoding"))
+	a.Equal("foobar123", fd.Header.Get("X-Correlation-Id"))
 
 	a.Equal("POST", fd.Method)
 	b, err := ioutil.ReadAll(fd.Body)

@@ -80,13 +80,13 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	return results
 }
 
-// AddFetchJob addes one job to the fetcher and recursively adds the dependencies also.
+// AddFetchJob adds one job to the fetcher and recursively adds the dependencies also.
 func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	fetcher.r.mutex.Lock()
 	defer fetcher.r.mutex.Unlock()
 
 	hash := d.Hash()
-	if fetcher.isAlreadySheduled(hash) {
+	if fetcher.isAlreadyScheduled(hash) {
 		return
 	}
 
@@ -128,7 +128,6 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 					WithField("correlation_id", logging.GetCorrelationId(definitionCopy.Header)).
 					Errorf("failed fetching %v", d.URL)
 			}
-
 		}
 	}()
 }
@@ -139,9 +138,9 @@ func (fetcher *ContentFetcher) Empty() bool {
 	return len(fetcher.r.results) == 0
 }
 
-// isAlreadySheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.
+// isAlreadyScheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.
 // The method has to be called in a locked mutex block.
-func (fetcher *ContentFetcher) isAlreadySheduled(fetchDefinitionHash string) bool {
+func (fetcher *ContentFetcher) isAlreadyScheduled(fetchDefinitionHash string) bool {
 	for _, fetchResult := range fetcher.r.results {
 		if fetchDefinitionHash == fetchResult.Hash {
 			return true

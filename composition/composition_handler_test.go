@@ -126,7 +126,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(200, resp.Code)
-	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Lenth
+	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Length
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
