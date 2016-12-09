@@ -226,6 +226,7 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 	} else {
 		fd.URL = srcString
 	}
+	fd.Name = urlToName(fd.URL)
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
 		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
@@ -243,10 +244,7 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 		}
 	}
 
-	placeholder := urlToFragmentName(srcString)
-	if strings.HasPrefix(placeholder, "#") {
-		placeholder = placeholder[1:]
-	}
+	placeholder := urlToName(srcString)
 
 	attr, found := getAttr(attrs, "discoveredBy")
 	if found {
@@ -260,7 +258,7 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 	z := html.NewTokenizer(strings.NewReader(string(*fragment)))
-	forloop:
+forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
@@ -276,16 +274,16 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 
 			if string(tag) == "meta" {
-				if(processMetaTag(string(tag), attrs, headPropertyMap)) {
+				if processMetaTag(string(tag), attrs, headPropertyMap) {
 					headBuff.Write(raw)
 				}
 				continue
 			}
 			if string(tag) == "title" {
-				if(headPropertyMap["title"] == "") {
+				if headPropertyMap["title"] == "" {
 					headPropertyMap["title"] = "title"
 					headBuff.Write(raw)
-				} else if (tt != html.SelfClosingTagToken) {
+				} else if tt != html.SelfClosingTagToken {
 					skipCompleteTag(z, "title")
 					continue
 				}
@@ -306,9 +304,8 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 	return nil
 }
 
-
 func skipCompleteTag(z *html.Tokenizer, tagName string) error {
-	forloop:
+forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
@@ -328,10 +325,8 @@ func skipCompleteTag(z *html.Tokenizer, tagName string) error {
 	return nil
 }
 
-
-
 func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]string) bool {
-	if (len(attrs) == 0) {
+	if len(attrs) == 0 {
 		return true
 	}
 
@@ -340,17 +335,17 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 	// TODO: check explizit for attrName "http-equiv" || "name" || "charset" ?
 
 	// e.g.: <meta charset="utf-8">
-	if (len(attrs) == 1) {
+	if len(attrs) == 1 {
 		key = tagName + "_" + attrs[0].Key
 		value = attrs[0].Val
 	}
 
-	if (len(attrs) > 1) {
+	if len(attrs) > 1 {
 		key = tagName + "_" + attrs[0].Key + "_" + attrs[0].Val
 		value = attrs[1].Key + "_" + attrs[1].Val
 	}
 
-	if (metaMap[key] == "") {
+	if metaMap[key] == "" {
 		metaMap[key] = value
 		return true
 

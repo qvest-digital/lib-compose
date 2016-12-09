@@ -48,8 +48,8 @@ type CacheStrategy interface {
 // Content may be parsed of it may contain a stream represented by a non nil Reader(), not both.
 type Content interface {
 
-	// The URL, from where the content was loaded
-	URL() string
+	// The Name of the content, as given in the fetch definition
+	Name() string
 
 	// RequiredContent returns a list of Content Elements to load
 	RequiredContent() []*FetchDefinition
@@ -89,13 +89,10 @@ type Content interface {
 
 type ContentMerger interface {
 	// Add content to the merger
-	AddContent(fetchResult *FetchResult)
+	AddContent(c Content, priority int)
 
 	// Return the html as byte array
 	GetHtml() ([]byte, error)
-
-	// Return hashes related to the given contents
-	GetHashes() []string
 }
 
 type ResponseProcessor interface {

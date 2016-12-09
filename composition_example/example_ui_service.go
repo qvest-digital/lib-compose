@@ -7,8 +7,10 @@ import (
 	"os"
 )
 
+var host = "127.0.0.1:8080"
+
 func main() {
-	panic(http.ListenAndServe(":8080", handler()))
+	panic(http.ListenAndServe(host, handler()))
 }
 
 func handler() http.Handler {
@@ -26,9 +28,22 @@ func compositionHandler() http.Handler {
 		}
 
 		fetcher := composition.NewContentFetcher(defaultMetaJSON)
-		fetcher.AddFetchJob(composition.NewFetchDefinition("§[request.base_url]§/static/styles.html"))
-		fetcher.AddFetchJob(composition.NewFetchDefinition("§[request.base_url]§/static/layout.html"))
-		fetcher.AddFetchJob(composition.NewFetchDefinition("§[request.base_url]§/static/lorem.html"))
+		baseUrl := "http://" + r.Host
+
+		fetcher.AddFetchJob(&composition.FetchDefinition{
+			URL:  baseUrl + "/static/layout.html",
+			Name: "layout",
+		})
+
+		fetcher.AddFetchJob(&composition.FetchDefinition{
+			URL:  baseUrl + "/static/lorem.html",
+			Name: "content",
+		})
+
+		fetcher.AddFetchJob(&composition.FetchDefinition{
+			URL: baseUrl + "/static/styles.html",
+		})
+
 		return fetcher
 	}
 	return composition.NewCompositionHandler(contentFetcherFactory)

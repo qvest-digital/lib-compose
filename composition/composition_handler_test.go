@@ -319,7 +319,7 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
 		return merger
 	}
@@ -353,9 +353,8 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 	aggregator.cache.Set("hashString", "", 1, nil)
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
-		merger.EXPECT().GetHashes().Return([]string{"hashString"})
 		return merger
 	}
 

@@ -4,8 +4,8 @@
   <body>
     <h1 uic-remove>This is the basic layout</h1>
     <uic-include src="§[request.base_url]§/static/basic.html#header"/>
-    <uic-include src="#subheader"/>
-    <uic-include src="#content"/>
-    <uic-include src="#footer"/>
+    <uic-include src="§[request.base_url]§/static/basic.html#subheader"/>
+    §[> content]§
+    <uic-include src="§[request.base_url]§/static/basic.html#footer"/>
   </body>
 </html>
