@@ -31,7 +31,5 @@ func Test_integration_test(t *testing.T) {
 }
 
 func htmlEqual(t *testing.T, expected, actual string) {
-	println(gohtml.Format(expected))
-	println(gohtml.Format(actual))
 	assert.Equal(t, gohtml.Format(expected), gohtml.Format(actual))
 }
