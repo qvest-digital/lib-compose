@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
         "sort"
-	"net/http"
 )
 
 func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
@@ -79,11 +78,10 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 
 func Test_ContentFetchResultPrioritySort(t *testing.T) {
         a := assert.New(t)
-	request := &http.Request{}
 
-        barFd := NewFetchDefinitionWithPriority("/bar", request, 30)
-        fooFd := NewFetchDefinitionWithPriority("/foo", request, 10)
-        bazzFd := NewFetchDefinitionWithPriority("/bazz", request, 5)
+        barFd := NewFetchDefinitionWithPriority("/bar", 30)
+        fooFd := NewFetchDefinitionWithPriority("/foo",  10)
+        bazzFd := NewFetchDefinitionWithPriority("/bazz",  5)
 
         results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
 

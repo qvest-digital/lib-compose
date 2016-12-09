@@ -94,9 +94,12 @@ func NewFetchDefinition(url string) *FetchDefinition {
 	}
 }
 
-func NewFetchDefinitionWithPriority(url string, r *http.Request, priority int) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, r, priority)
+func NewFetchDefinitionWithPriority(url string, priority int) *FetchDefinition {
+	fd := NewFetchDefinition(url)
+	fd.Priority = priority
+	return fd
 }
+
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 // Priority is used to determine which property from which head has to be taken by collision of multiple fetches

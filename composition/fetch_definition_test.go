@@ -76,7 +76,7 @@ func Test_FetchDefinition_NewFunctions_have_parameter_priority(t *testing.T) {
 	request := &http.Request{}
 	request.URL = &url.URL{}
 
-	fd1 := NewFetchDefinitionWithPriority("foo", request, 42)
+	fd1 := NewFetchDefinitionWithPriority("foo", 42)
 	fd2 := NewFetchDefinitionWithPriorityFromRequest("baa", request, 54)
 	fd3 := NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest("blub", request, nil, 74)
 
