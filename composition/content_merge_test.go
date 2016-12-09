@@ -52,7 +52,9 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	cm := NewContentMerge(nil)
 	cm.AddContent(asFetchResult(page1))
 	cm.AddContent(asFetchResult(page2))
-	cm.AddContent(asFetchResult(page3))
+	fetchResult3 := asFetchResult(page3)
+	fetchResult3.Def.Priority = MAX_PRIORITY // just to trigger the priority-parsing and see that it doesn't crash...
+	cm.AddContent(fetchResult3)
 
 	html, err := cm.GetHtml()
 	a.NoError(err)

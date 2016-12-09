@@ -49,7 +49,7 @@ func NewCache(name string, maxEntries int, maxSizeMB int, maxAge time.Duration) 
 	return c
 }
 
-// LogEvery Start a Goroutine, which logs statisitcs periodically.
+// LogEvery Start a Goroutine, which logs statistics periodically.
 func (c *Cache) LogEvery(d time.Duration) {
 	go c.logEvery(d)
 }
