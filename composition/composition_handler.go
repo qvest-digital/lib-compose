@@ -41,6 +41,11 @@ func NewCompositionHandlerWithCache(contentFetcherFactory ContentFetcherFactory,
 }
 
 func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// If we know the host but don't have the Host header [any more] then we
+	// set [or restore] the header, because why would You just remove it!?:
+	if (r.Host != "") && (r.Header.Get("Host") == "") {
+		r.Header.Set("Host", r.Host)
+	}
 
 	fetcher := agg.contentFetcherFactory(r)
 

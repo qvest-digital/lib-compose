@@ -61,7 +61,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 		head: StringFragment("    <page3-head/>"),
 		body: map[string]Fragment{
 			"": StringFragment("<page3-body-a/>"),
-		}}, 0)
+		}}, MAX_PRIORITY) // just to trigger the priority-parsing and see that it doesn't crash..
 
 	html, err := cm.GetHtml()
 	a.NoError(err)

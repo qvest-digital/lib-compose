@@ -80,8 +80,8 @@ func Test_ContentFetchResultPrioritySort(t *testing.T) {
         a := assert.New(t)
 
         barFd := NewFetchDefinitionWithPriority("/bar", 30)
-        fooFd := NewFetchDefinitionWithPriority("/foo", 10)
-        bazzFd := NewFetchDefinitionWithPriority("/bazz", 5)
+        fooFd := NewFetchDefinitionWithPriority("/foo",  10)
+        bazzFd := NewFetchDefinitionWithPriority("/bazz",  5)
 
         results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
 

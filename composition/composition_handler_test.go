@@ -126,7 +126,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	ch.ServeHTTP(resp, r)
 
 	a.Equal(200, resp.Code)
-	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Lenth
+	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Length
 	a.Equal("", resp.Header().Get("Transfer-Encoding"))
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
@@ -478,6 +478,42 @@ func Test_getBaseUrlFromRequest(t *testing.T) {
 		a.Equal(test.expectedHost, host)
 	}
 }
+
+
+// Jira 3946: go deletes the "Host" header from the request (for whatever reasons):
+// https://golang.org/src/net/http/request.go:
+//   123		// For incoming requests, the Host header is promoted to the
+//   124		// Request.Host field and removed from the Header map.
+// But our cache strategies might want this header in order to generate different
+// cache-IDs (hashes) for different host names (e.g. preview-mode-whatever.de vs. production-whatever.de).
+func Test_CompositionHandler_RestoreHostHeader(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment("Hello World\n"),
+					},
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Host = "MyHost"
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(200, resp.Code)
+	a.Equal("MyHost", r.Header.Get("Host"))
+}
+
 
 type MockFetchResultSupplier []*FetchResult
 

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -50,6 +51,8 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
+	request := &http.Request{}
+	request.URL = &url.URL{}
 
 	server := testServer("the body", time.Millisecond*0)
 	defer server.Close()
@@ -68,11 +71,10 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 
 	mockResponseProcessor := NewMockResponseProcessor(ctrl)
 	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any())
-	c, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
+	c, err := loader.Load(NewFetchDefinitionWithResponseProcessorFromRequest(server.URL, request, mockResponseProcessor))
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
-	a.Equal(server.URL, c.Name())
 	eqFragment(t, "some head content", c.Head())
 	a.Equal(0, len(c.Body()))
 }

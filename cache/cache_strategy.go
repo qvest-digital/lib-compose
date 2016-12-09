@@ -47,7 +47,7 @@ const (
 	ReasonResponseUncachableByDefault = cacheobject.ReasonResponseUncachableByDefault
 )
 
-var DefaultIncludeHeaders = []string{"Authorization", "Accept-Encoding"}
+var DefaultIncludeHeaders = []string{"Authorization", "Accept-Encoding", "Host"}
 
 var DefaultCacheStrategy = NewCacheStrategyWithDefault()
 
@@ -73,12 +73,12 @@ func NewCacheStrategy(includeHeaders []string, includeCookies []string, ignoreRe
 	}
 }
 
-// Hash computes a hash value based in the url, the method and selected header and cookien attributes,
+// Hash computes a hash value based on the url, the method and selected header and cookie attributes.
 func (tcs *CacheStrategy) Hash(method string, url string, requestHeader http.Header) string {
 	return tcs.HashWithParameters(method, url, requestHeader, tcs.includeHeaders, tcs.includeCookies)
 }
 
-// Hash computes a hash value based in the url, the method and selected header and cookien attributes,
+// Hash computes a hash value based on the url, the method and selected header and cookie attributes.
 func (tcs *CacheStrategy) HashWithParameters(method string, url string, requestHeader http.Header, includeHeaders []string, includeCookies []string) string {
 	hasher := md5.New()
 
@@ -99,7 +99,8 @@ func (tcs *CacheStrategy) HashWithParameters(method string, url string, requestH
 		}
 	}
 
-	return hex.EncodeToString(hasher.Sum(nil))
+	hash := hex.EncodeToString(hasher.Sum(nil))
+	return hash
 }
 
 func (tcs *CacheStrategy) IsCacheable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool {
