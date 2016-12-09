@@ -62,7 +62,7 @@ func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 }
 
 // Wait blocks until all jobs are done,
-// eighter sucessful or with an error result and returns the content and errors.
+// either successful or with an error result and returns the content and errors.
 // Do we need to return the Results in a special order????
 func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	fetcher.activeJobs.Wait()
@@ -72,7 +72,7 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 
 	results := fetcher.r.results
 
-	//to keep initial order if no priority settings are given, do a check before for sorting
+	// To keep initial order if no priority settings are given, do a check before for sorting.
 	if hasPrioritySetting(results) {
 		sort.Sort(FetchResults(results))
 	}
@@ -107,8 +107,8 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			return
 		}
 
-		// create a copy of the fetch definition, to because we do not
-		// want to override the original URL with expanded values
+		// Create a copy of the fetch definition, to because we do not
+		// want to override the original URL with expanded values.
 		definitionCopy := *d
 		definitionCopy.URL = url
 		fetchResult.Content, fetchResult.Err = fetcher.Loader.Load(&definitionCopy)
@@ -138,7 +138,7 @@ func (fetcher *ContentFetcher) Empty() bool {
 	return len(fetcher.r.results) == 0
 }
 
-// isAlreadyScheduled checks, if there is already a job for a FetchDefinition, or it is already fetched.
+// isAlreadyScheduled checks if there is already a job for a FetchDefinition, or it is already fetched.
 // The method has to be called in a locked mutex block.
 func (fetcher *ContentFetcher) isAlreadyScheduled(fetchDefinitionHash string) bool {
 	for _, fetchResult := range fetcher.r.results {
