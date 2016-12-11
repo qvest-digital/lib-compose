@@ -31,6 +31,7 @@ var ForwardRequestHeaders = []string{
 	"X-Forwarded-Host",
 	"X-Correlation-Id",
 	"X-Feature-Toggle",
+	"Host",
 }
 
 // ForwardResponseHeaders are those headers,
@@ -60,6 +61,8 @@ const (
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
+	// The name of the fetch definition
+	Name                   string
 	URL                    string
 	Timeout                time.Duration
 	FollowRedirects        bool
@@ -75,48 +78,42 @@ type FetchDefinition struct {
 	Priority               int
 }
 
-// Creates a fetch definition
+// All the FetchDefinitions, that get passed a request, will forward the ForwardRequestHeaders. But only
+// those that are *FromRequest will also append the original requests other information, like method, body, URL.
+
+
+// Creates a fetch definition (warning: this one will not forward any request headers).
 func NewFetchDefinition(url string) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, DefaultPriority)
-}
-
-func NewFetchDefinitionWithPriority(url string, priority int) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, priority)
-}
-
-func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
-	return NewFetchDefinitionWithErrorHandlerAndPriority(url, errHandler, DefaultPriority)
-}
-
-func NewFetchDefinitionWithErrorHandlerAndPriority(url string, errHandler ErrorHandler, priority int) *FetchDefinition {
-	if errHandler == nil {
-		errHandler = NewDefaultErrorHandler()
-	}
 	return &FetchDefinition{
+		Name:            urlToName(url), // the name defauls to the url
 		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
 		Required:        true,
 		Method:          "GET",
-		ErrHandler:      errHandler,
+		ErrHandler:      NewDefaultErrorHandler(),
 		CacheStrategy:   cache.DefaultCacheStrategy,
-		Priority:        priority,
+		Priority:        DefaultPriority,
 	}
 }
 
-// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
-func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, rp, DefaultPriority)
+func NewFetchDefinitionWithPriority(url string, priority int) *FetchDefinition {
+	fd := NewFetchDefinition(url)
+	fd.Priority = priority
+	return fd
 }
+
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 // Priority is used to determine which property from which head has to be taken by collision of multiple fetches
-func NewFetchDefinitionWithResponseProcessorAndPriority(url string, rp ResponseProcessor, priority int) *FetchDefinition {
+func NewFetchDefinitionWithResponseProcessorAndPriority(url string, rp ResponseProcessor, r *http.Request, priority int) *FetchDefinition {
 	return &FetchDefinition{
+		Name:            urlToName(url), // the name defauls to the url
 		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
 		Required:        true,
+		Header:          copyHeaders(r.Header, nil, ForwardRequestHeaders),
 		Method:          "GET",
 		RespProc:        rp,
 		ErrHandler:      NewDefaultErrorHandler(),
@@ -159,8 +156,10 @@ func NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl strin
 		fullPath += "?" + r.URL.RawQuery
 	}
 
+	url := baseUrl + fullPath
 	return &FetchDefinition{
-		URL:             baseUrl + fullPath,
+		Name:            urlToName(url), // the name defauls to the url
+		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
 		Header:          copyHeaders(r.Header, nil, ForwardRequestHeaders),
@@ -192,6 +191,13 @@ func (def *FetchDefinition) IsCacheable(responseStatus int, responseHeaders http
 
 func (def *FetchDefinition) IsReadableFromCache() bool {
 	return def.IsCacheable(200, nil)
+}
+
+// Returns a name from a url, which has template placeholders eliminated
+func urlToName(url string) string {
+	url = strings.Replace(url, `§[`, `\§\[`, -1)
+	url = strings.Replace(url, `]§`, `\]\§`, -1)
+	return url
 }
 
 // copyHeaders copies only the header contained in the the whitelist

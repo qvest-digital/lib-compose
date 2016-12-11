@@ -6,7 +6,7 @@ import (
 )
 
 type MemoryContent struct {
-	url             string
+	name            string
 	requiredContent map[string]*FetchDefinition // key ist the url
 	meta            map[string]interface{}
 	head            Fragment
@@ -43,8 +43,8 @@ func (c *MemoryContent) MemorySize() int {
 	return i
 }
 
-func (c *MemoryContent) URL() string {
-	return c.url
+func (c *MemoryContent) Name() string {
+	return c.name
 }
 
 func (c *MemoryContent) RequiredContent() []*FetchDefinition {

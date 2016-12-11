@@ -1,17 +1,18 @@
 package composition
 
 import (
+	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/tarent/lib-servicediscovery/servicediscovery"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
-	"github.com/tarent/lib-servicediscovery/servicediscovery"
-	"fmt"
 )
 
 func Test_HttpContentLoader_Load(t *testing.T) {
@@ -34,11 +35,13 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 
 	loader.parser["text/html"] = mockParser
 
-	c, err := loader.Load(NewFetchDefinition(server.URL))
+	fd := NewFetchDefinition(server.URL)
+	fd.Name = "content"
+	c, err := loader.Load(fd)
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
-	a.Equal(server.URL, c.URL())
+	a.Equal("content", c.Name())
 	eqFragment(t, "some head content", c.Head())
 	a.Equal(0, len(c.Body()))
 }
@@ -48,6 +51,8 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	a := assert.New(t)
+	request := &http.Request{}
+	request.URL = &url.URL{}
 
 	server := testServer("the body", time.Millisecond*0)
 	defer server.Close()
@@ -66,11 +71,10 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 
 	mockResponseProcessor := NewMockResponseProcessor(ctrl)
 	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any())
-	c, err := loader.Load(NewFetchDefinitionWithResponseProcessor(server.URL, mockResponseProcessor))
+	c, err := loader.Load(NewFetchDefinitionWithResponseProcessorFromRequest(server.URL, request, mockResponseProcessor))
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
-	a.Equal(server.URL, c.URL())
 	eqFragment(t, "some head content", c.Head())
 	a.Equal(0, len(c.Body()))
 }
@@ -111,7 +115,7 @@ func Test_HttpContentLoader_Load_POST(t *testing.T) {
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())
-	a.Equal(server.URL, c.URL())
+	a.Equal(server.URL, c.Name())
 	eqFragment(t, "some head content", c.Head())
 	a.Equal(0, len(c.Body()))
 }
@@ -266,13 +270,11 @@ func Test_HttpContentLoader_DiscoverServiceInUrl(t *testing.T) {
 	a.Equal(url, "http://10.0.0.1:42/test.jpg")
 }
 
-
-
 func Test_HttpContentLoader_DiscoverServiceInUrlRawIp(t *testing.T) {
 
 	a := assert.New(t)
 
-	cases := [][]string {
+	cases := [][]string{
 		{"http://127.0.0.1:80/test.jpg", "http://127.0.0.1:80/test.jpg"},
 		{"http://127.0.0.1/test.jpg", "http://127.0.0.1/test.jpg"},
 	}
@@ -318,7 +320,6 @@ func Test_HttpContentLoader_DiscoverServiceInUrlWithPortError(t *testing.T) {
 	a.EqualError(err, "Service name with port given, this is not allowed. The port will be resolved by service discovery!")
 
 }
-
 
 func testServer(content string, timeout time.Duration) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

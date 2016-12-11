@@ -1,16 +1,16 @@
 package composition
 
 import (
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
 	"errors"
 	"fmt"
 	"github.com/tarent/lib-compose/logging"
 	"github.com/tarent/lib-servicediscovery/servicediscovery"
-	"net/url"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
 )
 
 var redirectAttemptedError = errors.New("do not follow redirects")
@@ -35,7 +35,7 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 	client := &http.Client{Timeout: fd.Timeout}
 
 	c := NewMemoryContent()
-	c.url = fd.URL
+	c.name = fd.Name
 	c.httpStatusCode = 502
 
 	// redirects can only be stopped by returning an error in the CheckRedirect function
@@ -107,7 +107,7 @@ func (loader *HttpContentLoader) Load(fd *FetchDefinition) (Content, error) {
 				parsingStart := time.Now()
 				err := parser.Parse(c, resp.Body)
 				logging.Logger.
-					WithField("full_url", c.URL()).
+					WithField("full_url", fd.URL).
 					WithField("duration", time.Since(parsingStart)).
 					Debug("content parsing")
 				return c, err

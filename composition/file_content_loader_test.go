@@ -24,8 +24,10 @@ func Test_FileContentLoader_LoadHTML(t *testing.T) {
 	a.NoError(err)
 
 	loader := NewFileContentLoader()
-	c, err := loader.Load(NewFetchDefinition(FileURLPrefix + fileName))
-	a.Equal(FileURLPrefix+fileName, c.URL())
+	fd := NewFetchDefinition(FileURLPrefix + fileName)
+	fd.Name = "content"
+	c, err := loader.Load(fd)
+	a.Equal("content", c.Name())
 	assertContentLoaded(t, c, err, "some head content")
 }
 

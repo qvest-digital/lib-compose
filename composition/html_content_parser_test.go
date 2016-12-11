@@ -414,12 +414,14 @@ func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
 	a.Equal(2, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
+		Name:     "example.com/foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, c.requiredContent["example.com/foo"])
 
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/optional",
+		Name:     "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, c.requiredContent["example.com/optional"])

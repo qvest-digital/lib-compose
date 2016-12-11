@@ -319,7 +319,7 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
 		return merger
 	}
@@ -353,9 +353,8 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 	aggregator.cache.Set("hashString", "", 1, nil)
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
-		merger.EXPECT().GetHashes().Return([]string{"hashString"})
 		return merger
 	}
 
@@ -479,6 +478,42 @@ func Test_getBaseUrlFromRequest(t *testing.T) {
 		a.Equal(test.expectedHost, host)
 	}
 }
+
+
+// Jira 3946: go deletes the "Host" header from the request (for whatever reasons):
+// https://golang.org/src/net/http/request.go:
+//   123		// For incoming requests, the Host header is promoted to the
+//   124		// Request.Host field and removed from the Header map.
+// But our cache strategies might want this header in order to generate different
+// cache-IDs (hashes) for different host names (e.g. preview-mode-whatever.de vs. production-whatever.de).
+func Test_CompositionHandler_RestoreHostHeader(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": StringFragment("Hello World\n"),
+					},
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Host = "MyHost"
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(200, resp.Code)
+	a.Equal("MyHost", r.Header.Get("Host"))
+}
+
 
 type MockFetchResultSupplier []*FetchResult
 

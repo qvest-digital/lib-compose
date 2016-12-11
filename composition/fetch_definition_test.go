@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"net/url"
 )
 
 func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
@@ -44,16 +45,19 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 func Test_FetchDefinition_use_DefaultErrorHandler_if_not_set(t *testing.T) {
 	a := assert.New(t)
 
-	fd := NewFetchDefinitionWithErrorHandler("http://upstream:8080/", nil)
+	fd := NewFetchDefinition("http://upstream:8080/")
 	a.Equal(NewDefaultErrorHandler(), fd.ErrHandler)
 }
 
 
 func Test_FetchDefinition_NewFunctions_have_default_priority(t *testing.T) {
 	a := assert.New(t)
+	request := &http.Request{}
+	request.URL = &url.URL{}
+
 	fd1 := NewFetchDefinition("foo")
-	fd2 := NewFetchDefinitionWithErrorHandler("baa", nil)
-	fd3 := NewFetchDefinitionWithResponseProcessor("blub", nil)
+	fd2 := NewFetchDefinitionFromRequest("baa", request)
+	fd3 := NewFetchDefinitionWithResponseProcessorFromRequest("blub", request, nil)
 
 	r, err := http.NewRequest("POST", "https://example.com/content?foo=bar", nil)
 	a.NoError(err)
@@ -69,9 +73,12 @@ func Test_FetchDefinition_NewFunctions_have_default_priority(t *testing.T) {
 
 func Test_FetchDefinition_NewFunctions_have_parameter_priority(t *testing.T) {
 	a := assert.New(t)
+	request := &http.Request{}
+	request.URL = &url.URL{}
+
 	fd1 := NewFetchDefinitionWithPriority("foo", 42)
-	fd2 := NewFetchDefinitionWithErrorHandlerAndPriority("baa", nil, 54)
-	fd3 := NewFetchDefinitionWithResponseProcessorAndPriority("blub", nil, 74)
+	fd2 := NewFetchDefinitionWithPriorityFromRequest("baa", request, 54)
+	fd3 := NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest("blub", request, nil, 74)
 
 
 	r, err := http.NewRequest("POST", "https://example.com/content?foo=bar", nil)

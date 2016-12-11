@@ -257,6 +257,7 @@ func getFetch(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, erro
 		return nil, fmt.Errorf("include definition without src %s", z.Raw())
 	}
 	fd.URL = strings.TrimSpace(url.Val)
+	fd.Name = urlToName(fd.URL)
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
 		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
