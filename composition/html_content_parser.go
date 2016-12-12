@@ -202,7 +202,8 @@ forloop:
 					return nil, nil, err
 				} else {
 					fmt.Fprintf(buff, replaceTextStart)
-					// TODO: WriteOut Subtree
+					// Enhancement: WriteOut sub tree, to allow alternative content
+					//              for optional includes.
 					fmt.Fprintf(buff, replaceTextEnd)
 					continue
 				}
