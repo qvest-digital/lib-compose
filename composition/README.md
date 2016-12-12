@@ -180,8 +180,9 @@ There are some predefined variables, constructed out of the request.
 }
 ```
 
-#### Preloaded Includes
-On an unspecified include, the UI-Service has to load replace the include by a previously loaded fragment.
+#### Includes
+On an unspecified include, the UI-Service has to replace the include by a previously loaded fragment.
+If the required fragment is missing, the composition will fail.
 
 Example: Will be replaced by the Default Body Fragment of *example.com/foo*.
 
@@ -201,19 +202,39 @@ Example: Will be replaced by the *content* fragment of any random choosen page.
 §[> #content]§
 ```
 
-#### Loaded Includes
-On a specified include, the UI-Service has to load the referenced page and has to replace the include with the referenced fragment.
-Within the src attribute, there are also variable replacements possible.
+#### Optional Includes
+There is a syntax for optional includes with an alternative text.
 
-Example: Will be replaced by the Default Body Fragment of *http://example.com/foo*.
-
-```
-  <uic-include src="example.com/foo"/>
-```
-
-Example: Will be replaced by the *content* fragment of *http://example.com/foo*. If it times out after 42 seconds, no error is returned.
+Example: Will be replaced by the contents of *foo* or by the alternative content,
+if no such element foo exists or an error occurs while replacing with foo.
 
 ```
-  <uic-include src="example.com/foo#content" timeout="42000" required="false"/>
+§[#> foo]§ alternative content §[/foo]§
 ```
+
+#### Include HTML Syntax
+There is also an html syntax for includes, as following:
+```
+  <uic-include src="example.com/foo" required="true"/>
+```
+The default is `required=false`, if not specified.
+The alternative content for optional html includes is currently not implemented.
+
+
+#### Fetch directive
+It is possible to specifiy an url for additional content to load,
+while the composition takes place. 
+
+Example: 
+
+```
+  <uic-fetch src="example.com/foo" timeout="42000" required="false" name="foo"/>
+```
+
+The URL, referenced with the src Attribute will be fetched. It can than be references by the spcified name.
+E.g. like so:
+```
+  <uic-include src="foo#content"/>
+```
+
 

@@ -153,7 +153,8 @@ forloop:
 					return err
 				} else {
 					bodyBuff.WriteString(replaceTextStart)
-					// TODO: WriteOut Sub tree
+					// Enhancement: WriteOut sub tree, to allow alternative content
+					//              for optional includes.
 					bodyBuff.WriteString(replaceTextEnd)
 					continue
 				}
@@ -257,7 +258,12 @@ func getFetch(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, erro
 		return nil, fmt.Errorf("include definition without src %s", z.Raw())
 	}
 	fd.URL = strings.TrimSpace(url.Val)
-	fd.Name = urlToName(fd.URL)
+
+	if name, hasName := getAttr(attrs, "name"); hasName {
+		fd.Name = name.Val
+	} else {
+		fd.Name = urlToName(fd.URL)
+	}
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
 		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {

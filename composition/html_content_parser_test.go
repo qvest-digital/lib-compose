@@ -400,7 +400,7 @@ func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
 	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
            foo
-           <uic-fetch src="example.com/foo" timeout="42000" required="true"/>
+           <uic-fetch src="example.com/foo" timeout="42000" required="true" name="foo"/>
            <uic-fetch src="example.com/optional" timeout="100" required="false"/>
          </body>`))
 
@@ -414,7 +414,7 @@ func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
 	a.Equal(2, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
-		Name:     "example.com/foo",
+		Name:     "foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, c.requiredContent["example.com/foo"])
