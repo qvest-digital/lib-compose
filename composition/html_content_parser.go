@@ -14,6 +14,7 @@ import (
 const (
 	UicRemove      = "uic-remove"
 	UicInclude     = "uic-include"
+	UicFetch       = "uic-fetch"
 	UicFragment    = "uic-fragment"
 	UicTail        = "uic-tail"
 	ScriptTypeMeta = "text/uic-meta"
@@ -139,12 +140,22 @@ forloop:
 				}
 				continue
 			}
-			if string(tag) == UicInclude {
-				if fd, replaceText, err := getInclude(z, attrs); err != nil {
+			if string(tag) == UicFetch {
+				if fd, err := getFetch(z, attrs); err != nil {
 					return err
 				} else {
 					c.requiredContent[fd.URL] = fd
-					bodyBuff.WriteString(replaceText)
+					continue
+				}
+			}
+			if string(tag) == UicInclude {
+				if replaceTextStart, replaceTextEnd, err := getInclude(z, attrs); err != nil {
+					return err
+				} else {
+					bodyBuff.WriteString(replaceTextStart)
+					// Enhancement: WriteOut sub tree, to allow alternative content
+					//              for optional includes.
+					bodyBuff.WriteString(replaceTextEnd)
 					continue
 				}
 			}
@@ -187,11 +198,13 @@ forloop:
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if string(tag) == UicInclude {
-				if fd, replaceText, err := getInclude(z, attrs); err != nil {
+				if replaceTextStart, replaceTextEnd, err := getInclude(z, attrs); err != nil {
 					return nil, nil, err
 				} else {
-					dependencies = append(dependencies, fd)
-					fmt.Fprintf(buff, replaceText)
+					fmt.Fprintf(buff, replaceTextStart)
+					// Enhancement: WriteOut sub tree, to allow alternative content
+					//              for optional includes.
+					fmt.Fprintf(buff, replaceTextEnd)
 					continue
 				}
 			}
@@ -211,26 +224,51 @@ forloop:
 	return StringFragment(buff.String()), dependencies, nil
 }
 
-func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, string, error) {
-	fd := &FetchDefinition{}
-
+func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker string, error error) {
 	var srcString string
 	if url, hasUrl := getAttr(attrs, "src"); !hasUrl {
-		return nil, "", fmt.Errorf("include definition without src %s", z.Raw())
+		return "", "", fmt.Errorf("include definition without src %s", z.Raw())
 	} else {
 		srcString = strings.TrimSpace(url.Val)
+		if strings.HasPrefix(srcString, "#") {
+			srcString = srcString[1:]
+		}
 	}
 
-	if hashPosition := strings.Index(srcString, "#"); hashPosition > -1 {
-		fd.URL = srcString[:hashPosition]
-	} else {
-		fd.URL = srcString
+	required := false
+	if r, hasRequired := getAttr(attrs, "required"); hasRequired {
+		if requiredBool, err := strconv.ParseBool(r.Val); err != nil {
+			return "", "", fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
+		} else {
+			required = requiredBool
+		}
 	}
-	fd.Name = urlToName(fd.URL)
+
+	if required {
+		return fmt.Sprintf("§[> %s]§", srcString), "", nil
+	} else {
+		return fmt.Sprintf("§[#> %s]§", srcString), fmt.Sprintf("§[/%s]§", srcString), nil
+	}
+}
+
+func getFetch(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, error) {
+	fd := &FetchDefinition{}
+
+	url, hasUrl := getAttr(attrs, "src")
+	if !hasUrl {
+		return nil, fmt.Errorf("include definition without src %s", z.Raw())
+	}
+	fd.URL = strings.TrimSpace(url.Val)
+
+	if name, hasName := getAttr(attrs, "name"); hasName {
+		fd.Name = name.Val
+	} else {
+		fd.Name = urlToName(fd.URL)
+	}
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
 		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
-			return nil, "", fmt.Errorf("error parsing timeout in %s: %s", z.Raw(), err.Error())
+			return nil, fmt.Errorf("error parsing timeout in %s: %s", z.Raw(), err.Error())
 		} else {
 			fd.Timeout = time.Millisecond * time.Duration(timeoutInt)
 		}
@@ -238,20 +276,18 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 
 	if required, hasRequired := getAttr(attrs, "required"); hasRequired {
 		if requiredBool, err := strconv.ParseBool(required.Val); err != nil {
-			return nil, "", fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
+			return nil, fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
 		} else {
 			fd.Required = requiredBool
 		}
 	}
-
-	placeholder := urlToName(srcString)
 
 	attr, found := getAttr(attrs, "discoveredBy")
 	if found {
 		fd.DiscoveredBy(attr.Val)
 	}
 
-	return fd, fmt.Sprintf("§[> %s]§", placeholder), nil
+	return fd, nil
 }
 
 func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]string) error {

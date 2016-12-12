@@ -3,9 +3,11 @@
   </head>
   <body>
     <h1 uic-remove>This is the basic layout</h1>
-    <uic-include src="§[request.base_url]§/static/basic.html#header"/>
-    <uic-include src="§[request.base_url]§/static/basic.html#subheader"/>
-    §[> content]§
-    <uic-include src="§[request.base_url]§/static/basic.html#footer"/>
+    <uic-fetch src="§[request.base_url]§/static/basic.html#header" name="basic"/>
+    <uic-include src="basic#header" required="true"/>
+    <uic-include src="basic#subheader" required="true"/>
+    <uic-include src="content" required="true"/>
+    <uic-include src="basic#footer" required="true"/>
+    <uic-include src="missing_fragment"/>
   </body>
 </html>

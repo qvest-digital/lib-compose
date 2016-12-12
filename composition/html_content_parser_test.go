@@ -231,8 +231,11 @@ var integratedTestHtml = `<html>
     </uic-fragment>
     <uic-fragment name="content">
       Bli Bla blub
-      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-fetch src="example.com/foo" timeout="100" required="true"/>
+      <uic-include src="example.com/foo#content" required="true"/>
+      <uic-include src="example.com/optional#content">
+        <p>some alternative text</p>
+      </uic-include>
       <div uic-remove>
          Some element for testing
       </div>
@@ -264,7 +267,9 @@ var integratedTestHtmlExpectedHeadline = `<h1>This is a headline</h1>`
 var integratedTestHtmlExpectedContent = `
       Bli Bla blub
       §[> example.com/foo#content]§
-      §[> example.com/optional#content]§
+      §[#> example.com/optional#content]§ 
+         <p>some alternative text</p>
+      §[/example.com/optional#content]§
       <hr/>
       Bli Bla blub`
 
@@ -361,16 +366,16 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
     </ul>
     <uic-fragment name="headline">
       <h1>Headline</h1>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-include src="example.com/optional#content"/>
     </uic-fragment>
     <uic-fragment name="content">
       some content
-      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-include src="example.com/foo#content" required="true"/>
+      <uic-include src="example.com/optional#content" required="false"/>
     </uic-fragment>
     <uic-tail>
       <!-- tail -->
-      <uic-include src="example.com/tail" timeout="100" required="false"/>
+      <uic-include src="example.com/tail" timeout="100" required="true"/>
     </uic-tail>
   </body>`))
 
@@ -381,16 +386,35 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 
 	a.Equal(3, len(c.Body()))
 	eqFragment(t, "<h1>Default Fragment Content</h1><br>", c.Body()[""])
-	eqFragment(t, `<h1>Headline</h1> §[> example.com/optional#content]§`, c.Body()["headline"])
-	eqFragment(t, `some content §[> example.com/foo#content]§ §[> example.com/optional#content]§`, c.Body()["content"])
+	eqFragment(t, `<h1>Headline</h1> §[#> example.com/optional#content]§§[/example.com/optional#content]§`, c.Body()["headline"])
+	eqFragment(t, `some content §[> example.com/foo#content]§ §[#> example.com/optional#content]§§[/example.com/optional#content]§`, c.Body()["content"])
 	eqFragment(t, "<!-- tail -->§[> example.com/tail]§", c.Tail())
 
 	eqFragment(t, `some="attribute"`, c.BodyAttributes())
 
-	a.Equal(3, len(c.RequiredContent()))
+}
+
+func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := html.NewTokenizer(bytes.NewBufferString(`<body>
+           foo
+           <uic-fetch src="example.com/foo" timeout="42000" required="true" name="foo"/>
+           <uic-fetch src="example.com/optional" timeout="100" required="false"/>
+         </body>`))
+
+	z.Next() // At <body ..
+	c := NewMemoryContent()
+	err := parser.parseBody(z, c)
+	a.NoError(err)
+
+	eqFragment(t, "foo", c.Body()[""])
+
+	a.Equal(2, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
-		Name:     "example.com/foo",
+		Name:     "foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, c.requiredContent["example.com/foo"])
@@ -401,12 +425,6 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, c.requiredContent["example.com/optional"])
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/tail",
-		Name:     "example.com/tail",
-		Timeout:  time.Millisecond * 100,
-		Required: false,
-	}, c.requiredContent["example.com/tail"])
 }
 
 func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
@@ -415,7 +433,7 @@ func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
-    <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
+    <uic-include src="example.com/foo#content" required="true"/>
   </body>`))
 
 	z.Next() // At <body ..
@@ -425,14 +443,6 @@ func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 
 	a.Equal(1, len(c.Body()))
 	eqFragment(t, "<h1>Default Fragment Content</h1><br> §[> example.com/foo#content]§", c.Body()[""])
-
-	a.Equal(1, len(c.RequiredContent()))
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo",
-		Name:     "example.com/foo",
-		Timeout:  time.Millisecond * 42000,
-		Required: true,
-	}, c.requiredContent["example.com/foo"])
 }
 
 func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
@@ -478,8 +488,8 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
       Bli Bla blub
       <br>
-      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-include src="example.com/foo#content" required="true"/>
+      <uic-include src="example.com/optional#content" required="false"/>
       <div uic-remove>
          <br>
          Some element for testing
@@ -489,29 +499,14 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
     </uic-fragment><testend>`))
 
 	z.Next() // At <uic-fragment name ..
-	f, deps, err := parseFragment(z)
+	f, _, err := parseFragment(z)
 	a.NoError(err)
-
-	a.Equal(2, len(deps))
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo",
-		Name:     "example.com/foo",
-		Timeout:  time.Millisecond * 42000,
-		Required: true,
-	}, deps[0])
-
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional",
-		Name:     "example.com/optional",
-		Timeout:  time.Millisecond * 100,
-		Required: false,
-	}, deps[1])
 
 	sFragment := f.(StringFragment)
 	expected := `Bli Bla blub
       <br>
       §[> example.com/foo#content]§
-      §[> example.com/optional#content]§
+      §[#> example.com/optional#content]§§[/example.com/optional#content]§
       <hr/>
       Bli Bla §[ aVariable ]§ blub`
 	eqFragment(t, expected, sFragment)

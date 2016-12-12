@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/yosssi/gohtml"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -26,5 +27,9 @@ func Test_integration_test(t *testing.T) {
 	expectedS := strings.Replace(string(expected), "http://127.0.0.1:8080", s.URL, -1)
 
 	a.NoError(err)
-	a.Equal(expectedS, string(body))
+	htmlEqual(t, expectedS, string(body))
+}
+
+func htmlEqual(t *testing.T, expected, actual string) {
+	assert.Equal(t, gohtml.Format(expected), gohtml.Format(actual))
 }
