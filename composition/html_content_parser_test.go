@@ -2,6 +2,7 @@ package composition
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 	_ "regexp"
@@ -372,6 +373,7 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
       some content
       <uic-include src="example.com/foo#content" required="true"/>
       <uic-include src="example.com/optional#content" required="false"/>
+      <uic-include src="#local" required="true"/>
     </uic-fragment>
     <uic-tail>
       <!-- tail -->
@@ -387,7 +389,10 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a.Equal(3, len(c.Body()))
 	eqFragment(t, "<h1>Default Fragment Content</h1><br>", c.Body()[""])
 	eqFragment(t, `<h1>Headline</h1> §[#> example.com/optional#content]§§[/example.com/optional#content]§`, c.Body()["headline"])
-	eqFragment(t, `some content §[> example.com/foo#content]§ §[#> example.com/optional#content]§§[/example.com/optional#content]§`, c.Body()["content"])
+	eqFragment(t, `some content`+
+		`§[> example.com/foo#content]§`+
+		`§[#> example.com/optional#content]§§[/example.com/optional#content]§`+
+		`§[> local]§`, c.Body()["content"])
 	eqFragment(t, "<!-- tail -->§[> example.com/tail]§", c.Tail())
 
 	eqFragment(t, `some="attribute"`, c.BodyAttributes())
@@ -402,6 +407,7 @@ func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
            foo
            <uic-fetch src="example.com/foo" timeout="42000" required="true" name="foo"/>
            <uic-fetch src="example.com/optional" timeout="100" required="false"/>
+           <uic-fetch src="discovered" discoveredBy="192.168.0.42:8008"/>
          </body>`))
 
 	z.Next() // At <body ..
@@ -411,7 +417,7 @@ func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
 
 	eqFragment(t, "foo", c.Body()[""])
 
-	a.Equal(2, len(c.RequiredContent()))
+	a.Equal(3, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
 		Name:     "foo",
@@ -425,6 +431,34 @@ func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, c.requiredContent["example.com/optional"])
+
+	a.True(c.requiredContent["discovered"].ServiceDiscoveryActive)
+	a.NotNil(c.requiredContent["discovered"].ServiceDiscovery)
+
+}
+
+func Test_HtmlContentParser_fetchAndInclude_ErrorCases(t *testing.T) {
+	a := assert.New(t)
+
+	testCases := []string{
+		`<uic-fetch/>`,
+		`<uic-fetch src="example.com/foo" required="tr42ue"/>`,
+		`<uic-fetch src="example.com/foo" timeout="sdcascdsdc"/>`,
+		`<uic-fragment name="bla"><uic-include/><uic-fragment>`,
+		`<uic-include src="example.com/foo" required="tr42ue"/>`,
+	}
+
+	for i, test := range testCases {
+		t.Run(fmt.Sprintf("test #%v", i), func(t *testing.T) {
+			parser := &HtmlContentParser{}
+			z := html.NewTokenizer(bytes.NewBufferString(
+				"<body>" + test + "</body>",
+			))
+			z.Next() // At <body ..
+			err := parser.parseBody(z, NewMemoryContent())
+			a.Error(err)
+		})
+	}
 }
 
 func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {

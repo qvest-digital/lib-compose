@@ -282,7 +282,7 @@ func getFetch(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, erro
 		}
 	}
 
-	attr, found := getAttr(attrs, "discoveredBy")
+	attr, found := getAttr(attrs, "discoveredby")
 	if found {
 		fd.DiscoveredBy(attr.Val)
 	}
