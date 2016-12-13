@@ -172,6 +172,16 @@ func Test_CacheStrategy_IsCachable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			DefaultCacheStrategy,
+			"GET",
+			200,
+			nil,
+			http.Header{
+				"Cache-Control": {"no-store, no-cache"},
+			},
+			false,
+		},
 	}
 
 	for _, t := range tests {
