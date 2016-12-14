@@ -134,8 +134,8 @@ func (fd *FetchDefinition) WithResponseProcessor(rp ResponseProcessor) *FetchDef
 }
 
 // Set a name to be used in the merge context later on
-func (fd *FetchDefinition) WithName(name string) {
-	fd.Name
+func (fd *FetchDefinition) WithName(name string) *FetchDefinition {
+	fd.Name = name
 	return fd
 }
 
