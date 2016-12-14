@@ -81,7 +81,6 @@ type FetchDefinition struct {
 // All the FetchDefinitions, that get passed a request, will forward the ForwardRequestHeaders. But only
 // those that are *FromRequest will also append the original requests other information, like method, body, URL.
 
-
 // Creates a fetch definition (warning: this one will not forward any request headers).
 func NewFetchDefinition(url string) *FetchDefinition {
 	return &FetchDefinition{
@@ -97,12 +96,46 @@ func NewFetchDefinition(url string) *FetchDefinition {
 	}
 }
 
-func NewFetchDefinitionWithPriority(url string, priority int) *FetchDefinition {
-	fd := NewFetchDefinition(url)
+func (fd *FetchDefinition) WithPriority(priority int) *FetchDefinition {
 	fd.Priority = priority
 	return fd
 }
 
+func (fd *FetchDefinition) FromRequest(r *http.Request) *FetchDefinition {
+	if strings.HasSuffix(fd.URL, "/") {
+		fd.URL = fd.URL[:len(fd.URL)-1]
+	}
+
+	fullPath := r.URL.Path
+	if fullPath == "" {
+		fullPath = "/"
+	}
+	if r.URL.RawQuery != "" {
+		fullPath += "?" + r.URL.RawQuery
+	}
+
+	fd.URL = fd.URL + fullPath
+	fd.Body = r.Body
+	fd.Method = r.Method
+	fd.Header = copyHeaders(r.Header, fd.Header, ForwardRequestHeaders)
+
+	return fd
+}
+
+func (fd *FetchDefinition) WithHeaders(header http.Header) *FetchDefinition {
+	fd.Header = copyHeaders(header, fd.Header, ForwardRequestHeaders)
+	return fd
+}
+
+func (fd *FetchDefinition) WithResponseProcessor(rp ResponseProcessor) *FetchDefinition {
+	fd.RespProc = rp
+	return fd
+}
+
+func (fd *FetchDefinition) WithName(name string) {
+	fd.Name
+	return fd
+}
 
 // If a ResponseProcessor-Implementation is given it can be used to change the response before composition
 // Priority is used to determine which property from which head has to be taken by collision of multiple fetches
