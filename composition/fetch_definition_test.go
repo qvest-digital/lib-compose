@@ -4,10 +4,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
-	"net/url"
 )
 
 func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
@@ -18,14 +18,15 @@ func Test_FetchDefinition_NewFetchDefinitionFromRequest(t *testing.T) {
 	a.NoError(err)
 
 	r.Header = http.Header{
-		"Content-Type":    {"text/html"},
-		"Cookie":          {"aa=bb;"},
+		"Content-Type":     {"text/html"},
+		"Cookie":           {"aa=bb;"},
 		"X-Feature-Toggle": {"true"},
-		"Accept-Encoding": {"gzip"}, // should not be copied
+		"Accept-Encoding":  {"gzip"}, // should not be copied
 		"X-Correlation-Id": {"foobar123"},
 	}
 
-	fd := NewFetchDefinitionFromRequest("http://upstream:8080/", r)
+	fd := NewFetchDefinition("http://upstream:8080/")
+	fd.FromRequest(r)
 	a.Equal("http://upstream:8080/content?foo=bar", fd.URL)
 	a.Equal(10*time.Second, fd.Timeout)
 	a.Equal(true, fd.Required)
@@ -49,21 +50,19 @@ func Test_FetchDefinition_use_DefaultErrorHandler_if_not_set(t *testing.T) {
 	a.Equal(NewDefaultErrorHandler(), fd.ErrHandler)
 }
 
-
 func Test_FetchDefinition_NewFunctions_have_default_priority(t *testing.T) {
 	a := assert.New(t)
 	request := &http.Request{}
 	request.URL = &url.URL{}
 
 	fd1 := NewFetchDefinition("foo")
-	fd2 := NewFetchDefinitionFromRequest("baa", request)
-	fd3 := NewFetchDefinitionWithResponseProcessorFromRequest("blub", request, nil)
+	fd2 := NewFetchDefinition("baa").FromRequest(request)
+	fd3 := NewFetchDefinition("blub").WithResponseProcessor(nil).FromRequest(request)
 
 	r, err := http.NewRequest("POST", "https://example.com/content?foo=bar", nil)
 	a.NoError(err)
 
-	fd4 := NewFetchDefinitionWithResponseProcessorFromRequest("bla", r, nil)
-
+	fd4 := NewFetchDefinition("bla").FromRequest(r).WithResponseProcessor(nil)
 
 	a.Equal(fd1.Priority, DefaultPriority)
 	a.Equal(fd2.Priority, DefaultPriority)
@@ -76,16 +75,15 @@ func Test_FetchDefinition_NewFunctions_have_parameter_priority(t *testing.T) {
 	request := &http.Request{}
 	request.URL = &url.URL{}
 
-	fd1 := NewFetchDefinitionWithPriority("foo", 42)
-	fd2 := NewFetchDefinitionWithPriorityFromRequest("baa", request, 54)
-	fd3 := NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest("blub", request, nil, 74)
-
+	fd1 := NewFetchDefinition("foo").WithPriority(42)
+	fd2 := NewFetchDefinition("baa").WithPriority(54).FromRequest(request)
+	fd3 := NewFetchDefinition("blub").WithResponseProcessor(nil).WithPriority(74).FromRequest(request)
 
 	r, err := http.NewRequest("POST", "https://example.com/content?foo=bar", nil)
 	a.NoError(err)
 
-	fd4 := NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest("bla", r, nil, 90)
-	fd5 := NewFetchDefinitionWithPriorityFromRequest("faa", r, 2014)
+	fd4 := NewFetchDefinition("bla").WithResponseProcessor(nil).WithPriority(90).FromRequest(r)
+	fd5 := NewFetchDefinition("faa").FromRequest(r).WithPriority(2014)
 
 	a.Equal(fd1.Priority, 42)
 	a.Equal(fd2.Priority, 54)
