@@ -71,7 +71,7 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 
 	mockResponseProcessor := NewMockResponseProcessor(ctrl)
 	mockResponseProcessor.EXPECT().Process(gomock.Any(), gomock.Any())
-	c, err := loader.Load(NewFetchDefinitionWithResponseProcessorFromRequest(server.URL, request, mockResponseProcessor))
+	c, err := loader.Load(NewFetchDefinition(server.URL).WithResponseProcessor(mockResponseProcessor).FromRequest(request))
 	a.NoError(err)
 	a.NotNil(c)
 	a.Nil(c.Reader())

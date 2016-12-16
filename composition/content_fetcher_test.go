@@ -3,9 +3,9 @@ package composition
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"testing"
 	"time"
-        "sort"
 )
 
 func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
@@ -77,25 +77,24 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 }
 
 func Test_ContentFetchResultPrioritySort(t *testing.T) {
-        a := assert.New(t)
+	a := assert.New(t)
 
-        barFd := NewFetchDefinitionWithPriority("/bar", 30)
-        fooFd := NewFetchDefinitionWithPriority("/foo",  10)
-        bazzFd := NewFetchDefinitionWithPriority("/bazz",  5)
+	barFd := NewFetchDefinition("/bar").WithPriority(30)
+	fooFd := NewFetchDefinition("/foo").WithPriority(10)
+	bazzFd := NewFetchDefinition("/bazz").WithPriority(5)
 
-        results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
+	results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
 
-        a.Equal(30, results[0].Def.Priority)
-        a.Equal(10, results[1].Def.Priority)
-        a.Equal(5, results[2].Def.Priority)
+	a.Equal(30, results[0].Def.Priority)
+	a.Equal(10, results[1].Def.Priority)
+	a.Equal(5, results[2].Def.Priority)
 
-        sort.Sort(FetchResults(results))
+	sort.Sort(FetchResults(results))
 
-        a.Equal(5, results[0].Def.Priority)
-        a.Equal(10, results[1].Def.Priority)
-        a.Equal(30, results[2].Def.Priority)
+	a.Equal(5, results[0].Def.Priority)
+	a.Equal(10, results[1].Def.Priority)
+	a.Equal(30, results[2].Def.Priority)
 }
-
 
 func Test_ContentFetcher_PriorityOrderAfterFetchCompletion(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -116,7 +115,6 @@ func Test_ContentFetcher_PriorityOrderAfterFetchCompletion(t *testing.T) {
 	fetcher.AddFetchJob(barFd)
 	fetcher.AddFetchJob(fooFd)
 	fetcher.AddFetchJob(bazzFd)
-
 
 	results := fetcher.WaitForResults()
 
