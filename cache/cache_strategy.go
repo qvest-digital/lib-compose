@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/lib-compose/util"
 	"net/http"
-	"strings"
 )
 
 const (
@@ -93,7 +93,7 @@ func (tcs *CacheStrategy) HashWithParameters(method string, url string, requestH
 	}
 
 	for _, c := range includeCookies {
-		if value, found := readCookieValue(requestHeader, c); found {
+		if value, found := util.ReadCookieValue(requestHeader, c); found {
 			hasher.Write([]byte(c))
 			hasher.Write([]byte(value))
 		}
@@ -129,36 +129,4 @@ func (tcs *CacheStrategy) isReasonIgnorable(reason cacheobject.Reason) bool {
 		}
 	}
 	return false
-}
-
-// taken and adapted from net/http
-func readCookieValue(h http.Header, filterName string) (string, bool) {
-	lines, ok := h["Cookie"]
-	if !ok {
-		return "", false
-	}
-
-	for _, line := range lines {
-		parts := strings.Split(strings.TrimSpace(line), ";")
-		if len(parts) == 1 && parts[0] == "" {
-			continue
-		}
-		for i := 0; i < len(parts); i++ {
-			parts[i] = strings.TrimSpace(parts[i])
-			if len(parts[i]) == 0 {
-				continue
-			}
-			name, val := parts[i], ""
-			if j := strings.Index(name, "="); j >= 0 {
-				name, val = name[:j], name[j+1:]
-			}
-			if filterName == name {
-				if len(val) > 1 && val[0] == '"' && val[len(val)-1] == '"' {
-					val = val[1 : len(val)-1]
-				}
-				return val, true
-			}
-		}
-	}
-	return "", false
 }
