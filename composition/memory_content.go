@@ -8,6 +8,7 @@ import (
 type MemoryContent struct {
 	name            string
 	requiredContent map[string]*FetchDefinition // key ist the url
+	dependencies    map[string]Params
 	meta            map[string]interface{}
 	head            Fragment
 	body            map[string]Fragment
@@ -21,6 +22,7 @@ type MemoryContent struct {
 func NewMemoryContent() *MemoryContent {
 	return &MemoryContent{
 		requiredContent: make(map[string]*FetchDefinition),
+		dependencies:    make(map[string]Params),
 		meta:            make(map[string]interface{}),
 		body:            make(map[string]Fragment),
 	}
@@ -53,6 +55,10 @@ func (c *MemoryContent) RequiredContent() []*FetchDefinition {
 		deps = append(deps, dep)
 	}
 	return deps
+}
+
+func (c *MemoryContent) Dependencies() map[string]Params {
+	return c.dependencies
 }
 
 func (c *MemoryContent) Meta() map[string]interface{} {

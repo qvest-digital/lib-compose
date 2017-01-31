@@ -44,6 +44,9 @@ type CacheStrategy interface {
 	IsCacheable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool
 }
 
+// Params is a value type for a parameter map
+type Params map[string]string
+
 // Vontent is the abstration over includable data.
 // Content may be parsed of it may contain a stream represented by a non nil Reader(), not both.
 type Content interface {
@@ -53,6 +56,10 @@ type Content interface {
 
 	// RequiredContent returns a list of Content Elements to load
 	RequiredContent() []*FetchDefinition
+
+	// Dependencies returns list of referenced content element names.
+	// The list only contains the base names of the includes e.g. 'foo' for '<uic-include src="foo#bar"/>'
+	Dependencies() map[string]Params
 
 	// Meta returns a data structure to add to the global
 	// data context.

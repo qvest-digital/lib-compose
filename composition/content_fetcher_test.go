@@ -65,6 +65,10 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 		Meta().
 		Return(metaJSON)
 
+	content.EXPECT().
+		Dependencies().
+		Return(map[string]Params{})
+
 	loaderMock.EXPECT().
 		Load(fd).
 		Do(

@@ -30,19 +30,9 @@ func compositionHandler() http.Handler {
 		fetcher := composition.NewContentFetcher(defaultMetaJSON)
 		baseUrl := "http://" + r.Host
 
-		fetcher.AddFetchJob(&composition.FetchDefinition{
-			URL:  baseUrl + "/static/layout.html",
-			Name: "layout",
-		})
-
-		fetcher.AddFetchJob(&composition.FetchDefinition{
-			URL:  baseUrl + "/static/lorem.html",
-			Name: "content",
-		})
-
-		fetcher.AddFetchJob(&composition.FetchDefinition{
-			URL: baseUrl + "/static/styles.html",
-		})
+		fetcher.AddFetchJob(composition.NewFetchDefinition(baseUrl + "/static/layout.html").WithName("layout"))
+		fetcher.AddFetchJob(composition.NewFetchDefinition(baseUrl + "/static/lorem.html").WithName("content"))
+		fetcher.AddFetchJob(composition.NewFetchDefinition(baseUrl + "/static/styles.html"))
 
 		return fetcher
 	}

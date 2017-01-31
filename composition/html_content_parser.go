@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	UicRemove      = "uic-remove"
-	UicInclude     = "uic-include"
-	UicFetch       = "uic-fetch"
-	UicFragment    = "uic-fragment"
-	UicTail        = "uic-tail"
-	ScriptTypeMeta = "text/uic-meta"
+	UicRemove       = "uic-remove"
+	UicInclude      = "uic-include"
+	UicFetch        = "uic-fetch"
+	UicFragment     = "uic-fragment"
+	UicTail         = "uic-tail"
+	ScriptTypeMeta  = "text/uic-meta"
+	ParamAttrPrefix = "param-"
 )
 
 type HtmlContentParser struct {
@@ -123,8 +124,8 @@ forloop:
 					return err
 				} else {
 					c.body[getFragmentName(attrs)] = f
-					for _, dep := range deps {
-						c.requiredContent[dep.URL] = dep
+					for depName, depParams := range deps {
+						c.dependencies[depName] = depParams
 					}
 				}
 				continue
@@ -134,8 +135,8 @@ forloop:
 					return err
 				} else {
 					c.tail = f
-					for _, dep := range deps {
-						c.requiredContent[dep.URL] = dep
+					for depName, depParams := range deps {
+						c.dependencies[depName] = depParams
 					}
 				}
 				continue
@@ -149,9 +150,10 @@ forloop:
 				}
 			}
 			if string(tag) == UicInclude {
-				if replaceTextStart, replaceTextEnd, err := getInclude(z, attrs); err != nil {
+				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
 					return err
 				} else {
+					c.dependencies[dependencyName] = dependencyParams
 					bodyBuff.WriteString(replaceTextStart)
 					// Enhancement: WriteOut sub tree, to allow alternative content
 					//              for optional includes.
@@ -178,9 +180,9 @@ forloop:
 	return nil
 }
 
-func parseFragment(z *html.Tokenizer) (f Fragment, dependencies []*FetchDefinition, err error) {
+func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
 	attrs := make([]html.Attribute, 0, 10)
-	dependencies = make([]*FetchDefinition, 0, 0)
+	dependencies = make(map[string]Params)
 
 	buff := bytes.NewBuffer(nil)
 forloop:
@@ -198,9 +200,10 @@ forloop:
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if string(tag) == UicInclude {
-				if replaceTextStart, replaceTextEnd, err := getInclude(z, attrs); err != nil {
+				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
 					return nil, nil, err
 				} else {
+					dependencies[dependencyName] = dependencyParams
 					fmt.Fprintf(buff, replaceTextStart)
 					// Enhancement: WriteOut sub tree, to allow alternative content
 					//              for optional includes.
@@ -224,30 +227,39 @@ forloop:
 	return StringFragment(buff.String()), dependencies, nil
 }
 
-func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker string, error error) {
+func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {
 	var srcString string
 	if url, hasUrl := getAttr(attrs, "src"); !hasUrl {
-		return "", "", fmt.Errorf("include definition without src %s", z.Raw())
+		return "", "", "", nil, fmt.Errorf("include definition without src %s", z.Raw())
 	} else {
 		srcString = strings.TrimSpace(url.Val)
 		if strings.HasPrefix(srcString, "#") {
 			srcString = srcString[1:]
+		}
+		dependencyName = strings.Split(srcString, "#")[0]
+	}
+
+	dependencyParams = Params{}
+	for _, a := range attrs {
+		if strings.HasPrefix(a.Key, ParamAttrPrefix) {
+			key := a.Key[len(ParamAttrPrefix):]
+			dependencyParams[key] = a.Val
 		}
 	}
 
 	required := false
 	if r, hasRequired := getAttr(attrs, "required"); hasRequired {
 		if requiredBool, err := strconv.ParseBool(r.Val); err != nil {
-			return "", "", fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
+			return "", "", "", nil, fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
 		} else {
 			required = requiredBool
 		}
 	}
 
 	if required {
-		return fmt.Sprintf("§[> %s]§", srcString), "", nil
+		return fmt.Sprintf("§[> %s]§", srcString), "", dependencyName, dependencyParams, nil
 	} else {
-		return fmt.Sprintf("§[#> %s]§", srcString), fmt.Sprintf("§[/%s]§", srcString), nil
+		return fmt.Sprintf("§[#> %s]§", srcString), fmt.Sprintf("§[/%s]§", srcString), dependencyName, dependencyParams, nil
 	}
 }
 

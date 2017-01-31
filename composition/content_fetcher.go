@@ -7,12 +7,6 @@ import (
 	"sync"
 )
 
-// IsFetchable returns, whether the fetch definition refers to a fetchable resource
-// or is a local name only.
-func (def *FetchDefinition) IsFetchable() bool {
-	return len(def.URL) > 0
-}
-
 type FetchResult struct {
 	Def     *FetchDefinition
 	Err     error
@@ -33,18 +27,22 @@ func (fr FetchResults) Less(i, j int) bool {
 	return fr[i].Def.Priority < fr[j].Def.Priority
 }
 
+type FetchDefinitionFactory func(name string, params Params) (fd *FetchDefinition, exist bool, err error)
+
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
 type ContentFetcher struct {
 	activeJobs sync.WaitGroup
 	r          struct {
-		results []*FetchResult
-		mutex   sync.Mutex
+		sheduledFetchDefinitionNames map[string]string
+		results                      []*FetchResult
+		mutex                        sync.Mutex
 	}
 	meta struct {
 		json  map[string]interface{}
 		mutex sync.Mutex
 	}
-	Loader ContentLoader
+	lazyFdFactory FetchDefinitionFactory
+	Loader        ContentLoader
 }
 
 // NewContentFetcher creates a ContentFetcher with an HtmlContentParser as default.
@@ -53,12 +51,20 @@ type ContentFetcher struct {
 func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
+	f.r.sheduledFetchDefinitionNames = make(map[string]string)
 	f.Loader = NewHttpContentLoader()
 	f.meta.json = defaultMetaJSON
 	if f.meta.json == nil {
 		f.meta.json = make(map[string]interface{})
 	}
+	f.lazyFdFactory = func(name string, params Params) (fd *FetchDefinition, exist bool, err error) {
+		return nil, false, nil
+	}
 	return f
+}
+
+func (fetcher *ContentFetcher) SetFetchDefinitionFactory(factory FetchDefinitionFactory) {
+	fetcher.lazyFdFactory = factory
 }
 
 // Wait blocks until all jobs are done,
@@ -80,6 +86,8 @@ func (fetcher *ContentFetcher) WaitForResults() []*FetchResult {
 	return results
 }
 
+//func (fetcher *ContentFetcher) AddFetchDefinitionFactory(name string, func(params map[string]string) *FetchDefinition) {
+
 // AddFetchJob adds one job to the fetcher and recursively adds the dependencies also.
 func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	fetcher.r.mutex.Lock()
@@ -91,9 +99,9 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 	}
 
 	fetcher.activeJobs.Add(1)
-
 	fetchResult := &FetchResult{Def: d, Hash: hash, Err: errors.New("not fetched")}
 	fetcher.r.results = append(fetcher.r.results, fetchResult)
+	fetcher.r.sheduledFetchDefinitionNames[d.Name] = d.Name
 
 	go func() {
 		defer fetcher.activeJobs.Done()
@@ -115,9 +123,24 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 
 		if fetchResult.Err == nil {
 			fetcher.addMeta(fetchResult.Content.Meta())
-			for _, dependency := range fetchResult.Content.RequiredContent() {
-				if dependency.IsFetchable() {
-					fetcher.AddFetchJob(dependency)
+			for _, fetch := range fetchResult.Content.RequiredContent() {
+				fetcher.AddFetchJob(fetch)
+			}
+			for dependencyName, params := range fetchResult.Content.Dependencies() {
+				_, exist := fetcher.r.sheduledFetchDefinitionNames[dependencyName]
+				if !exist {
+					lazyFd, exist, err := fetcher.lazyFdFactory(dependencyName, params)
+					if err != nil {
+						logging.Logger.WithError(err).
+							WithField("dependencyName", dependencyName).
+							WithField("params", params).
+							Errorf("failed fetching dependency %v", dependencyName)
+					}
+					if err == nil && exist {
+						fetcher.AddFetchJob(lazyFd)
+					}
+					// error handling: In the case, the fd could not be loaded, we will do
+					// the error handling in the merging process.
 				}
 			}
 		} else {
