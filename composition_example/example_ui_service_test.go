@@ -15,6 +15,7 @@ func Test_integration_test(t *testing.T) {
 
 	s := httptest.NewServer(handler())
 	defer s.Close()
+	host = s.URL
 
 	r, err := http.Get(s.URL)
 	a.NoError(err)
