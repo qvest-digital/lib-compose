@@ -362,6 +362,7 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body some="attribute">
     <h1>Default Fragment Content</h1><br>
+    <uic-include src="example.com/xyz" required="true" param-foo="bar" param-bazz="buzz"/>
     <ul uic-remove>
       <!-- A Navigation for testing -->
     </ul>
@@ -371,7 +372,7 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
     </uic-fragment>
     <uic-fragment name="content">
       some content
-      <uic-include src="example.com/foo#content" required="true"/>
+      <uic-include src="example.com/foo#content" required="true" param-bli="bla"/>
       <uic-include src="example.com/optional#content" required="false"/>
       <uic-include src="#local" required="true"/>
     </uic-fragment>
@@ -387,7 +388,7 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a.NoError(err)
 
 	a.Equal(3, len(c.Body()))
-	eqFragment(t, "<h1>Default Fragment Content</h1><br>", c.Body()[""])
+	eqFragment(t, "<h1>Default Fragment Content</h1><br>\n§[> example.com/xyz]§", c.Body()[""])
 	eqFragment(t, `<h1>Headline</h1> §[#> example.com/optional#content]§§[/example.com/optional#content]§`, c.Body()["headline"])
 	eqFragment(t, `some content`+
 		`§[> example.com/foo#content]§`+
@@ -397,6 +398,9 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 
 	eqFragment(t, `some="attribute"`, c.BodyAttributes())
 
+	a.Equal(5, len(c.Dependencies()))
+	a.Equal(c.Dependencies()["example.com/xyz"], Params{"foo": "bar", "bazz": "buzz"})
+	a.Equal(c.Dependencies()["example.com/foo"], Params{"bli": "bla"})
 }
 
 func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
