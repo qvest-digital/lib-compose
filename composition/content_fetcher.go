@@ -27,6 +27,9 @@ func (fr FetchResults) Less(i, j int) bool {
 	return fr[i].Def.Priority < fr[j].Def.Priority
 }
 
+// FetchDefinitionFactory should return a fetch definition for the given name and parameters.
+// This factory method can be used to supply lazy loaded fetch jobs.
+// The FetchDefinition returned has to have the same name as the supplied name parameter.
 type FetchDefinitionFactory func(name string, params Params) (fd *FetchDefinition, exist bool, err error)
 
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
@@ -63,6 +66,9 @@ func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
 	return f
 }
 
+// SetFetchDefinitionFactory supplies a factory for lazy evaluated fetch jobs,
+// which will only be loaded if a fragment refrences them.
+// Seting the factory of optional, but if used, has to be done before adding Jobs by AddFetchJob.
 func (fetcher *ContentFetcher) SetFetchDefinitionFactory(factory FetchDefinitionFactory) {
 	fetcher.lazyFdFactory = factory
 }
