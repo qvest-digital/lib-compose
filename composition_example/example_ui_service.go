@@ -50,6 +50,6 @@ func staticHandler() http.Handler {
 
 func sidebarHandler(w http.ResponseWriter, r *http.Request) {
 	template := `<html><body><div class="teaser">This is a dynamic teaser for id %v</div></body></html>`
-	teaserId := r.URL.Query().Get("teaserId")
+	teaserId := r.URL.Query().Get("teaser-id")
 	fmt.Fprintf(w, template, teaserId)
 }
