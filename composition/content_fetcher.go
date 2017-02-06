@@ -30,7 +30,8 @@ func (fr FetchResults) Less(i, j int) bool {
 // FetchDefinitionFactory should return a fetch definition for the given name and parameters.
 // This factory method can be used to supply lazy loaded fetch jobs.
 // The FetchDefinition returned has to have the same name as the supplied name parameter.
-type FetchDefinitionFactory func(name string, params Params) (fd *FetchDefinition, exist bool, err error)
+// If no fetch definition for the supplied name can be provided by the factory, existing=false is returned, otherwise existing=true.
+type FetchDefinitionFactory func(name string, params Params) (fd *FetchDefinition, existing bool, err error)
 
 // ContentFetcher is a type, which can fetch a set of Content pages in parallel.
 type ContentFetcher struct {
@@ -129,26 +130,7 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 
 		if fetchResult.Err == nil {
 			fetcher.addMeta(fetchResult.Content.Meta())
-			for _, fetch := range fetchResult.Content.RequiredContent() {
-				fetcher.AddFetchJob(fetch)
-			}
-			for dependencyName, params := range fetchResult.Content.Dependencies() {
-				_, exist := fetcher.r.sheduledFetchDefinitionNames[dependencyName]
-				if !exist {
-					lazyFd, exist, err := fetcher.lazyFdFactory(dependencyName, params)
-					if err != nil {
-						logging.Logger.WithError(err).
-							WithField("dependencyName", dependencyName).
-							WithField("params", params).
-							Errorf("failed fetching dependency %v", dependencyName)
-					}
-					if err == nil && exist {
-						fetcher.AddFetchJob(lazyFd)
-					}
-					// error handling: In the case, the fd could not be loaded, we will do
-					// the error handling in the merging process.
-				}
-			}
+			fetcher.addDependentFetchJobs(fetchResult.Content)
 		} else {
 			// 404 Error already become logged in logger.go
 			if fetchResult.Content == nil || fetchResult.Content.HttpStatusCode() != 404 {
@@ -159,6 +141,29 @@ func (fetcher *ContentFetcher) AddFetchJob(d *FetchDefinition) {
 			}
 		}
 	}()
+}
+
+func (fetcher *ContentFetcher) addDependentFetchJobs(content Content) {
+	for _, fetch := range content.RequiredContent() {
+		fetcher.AddFetchJob(fetch)
+	}
+	for dependencyName, params := range content.Dependencies() {
+		_, alreadySheduled := fetcher.r.sheduledFetchDefinitionNames[dependencyName]
+		if !alreadySheduled {
+			lazyFd, existing, err := fetcher.lazyFdFactory(dependencyName, params)
+			if err != nil {
+				logging.Logger.WithError(err).
+					WithField("dependencyName", dependencyName).
+					WithField("params", params).
+					Errorf("failed optaining a fetch definition for dependency %v", dependencyName)
+			}
+			if err == nil && existing {
+				fetcher.AddFetchJob(lazyFd)
+			}
+			// error handling: In the case, the fd could not be loaded, we will do
+			// the error handling in the merging process.
+		}
+	}
 }
 
 func (fetcher *ContentFetcher) Empty() bool {
