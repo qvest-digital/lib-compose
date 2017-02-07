@@ -6,3 +6,8 @@ body {
     margin: 20px;
 
 }
+
+teaser {
+    min-height: 50px;
+    border: 1px solid black;
+}

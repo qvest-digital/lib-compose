@@ -221,6 +221,27 @@ The default is `required=false`, if not specified.
 The alternative content for optional html includes is currently not implemented.
 
 
+
+#### Includes with Paramters
+The HTML Syntax allows to specify includes, which are not preloaded, but will be loaded from the ui service on demand.
+For the case, it is also possible to specify parameters on the include, which allow the ui service to influence the loading of the content containing the fragment.
+
+Example:
+```
+<uic-include src="example.com/foo#content" param-foo="bar" param-bli="bla"/>
+```
+
+In this example, the ui service is requested to load the content associated with the fetch definition named 'example.com/foo' and the parameter map `{foo: bar, bli: bla}`.
+The content will only be loaded, if the there was not an content with the name `example.com/foo` before. Otherwise, the paramters will be ignored.
+
+*Attention:* Parameter names are always converted to lower case names, because of the underlaying html parser,
+
+
+
+
+
+
+
 #### Fetch directive
 It is possible to specifiy a url for additional content to load,
 while the composition takes place. 
