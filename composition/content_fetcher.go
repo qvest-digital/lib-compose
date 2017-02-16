@@ -148,7 +148,9 @@ func (fetcher *ContentFetcher) addDependentFetchJobs(content Content) {
 		fetcher.AddFetchJob(fetch)
 	}
 	for dependencyName, params := range content.Dependencies() {
+		fetcher.r.mutex.Lock()
 		_, alreadySheduled := fetcher.r.sheduledFetchDefinitionNames[dependencyName]
+		fetcher.r.mutex.Unlock()
 		if !alreadySheduled {
 			lazyFd, existing, err := fetcher.lazyFdFactory(dependencyName, params)
 			if err != nil {
