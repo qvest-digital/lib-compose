@@ -218,7 +218,7 @@ func LifecycleStop(appName string, signal os.Signal, err error) {
 			WithError(err).
 			Errorf("stopping application: %v (%v)", appName, err)
 	} else {
-		Logger.WithFields(fields).Infof("stopping application: %v (%v)", appName, signal.String())
+		Logger.WithFields(fields).Infof("stopping application: %v (%v)", appName, signal)
 	}
 }
 
