@@ -9,7 +9,7 @@ import (
 func Test_StringFragment(t *testing.T) {
 	a := assert.New(t)
 
-	f := StringFragment("§[foo]§")
+	f := NewStringFragment("§[foo]§")
 	buf := bytes.NewBufferString("")
 	err := f.Execute(buf, map[string]interface{}{"foo": "bar"}, nil)
 	a.NoError(err)

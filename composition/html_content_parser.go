@@ -88,7 +88,7 @@ forloop:
 	s := headBuff.String()
 	st := strings.Trim(s, " \n")
 	if len(st) > 0 {
-		c.head = StringFragment(st)
+		c.head = NewStringFragment(st)
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) 
 
 	attrs = readAttributes(z, attrs)
 	if len(attrs) > 0 {
-		c.bodyAttributes = StringFragment(joinAttrs(attrs))
+		c.bodyAttributes = NewStringFragment(joinAttrs(attrs))
 	}
 
 forloop:
@@ -173,7 +173,7 @@ forloop:
 	s := bodyBuff.String()
 	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
 		if st := strings.Trim(s, " \n"); len(st) > 0 {
-			c.body[""] = StringFragment(st)
+			c.body[""] = NewStringFragment(st)
 		}
 	}
 
@@ -224,7 +224,7 @@ forloop:
 		buff.Write(raw)
 	}
 
-	return StringFragment(buff.String()), dependencies, nil
+	return NewStringFragment(buff.String()), dependencies, nil
 }
 
 func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {
@@ -305,7 +305,7 @@ func getFetch(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, erro
 func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]string) error {
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
-	z := html.NewTokenizer(strings.NewReader(string(*fragment)))
+	z := html.NewTokenizer(strings.NewReader(fragment.Content()))
 forloop:
 	for {
 		tt := z.Next()
@@ -347,7 +347,7 @@ forloop:
 	s := headBuff.String()
 
 	if len(s) > 0 {
-		*fragment = StringFragment(s)
+		*fragment = *NewStringFragment(s)
 	}
 	return nil
 }
