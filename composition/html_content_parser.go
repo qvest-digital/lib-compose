@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/tarent/lib-compose/logging"
 )
 
 const (
@@ -51,6 +52,7 @@ func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 }
 
 func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
+	var stylesheets []string
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 
@@ -77,6 +79,11 @@ forloop:
 				}
 				continue
 			}
+			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
+				href, _ := getAttr(attrs, "href")
+				stylesheets = append(stylesheets, href.Val)
+				// continue to remove the stylesheet from the fragment
+			}
 		case tt == html.EndTagToken:
 			if string(tag) == "head" {
 				break forloop
@@ -88,12 +95,15 @@ forloop:
 	s := headBuff.String()
 	st := strings.Trim(s, " \n")
 	if len(st) > 0 {
-		c.head = NewStringFragment(st)
+		frg := NewStringFragment(st)
+		frg.AddStylesheets(stylesheets)
+		c.head = frg
 	}
 	return nil
 }
 
 func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
+	var stylesheets []string
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
@@ -120,7 +130,7 @@ forloop:
 				continue
 			}
 			if string(tag) == UicFragment {
-				if f, deps, err := parseFragment(z); err != nil {
+				if f, deps, _, err := parseFragment(z); err != nil {
 					return err
 				} else {
 					c.body[getFragmentName(attrs)] = f
@@ -131,7 +141,7 @@ forloop:
 				continue
 			}
 			if string(tag) == UicTail {
-				if f, deps, err := parseFragment(z); err != nil {
+				if f, deps, _, err := parseFragment(z); err != nil {
 					return err
 				} else {
 					c.tail = f
@@ -161,6 +171,12 @@ forloop:
 					continue
 				}
 			}
+			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
+				href, _ := getAttr(attrs, "href")
+				stylesheets = append(stylesheets, href.Val)
+				logging.Logger.WithField("stylesheet", href.Val).Info()
+				// continue to remove the stylesheet from the fragment
+			}
 
 		case tt == html.EndTagToken:
 			if string(tag) == "body" {
@@ -173,14 +189,16 @@ forloop:
 	s := bodyBuff.String()
 	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
 		if st := strings.Trim(s, " \n"); len(st) > 0 {
-			c.body[""] = NewStringFragment(st)
+			frg := NewStringFragment(st)
+			frg.AddStylesheets(stylesheets)
+			c.body[""] = frg
 		}
 	}
 
 	return nil
 }
 
-func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
+func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, stylesheets []string, err error) {
 	attrs := make([]html.Attribute, 0, 10)
 	dependencies = make(map[string]Params)
 
@@ -195,13 +213,13 @@ forloop:
 		switch {
 		case tt == html.ErrorToken:
 			if z.Err() != io.EOF {
-				return nil, nil, z.Err()
+				return nil, nil, nil, z.Err()
 			}
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if string(tag) == UicInclude {
 				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				} else {
 					dependencies[dependencyName] = dependencyParams
 					fmt.Fprintf(buff, replaceTextStart)
@@ -216,6 +234,13 @@ forloop:
 				continue
 			}
 
+			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
+				href, _ := getAttr(attrs, "href")
+				stylesheets = append(stylesheets, href.Val)
+				logging.Logger.WithField("stylesheet", href.Val).Info()
+				// continue to remove the stylesheet from the fragment
+			}
+
 		case tt == html.EndTagToken:
 			if string(tag) == UicFragment || string(tag) == UicTail {
 				break forloop
@@ -224,7 +249,9 @@ forloop:
 		buff.Write(raw)
 	}
 
-	return NewStringFragment(buff.String()), dependencies, nil
+	f = NewStringFragment(buff.String())
+	f.(*StringFragment).AddStylesheets(stylesheets)
+	return f, dependencies, stylesheets, nil
 }
 
 func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {

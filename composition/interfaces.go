@@ -15,6 +15,9 @@ type Fragment interface {
 
 	// MemorySize return the estimated size in bytes, for this object in memory
 	MemorySize() int
+	
+	// Return the list of stylesheets used in this fragment
+	Stylesheets() []string
 }
 
 type ContentLoader interface {
