@@ -26,7 +26,7 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment("Hello World\n"),
+						"": NewStringFragment("Hello World\n"),
 					},
 				},
 			},
@@ -64,7 +64,7 @@ func Test_CompositionHandler_PositiveCaseWithCache(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment("Hello World\n"),
+						"": NewStringFragment("Hello World\n"),
 					},
 				},
 				Hash: "hashString",
@@ -94,7 +94,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment(""),
+						"": NewStringFragment(""),
 					},
 					httpHeader: http.Header{
 						"Transfer-Encoding": {"gzip"}, // removed
@@ -144,7 +144,7 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned_onRedirect(t *te
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment(""),
+						"": NewStringFragment(""),
 					},
 					httpHeader: http.Header{
 						"Transfer-Encoding": {"gzip"}, // removed
@@ -229,7 +229,7 @@ func Test_CompositionHandler_CorrectStatusCodeReturned(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment(""),
+						"": NewStringFragment(""),
 					},
 					httpHeader: http.Header{
 						"Transfer-Encoding": {"gzip"}, // removed
@@ -269,7 +269,7 @@ func Test_CompositionHandler_ReturnStream(t *testing.T) {
 
 	contentWithFragment := &MemoryContent{
 		body: map[string]Fragment{
-			"": StringFragment("Hello World\n"),
+			"": NewStringFragment("Hello World\n"),
 		},
 	}
 
@@ -497,7 +497,7 @@ func Test_CompositionHandler_RestoreHostHeader(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment("Hello World\n"),
+						"": NewStringFragment("Hello World\n"),
 					},
 				},
 			},

@@ -187,8 +187,8 @@ func (cntx *ContentMerge) processMetaPriorityParsing() {
 	for i := len(cntx.Head) - 1; i >= 0; i-- {
 		var currentHead interface{} = cntx.Head[i]
 		if currentHead != nil {
-			currentStringFragment := currentHead.(StringFragment)
-			ParseHeadFragment(&currentStringFragment, headPropertyMap)
+			currentStringFragment := currentHead.(*StringFragment)
+			ParseHeadFragment(currentStringFragment, headPropertyMap)
 			cntx.Head[i] = currentStringFragment
 		}
 	}

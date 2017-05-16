@@ -28,7 +28,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 </html>
 `
 
-	body := StringFragment(
+	body := NewStringFragment(
 		`<page1-body-main>
       §[> page2-a]§
       §[> example.com#page2-b]§
@@ -40,27 +40,27 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 
 	cm.AddContent(&MemoryContent{
 		name:           LayoutFragmentName,
-		head:           StringFragment("<page1-head/>\n"),
-		bodyAttributes: StringFragment(`a="b"`),
-		tail:           StringFragment("    <page1-tail/>\n"),
+		head:           NewStringFragment("<page1-head/>\n"),
+		bodyAttributes: NewStringFragment(`a="b"`),
+		tail:           NewStringFragment("    <page1-tail/>\n"),
 		body:           map[string]Fragment{"": body},
 	}, 0)
 
 	cm.AddContent(&MemoryContent{
 		name:           "example.com",
-		head:           StringFragment("    <page2-head/>\n"),
-		bodyAttributes: StringFragment(`foo="bar"`),
-		tail:           StringFragment("    <page2-tail/>"),
+		head:           NewStringFragment("    <page2-head/>\n"),
+		bodyAttributes: NewStringFragment(`foo="bar"`),
+		tail:           NewStringFragment("    <page2-tail/>"),
 		body: map[string]Fragment{
-			"page2-a": StringFragment("<page2-body-a/>"),
-			"page2-b": StringFragment("<page2-body-b/>"),
+			"page2-a": NewStringFragment("<page2-body-a/>"),
+			"page2-b": NewStringFragment("<page2-body-b/>"),
 		}}, 0)
 
 	cm.AddContent(&MemoryContent{
 		name: "page3",
-		head: StringFragment("    <page3-head/>"),
+		head: NewStringFragment("    <page3-head/>"),
 		body: map[string]Fragment{
-			"": StringFragment("<page3-body-a/>"),
+			"": NewStringFragment("<page3-body-a/>"),
 		}}, MAX_PRIORITY) // just to trigger the priority-parsing and see that it doesn't crash..
 
 	html, err := cm.GetHtml()
@@ -91,7 +91,7 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 	cm.AddContent(&MemoryContent{
 		name: LayoutFragmentName,
 		body: map[string]Fragment{
-			"": StringFragment(
+			"": NewStringFragment(
 				`<page1-body-main>
       §[> page2-a]§
       §[> example1.com#page2-b]§
@@ -101,14 +101,14 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 	cm.AddContent(&MemoryContent{
 		name: "example1.com",
 		body: map[string]Fragment{
-			"page2-a": StringFragment("<page2-body-a/>"),
-			"page2-b": StringFragment("<page2-body-b/>"),
+			"page2-a": NewStringFragment("<page2-body-a/>"),
+			"page2-b": NewStringFragment("<page2-body-b/>"),
 		}}, 0)
 
 	cm.AddContent(&MemoryContent{
 		name: "example2.com",
 		body: map[string]Fragment{
-			"page3-a": StringFragment("<page3-body-a/>"),
+			"page3-a": NewStringFragment("<page3-body-a/>"),
 		}}, 0)
 
 	html, err := cm.GetHtml()
@@ -119,8 +119,8 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 func Test_ContentMerge_LookupByDifferentFragmentNames(t *testing.T) {
 	a := assert.New(t)
 
-	fragmentA := StringFragment("a")
-	fragmentB := StringFragment("b")
+	fragmentA := NewStringFragment("a")
+	fragmentB := NewStringFragment("b")
 
 	cm := NewContentMerge(nil)
 	cm.AddContent(&MemoryContent{

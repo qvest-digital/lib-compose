@@ -30,7 +30,7 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 			body, err := ioutil.ReadAll(in)
 			a.NoError(err)
 			a.Equal("the body", string(body))
-			c.head = StringFragment("some head content")
+			c.head = NewStringFragment("some head content")
 		})
 
 	loader.parser["text/html"] = mockParser
@@ -64,7 +64,7 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 			body, err := ioutil.ReadAll(in)
 			a.NoError(err)
 			a.Equal("the body", string(body))
-			c.head = StringFragment("some head content")
+			c.head = NewStringFragment("some head content")
 		})
 
 	loader.parser["text/html"] = mockParser
@@ -101,7 +101,7 @@ func Test_HttpContentLoader_Load_POST(t *testing.T) {
 			body, err := ioutil.ReadAll(in)
 			a.NoError(err)
 			a.Equal("the body", string(body))
-			c.head = StringFragment("some head content")
+			c.head = NewStringFragment("some head content")
 		})
 
 	loader.parser["text/html"] = mockParser

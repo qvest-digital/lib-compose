@@ -540,14 +540,13 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	f, _, err := parseFragment(z)
 	a.NoError(err)
 
-	sFragment := f.(StringFragment)
 	expected := `Bli Bla blub
       <br>
       §[> example.com/foo#content]§
       §[#> example.com/optional#content]§§[/example.com/optional#content]§
       <hr/>
       Bli Bla §[ aVariable ]§ blub`
-	eqFragment(t, expected, sFragment)
+	eqFragment(t, expected, f)
 
 	z.Next()
 	endTag, _ := z.TagName()
@@ -660,7 +659,7 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 		t.Error("Fragment is nil, but expected:", expected)
 		return
 	}
-	sf := f.(StringFragment)
+	sf := f.(*StringFragment).Content()
 	sfStripped := strings.Replace(string(sf), " ", "", -1)
 	sfStripped = strings.Replace(string(sfStripped), "\n", "", -1)
 	expectedStripped := strings.Replace(expected, " ", "", -1)
@@ -756,12 +755,12 @@ func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 
 	headPropertyMap := make(map[string]string)
 	headPropertyMap["title"] = "title"
-	headFragment := StringFragment(originalHeadString)
+	headFragment := NewStringFragment(originalHeadString)
 
-	ParseHeadFragment(&headFragment, headPropertyMap)
+	ParseHeadFragment(headFragment, headPropertyMap)
 
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
-	resultString := removeTabsAndNewLines(string(headFragment))
+	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
 }
@@ -854,11 +853,11 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 	headMetaPropertyMap["meta_charset"] = "whatever"
 	headMetaPropertyMap["meta_name_viewport"] = "already_exists"
 
-	headFragment := StringFragment(originalHeadString)
-	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+	headFragment := NewStringFragment(originalHeadString)
+	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
-	resultString := removeTabsAndNewLines(string(headFragment))
+	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
 }
