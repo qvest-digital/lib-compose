@@ -82,7 +82,7 @@ forloop:
 			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
 				href, _ := getAttr(attrs, "href")
 				stylesheets = append(stylesheets, href.Val)
-				// continue to remove the stylesheet from the fragment
+				continue
 			}
 		case tt == html.EndTagToken:
 			if string(tag) == "head" {
@@ -94,7 +94,7 @@ forloop:
 
 	s := headBuff.String()
 	st := strings.Trim(s, " \n")
-	if len(st) > 0 {
+	if len(st) > 0 || len(stylesheets) > 0 {
 		frg := NewStringFragment(st)
 		frg.AddStylesheets(stylesheets)
 		c.head = frg
@@ -130,7 +130,7 @@ forloop:
 				continue
 			}
 			if string(tag) == UicFragment {
-				if f, deps, _, err := parseFragment(z); err != nil {
+				if f, deps, err := parseFragment(z); err != nil {
 					return err
 				} else {
 					c.body[getFragmentName(attrs)] = f
@@ -141,7 +141,7 @@ forloop:
 				continue
 			}
 			if string(tag) == UicTail {
-				if f, deps, _, err := parseFragment(z); err != nil {
+				if f, deps, err := parseFragment(z); err != nil {
 					return err
 				} else {
 					c.tail = f
@@ -175,7 +175,7 @@ forloop:
 				href, _ := getAttr(attrs, "href")
 				stylesheets = append(stylesheets, href.Val)
 				logging.Logger.WithField("stylesheet", href.Val).Info()
-				// continue to remove the stylesheet from the fragment
+				continue
 			}
 
 		case tt == html.EndTagToken:
@@ -188,7 +188,7 @@ forloop:
 
 	s := bodyBuff.String()
 	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
-		if st := strings.Trim(s, " \n"); len(st) > 0 {
+		if st := strings.Trim(s, " \n"); len(st) > 0 || len(stylesheets) > 0 {
 			frg := NewStringFragment(st)
 			frg.AddStylesheets(stylesheets)
 			c.body[""] = frg
@@ -198,7 +198,8 @@ forloop:
 	return nil
 }
 
-func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, stylesheets []string, err error) {
+func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
+	var stylesheets []string
 	attrs := make([]html.Attribute, 0, 10)
 	dependencies = make(map[string]Params)
 
@@ -213,13 +214,13 @@ forloop:
 		switch {
 		case tt == html.ErrorToken:
 			if z.Err() != io.EOF {
-				return nil, nil, nil, z.Err()
+				return nil, nil, z.Err()
 			}
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if string(tag) == UicInclude {
 				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
-					return nil, nil, nil, err
+					return nil, nil, err
 				} else {
 					dependencies[dependencyName] = dependencyParams
 					fmt.Fprintf(buff, replaceTextStart)
@@ -238,7 +239,7 @@ forloop:
 				href, _ := getAttr(attrs, "href")
 				stylesheets = append(stylesheets, href.Val)
 				logging.Logger.WithField("stylesheet", href.Val).Info()
-				// continue to remove the stylesheet from the fragment
+				continue
 			}
 
 		case tt == html.EndTagToken:
@@ -251,7 +252,7 @@ forloop:
 
 	f = NewStringFragment(buff.String())
 	f.(*StringFragment).AddStylesheets(stylesheets)
-	return f, dependencies, stylesheets, nil
+	return f, dependencies, nil
 }
 
 func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {

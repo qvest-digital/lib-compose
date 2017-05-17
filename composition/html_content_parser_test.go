@@ -596,7 +596,7 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
       Bli Bla blub
-	  <link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+      <link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
       <Br>
       <uic-include src="example.com/foo#content" required="true"/>
       <uic-include src="example.com/optional#content" required="false"/>
@@ -609,11 +609,11 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
     </uic-fragment><testend>`))
 
 	z.Next() // At <uic-fragment name ..
-	f, _, _, err := parseFragment(z)
+	f, _, err := parseFragment(z)
 	a.NoError(err)
 
 	expected := `Bli Bla blub
-	  <link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+
       <br>
       §[> example.com/foo#content]§
       §[#> example.com/optional#content]§§[/example.com/optional#content]§
@@ -742,7 +742,7 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 	expectedStripped = strings.Replace(expectedStripped, "\n", "", -1)
 
 	if expectedStripped != sfStripped {
-		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual:  ", sf)
+		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual: ", sf)
 	}
 }
 
