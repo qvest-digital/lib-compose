@@ -34,6 +34,9 @@ type ContentMerge struct {
 	// merge priorities for the content objects
 	// no entry means priority == 0
 	priorities map[Content]int
+
+	// all stylesheets contained in used fragments
+	stylesheets []string
 }
 
 // NewContentMerge creates a new buffered ContentMerge
@@ -50,9 +53,15 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	return cntx
 }
 
+func (cntx *ContentMerge) collectStylesheets(f Fragment) {
+	cntx.stylesheets = append(cntx.stylesheets, f.Stylesheets()...)
+}
+
 func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
-	href := ""
-	io.WriteString(w, fmt.Sprintf(`<link rel="stylesheet" type="text/css" href="%s"`, href))
+	for _, href := range cntx.stylesheets {
+		stylesheet := fmt.Sprintf("\n    <link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">", href)
+		io.WriteString(w, stylesheet)
+	}
 }
 
 func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment func(fragmentName string) error) {
@@ -62,21 +71,23 @@ func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment
 			missingFragmentString := generateMissingFragmentString(cntx.Body, fragmentName)
 			return errors.New(missingFragmentString)
 		}
+		cntx.collectStylesheets(f)
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 	return executeFragment
 }
 
 func (cntx *ContentMerge) GetHtml() ([]byte, error) {
-	// stylesheets := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+
 	if len(cntx.priorities) > 0 {
 		cntx.processMetaPriorityParsing()
 	}
 
-
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
 	for _, f := range cntx.BodyAttrs {
+		cntx.collectStylesheets(f)
+
 		io.WriteString(body, " ")
 
 		executeFragment := generateExecutionFunction(cntx, body)
@@ -98,6 +109,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	}
 
 	for _, f := range cntx.Tail {
+		cntx.collectStylesheets(f)
 		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
 		}
@@ -109,11 +121,13 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
 
 	for _, f := range cntx.Head {
+		cntx.collectStylesheets(f)
 		executeFragment := generateExecutionFunction(cntx, header)
 		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
 		}
 	}
+	cntx.writeStylesheets(header)
 	io.WriteString(header, "\n  </head>")
 
 	html := append(header.Bytes(), body.Bytes()...)
