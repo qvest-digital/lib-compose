@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"fmt"
 )
 
 const (
@@ -49,13 +50,12 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	return cntx
 }
 
-func (cntx *ContentMerge) GetHtml() ([]byte, error) {
-	if len(cntx.priorities) > 0 {
-		cntx.processMetaPriorityParsing()
-	}
-	w := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
+	href := ""
+	io.WriteString(w, fmt.Sprintf(`<link rel="stylesheet" type="text/css" href="%s"`, href))
+}
 
-	var executeFragment func(fragmentName string) error
+func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment func(fragmentName string) error) {
 	executeFragment = func(fragmentName string) error {
 		f, exist := cntx.GetBodyFragmentByName(fragmentName)
 		if !exist {
@@ -64,44 +64,59 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 		}
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
+	return executeFragment
+}
 
-	io.WriteString(w, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
+func (cntx *ContentMerge) GetHtml() ([]byte, error) {
+	// stylesheets := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+	if len(cntx.priorities) > 0 {
+		cntx.processMetaPriorityParsing()
+	}
+
+	header := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+
+	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
 
 	for _, f := range cntx.Head {
-		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
+		executeFragment := generateExecutionFunction(cntx, header)
+		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
 		}
 	}
-	io.WriteString(w, "\n  </head>\n  <body")
+	io.WriteString(header, "\n  </head>\n  <body")
 
+	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	for _, f := range cntx.BodyAttrs {
-		io.WriteString(w, " ")
+		io.WriteString(body, " ")
 
-		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
+		executeFragment := generateExecutionFunction(cntx, body)
+		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
 		}
 	}
 
-	io.WriteString(w, ">\n    ")
+	io.WriteString(body, ">\n    ")
 
 	startFragmentName := ""
 	if _, exist := cntx.GetBodyFragmentByName(LayoutFragmentName); exist {
 		startFragmentName = LayoutFragmentName
 	}
 
+	executeFragment := generateExecutionFunction(cntx, body)
 	if err := executeFragment(startFragmentName); err != nil {
 		return nil, err
 	}
 
 	for _, f := range cntx.Tail {
-		if err := f.Execute(w, cntx.MetaJSON, executeFragment); err != nil {
+		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
 		}
 	}
 
-	io.WriteString(w, "\n  </body>\n</html>\n")
+	io.WriteString(body, "\n  </body>\n</html>\n")
 
-	return w.Bytes(), nil
+	html := append(header.Bytes(), body.Bytes()...)
+	return html, nil
 }
 
 // GetBodyFragmentByName returns a fragment by ists name.
