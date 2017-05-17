@@ -73,19 +73,9 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 		cntx.processMetaPriorityParsing()
 	}
 
-	header := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
-
-	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
-
-	for _, f := range cntx.Head {
-		executeFragment := generateExecutionFunction(cntx, header)
-		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
-			return nil, err
-		}
-	}
-	io.WriteString(header, "\n  </head>\n  <body")
 
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+	io.WriteString(body, "\n  <body")
 	for _, f := range cntx.BodyAttrs {
 		io.WriteString(body, " ")
 
@@ -114,6 +104,17 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	}
 
 	io.WriteString(body, "\n  </body>\n</html>\n")
+
+	header := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
+
+	for _, f := range cntx.Head {
+		executeFragment := generateExecutionFunction(cntx, header)
+		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
+			return nil, err
+		}
+	}
+	io.WriteString(header, "\n  </head>")
 
 	html := append(header.Bytes(), body.Bytes()...)
 	return html, nil
