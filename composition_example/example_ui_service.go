@@ -53,3 +53,17 @@ func sidebarHandler(w http.ResponseWriter, r *http.Request) {
 	teaserId := r.URL.Query().Get("teaser-id")
 	fmt.Fprintf(w, template, teaserId)
 }
+
+
+// Use an own deduplication strategy instead of the default one
+
+type MyExampleDeduplicationStrategy struct {
+}
+
+func (strategy *MyExampleDeduplicationStrategy) Deduplicate(hrefs []string) []string {
+	return hrefs
+}
+
+func init() {
+	composition.SetStrategy(new(MyExampleDeduplicationStrategy))
+}
