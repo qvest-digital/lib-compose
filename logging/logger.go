@@ -3,7 +3,7 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	logstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"net/http"
 	"os"
