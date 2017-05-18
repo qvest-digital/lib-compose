@@ -83,6 +83,19 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 		cntx.processMetaPriorityParsing()
 	}
 
+	// start header, but don't close it. We will add stylsheets later on
+	header := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
+
+	for _, f := range cntx.Head {
+		cntx.collectStylesheets(f)
+		executeFragment := generateExecutionFunction(cntx, header)
+		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
+			return nil, err
+		}
+	}
+
+	// open body tag
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
 	for _, f := range cntx.BodyAttrs {
@@ -103,6 +116,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 		startFragmentName = LayoutFragmentName
 	}
 
+	// recursively process body fragments
 	executeFragment := generateExecutionFunction(cntx, body)
 	if err := executeFragment(startFragmentName); err != nil {
 		return nil, err
@@ -114,22 +128,13 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 			return nil, err
 		}
 	}
-
 	io.WriteString(body, "\n  </body>\n</html>\n")
 
-	header := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
-	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
-
-	for _, f := range cntx.Head {
-		cntx.collectStylesheets(f)
-		executeFragment := generateExecutionFunction(cntx, header)
-		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
-			return nil, err
-		}
-	}
+	// write the collected stylesheets to the header and close it
 	cntx.writeStylesheets(header)
 	io.WriteString(header, "\n  </head>")
 
+	// return concatenated header and body
 	html := append(header.Bytes(), body.Bytes()...)
 	return html, nil
 }
