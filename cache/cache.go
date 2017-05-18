@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/hashicorp/golang-lru/simplelru"
 	"github.com/tarent/lib-compose/logging"
 	"sync"
