@@ -124,3 +124,7 @@ type Cache interface {
 	Invalidate()
 	PurgeEntries(keys []string)
 }
+
+type StylesheetDeduplicationStrategy interface {
+	Deduplicate(stylesheetAttrs [][]html.Attribute) [][]html.Attribute
+}
