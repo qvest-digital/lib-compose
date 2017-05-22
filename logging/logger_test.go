@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/Sirupsen/logrus"
+	"github.com/tarent/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
