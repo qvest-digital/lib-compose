@@ -6,14 +6,14 @@ import (
 
 // StringFragment is a simple template based representation of a fragment.
 type StringFragment struct {
-	content string
+	content     string
 	stylesheets []string
 }
 
 func NewStringFragment(c string) *StringFragment {
-	return &StringFragment {
-		content: c,
-		stylesheets: []string{},
+	return &StringFragment{
+		content:     c,
+		stylesheets: nil,
 	}
 }
 

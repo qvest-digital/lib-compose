@@ -99,10 +99,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
 	for _, f := range cntx.BodyAttrs {
-		cntx.collectStylesheets(f)
-
 		io.WriteString(body, " ")
-
 		executeFragment := generateExecutionFunction(cntx, body)
 		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err

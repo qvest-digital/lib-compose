@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/tarent/lib-compose/logging"
 )
 
 const (
@@ -79,9 +78,8 @@ forloop:
 				}
 				continue
 			}
-			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
-				href, _ := getAttr(attrs, "href")
-				stylesheets = append(stylesheets, href.Val)
+			if href, isStylesheed := getStylesheet(tag, attrs); isStylesheed {
+				stylesheets = append(stylesheets, href)
 				continue
 			}
 		case tt == html.EndTagToken:
@@ -100,6 +98,14 @@ forloop:
 		c.head = frg
 	}
 	return nil
+}
+
+func getStylesheet(tag []byte, attrs []html.Attribute) (href string, isStylesheet bool) {
+	if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
+		href, _ := getAttr(attrs, "href")
+		return href.Val, true
+	}
+	return "", false
 }
 
 func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
@@ -171,10 +177,8 @@ forloop:
 					continue
 				}
 			}
-			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
-				href, _ := getAttr(attrs, "href")
-				stylesheets = append(stylesheets, href.Val)
-				logging.Logger.WithField("stylesheet", href.Val).Info()
+			if href, isStylesheed := getStylesheet(tag, attrs); isStylesheed {
+				stylesheets = append(stylesheets, href)
 				continue
 			}
 
@@ -235,10 +239,8 @@ forloop:
 				continue
 			}
 
-			if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
-				href, _ := getAttr(attrs, "href")
-				stylesheets = append(stylesheets, href.Val)
-				logging.Logger.WithField("stylesheet", href.Val).Info()
+			if href, isStylesheed := getStylesheet(tag, attrs); isStylesheed {
+				stylesheets = append(stylesheets, href)
 				continue
 			}
 
@@ -250,9 +252,9 @@ forloop:
 		buff.Write(raw)
 	}
 
-	f = NewStringFragment(buff.String())
-	f.(*StringFragment).AddStylesheets(stylesheets)
-	return f, dependencies, nil
+	frg := NewStringFragment(buff.String())
+	frg.AddStylesheets(stylesheets)
+	return frg, dependencies, nil
 }
 
 func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {
