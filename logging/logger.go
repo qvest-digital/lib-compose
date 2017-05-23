@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tarent/logrus"
-	logstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"net/http"
 	"os"
 	"strings"
@@ -33,7 +32,7 @@ func Set(level string, textLogging bool) error {
 	if textLogging {
 		logger.Formatter = &logrus.TextFormatter{}
 	} else {
-		logger.Formatter = &logstash.LogstashFormatter{TimestampFormat: time.RFC3339Nano}
+		logger.Formatter = &LogstashFormatter{TimestampFormat: time.RFC3339Nano}
 	}
 	logger.Level = l
 	Logger = logger
