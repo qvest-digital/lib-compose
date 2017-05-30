@@ -15,8 +15,6 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
     <page1-head/>
     <page2-head/>
     <page3-head/>
-    <link rel="stylesheet" type="text/css" href="/abc/def">
-    <link rel="stylesheet" type="text/css" href="/üst/das/möglich">
   </head>
   <body a="b" foo="bar">
     <page1-body-main>
@@ -38,7 +36,6 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
     </page1-body-main>
 `)
 
-	body.AddStylesheets([]string{"/abc/def", "/üst/das/möglich"})
 	cm := NewContentMerge(nil)
 
 	cm.AddContent(&MemoryContent{
@@ -78,14 +75,6 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 <html>
   <head>
     
-    <link rel="stylesheet" type="text/css" href="/body/first">
-    <link rel="stylesheet" type="text/css" href="/body/second">
-    <link rel="stylesheet" type="text/css" href="/page/2A/first">
-    <link rel="stylesheet" type="text/css" href="/page/2A/second">
-    <link rel="stylesheet" type="text/css" href="/page/2B/first">
-    <link rel="stylesheet" type="text/css" href="/page/2B/second">
-    <link rel="stylesheet" type="text/css" href="/page/3A/first">
-    <link rel="stylesheet" type="text/css" href="/page/3A/second">
   </head>
   <body>
     <page1-body-main>
@@ -99,48 +88,32 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 
 	cm := NewContentMerge(nil)
 
-	body := NewStringFragment(
+	cm.AddContent(&MemoryContent{
+		name: LayoutFragmentName,
+		body: map[string]Fragment{
+			"": NewStringFragment(
 				`<page1-body-main>
       §[> page2-a]§
       §[> example1.com#page2-b]§
       §[> page3-a]§
-    </page1-body-main>`)
-	body.AddStylesheets([]string{"/body/first", "/body/second"})
-	cm.AddContent(&MemoryContent{
-		name: LayoutFragmentName,
-		body: map[string]Fragment{
-			"": body}}, 0)
-
-	page2A := NewStringFragment("<page2-body-a/>")
-	page2A.AddStylesheets([]string{"/page/2A/first", "/page/2A/second"})
-	page2B := NewStringFragment("<page2-body-b/>")
-	page2B.AddStylesheets([]string{"/page/2B/first", "/page/2B/second"})
-
-	// this fragment is not rendered, so it's stylesheets should not appear in page header
-	pageUnreferenced := NewStringFragment("<unreferenced-body/>")
-	pageUnreferenced.AddStylesheets([]string{"/unreferenced/first", "/unreferenced/second"})
+    </page1-body-main>`)}}, 0)
 
 	cm.AddContent(&MemoryContent{
 		name: "example1.com",
 		body: map[string]Fragment{
-			"page2-a": page2A,
-			"page2-b": page2B,
-			"unreferenced": pageUnreferenced,
+			"page2-a": NewStringFragment("<page2-body-a/>"),
+			"page2-b": NewStringFragment("<page2-body-b/>"),
 		}}, 0)
 
-	page3A := NewStringFragment("<page3-body-a/>")
-	page3A.AddStylesheets([]string{"/page/3A/first", "/page/3A/second"})
 	cm.AddContent(&MemoryContent{
 		name: "example2.com",
 		body: map[string]Fragment{
-			"page3-a": page3A,
+			"page3-a": NewStringFragment("<page3-body-a/>"),
 		}}, 0)
 
 	html, err := cm.GetHtml()
 	a.NoError(err)
-	expected = removeTabsAndNewLines(expected)
-	result := removeTabsAndNewLines(string(html))
-	a.Equal(expected, result)
+	a.Equal(expected, string(html))
 }
 
 func Test_ContentMerge_LookupByDifferentFragmentNames(t *testing.T) {

@@ -10,8 +10,6 @@ func Test_StringFragment(t *testing.T) {
 	a := assert.New(t)
 
 	f := NewStringFragment("§[foo]§")
-	f.AddStylesheets([]string{"/abc/def", "ghi/xyz"})
-	a.Equal([]string{"/abc/def", "ghi/xyz"}, f.Stylesheets())
 	buf := bytes.NewBufferString("")
 	err := f.Execute(buf, map[string]interface{}{"foo": "bar"}, nil)
 	a.NoError(err)
