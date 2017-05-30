@@ -21,6 +21,10 @@ func (f *StringFragment) Content() string {
 	return f.content
 }
 
+func (f *StringFragment) SetContent(content string) {
+	f.content = content
+}
+
 func (f *StringFragment) Stylesheets() []string {
 	return f.stylesheets
 }

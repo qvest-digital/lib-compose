@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/html"
 	"io"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 const (
@@ -377,7 +378,7 @@ forloop:
 	s := headBuff.String()
 
 	if len(s) > 0 {
-		*fragment = *NewStringFragment(s)
+		fragment.SetContent(s)
 	}
 	return nil
 }
