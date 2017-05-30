@@ -1,8 +1,10 @@
 <html>
   <head>
+    <link rel="stylesheet" href="/static/head/layout.css">
   </head>
   <body>
     <h1 uic-remove>This is the basic layout</h1>
+    <link rel="stylesheet" href="/static/body/layout1.css">
     <uic-fetch src="§[request.base_url]§/static/basic.html#header" name="basic"/>
     <uic-include src="basic#header" required="true"/>
     <uic-include src="basic#subheader" required="true"/>
@@ -10,5 +12,6 @@
     <uic-include src="content" required="true"/>
     <uic-include src="basic#footer" required="true"/>
     <uic-include src="missing_fragment"/>
+    <link rel="stylesheet" href="/static/body/layout2.css">
   </body>
 </html>
