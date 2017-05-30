@@ -3,12 +3,13 @@ package composition
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/html"
 	_ "regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 )
 
 var productUiGeneratedHtml = `<!DOCTYPE html>
@@ -356,7 +357,6 @@ func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a.Equal("bar", c.Meta()["foo"])
 }
 
-
 func Test_HtmlContentParser_collectStylesheets_bodyAsDefaultFragment(t *testing.T) {
 	a := assert.New(t)
 
@@ -382,10 +382,10 @@ func Test_HtmlContentParser_collectStylesheets_bodyAsDefaultFragment(t *testing.
 	c := NewMemoryContent()
 	err := parser.Parse(c, z)
 	a.NoError(err)
-	a.Equal([]string{"/basketservice/stylesheets/main-93174ed18d.css"},
-		    c.Body()["content"].Stylesheets())
-	a.Equal([]string{"/productservice/stylesheets/main-93174ed18d.css"},
-		    c.Body()[""].Stylesheets())
+	a.Equal("rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/productservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()[""].Stylesheets()[0]))
 }
 
 func Test_HtmlContentParser_collectStylesheets_OverrideDefault(t *testing.T) {
@@ -417,10 +417,11 @@ func Test_HtmlContentParser_collectStylesheets_OverrideDefault(t *testing.T) {
 	c := NewMemoryContent()
 	err := parser.Parse(c, z)
 	a.NoError(err)
-	a.Equal([]string{"/basketservice/stylesheets/main-93174ed18d.css"},
-		    c.Body()["content"].Stylesheets())
-	a.Equal([]string{"/override/stylesheets/main-93174ed18d.css"},
-		    c.Body()[""].Stylesheets())
+	a.Equal(
+		"rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/override/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()[""].Stylesheets()[0]))
 }
 
 func Test_HtmlContentParser_parseBody(t *testing.T) {
@@ -624,7 +625,7 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	z.Next()
 	endTag, _ := z.TagName()
 	a.Equal("testend", string(endTag))
-	a.Equal("/navigationservice/stylesheets/main-93174ed18d.css", f.Stylesheets()[0])
+	a.Equal(`rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css"`, joinAttrs(f.Stylesheets()[0]))
 	a.Equal(1, len(f.Stylesheets()))
 }
 

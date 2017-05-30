@@ -2,12 +2,14 @@ package composition
 
 import (
 	"io"
+
+	"golang.org/x/net/html"
 )
 
 // StringFragment is a simple template based representation of a fragment.
 type StringFragment struct {
 	content     string
-	stylesheets []string
+	stylesheets [][]html.Attribute
 }
 
 func NewStringFragment(c string) *StringFragment {
@@ -25,11 +27,11 @@ func (f *StringFragment) SetContent(content string) {
 	f.content = content
 }
 
-func (f *StringFragment) Stylesheets() []string {
+func (f *StringFragment) Stylesheets() [][]html.Attribute {
 	return f.stylesheets
 }
 
-func (f *StringFragment) AddStylesheets(stylesheets []string) {
+func (f *StringFragment) AddStylesheets(stylesheets [][]html.Attribute) {
 	f.stylesheets = append(f.stylesheets, stylesheets...)
 }
 

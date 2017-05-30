@@ -2,9 +2,16 @@ package composition
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 )
+
+func stylesheetAttrs(href string) []html.Attribute {
+	commonAttr := []html.Attribute{{Key: "rel", Val: "stylesheet"}, {Key: "type", Val: "text/css"}}
+	return append(commonAttr, html.Attribute{Key: "href", Val: href})
+}
 
 func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a := assert.New(t)
@@ -38,7 +45,12 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
     </page1-body-main>
 `)
 
-	body.AddStylesheets([]string{"/abc/def", "/üst/das/möglich"})
+	sheets := [][]html.Attribute{
+		stylesheetAttrs("/abc/def"),
+		stylesheetAttrs("/üst/das/möglich"),
+	}
+
+	body.AddStylesheets(sheets)
 	cm := NewContentMerge(nil)
 
 	cm.AddContent(&MemoryContent{
@@ -100,36 +112,59 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 	cm := NewContentMerge(nil)
 
 	body := NewStringFragment(
-				`<page1-body-main>
+		`<page1-body-main>
       §[> page2-a]§
       §[> example1.com#page2-b]§
       §[> page3-a]§
     </page1-body-main>`)
-	body.AddStylesheets([]string{"/body/first", "/body/second"})
+
+	sheets := [][]html.Attribute{
+		stylesheetAttrs("/body/first"),
+		stylesheetAttrs("/body/second"),
+	}
+	body.AddStylesheets(sheets)
+
 	cm.AddContent(&MemoryContent{
 		name: LayoutFragmentName,
 		body: map[string]Fragment{
 			"": body}}, 0)
 
 	page2A := NewStringFragment("<page2-body-a/>")
-	page2A.AddStylesheets([]string{"/page/2A/first", "/page/2A/second"})
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/page/2A/first"),
+		stylesheetAttrs("/page/2A/second"),
+	}
+	page2A.AddStylesheets(sheets)
+
 	page2B := NewStringFragment("<page2-body-b/>")
-	page2B.AddStylesheets([]string{"/page/2B/first", "/page/2B/second"})
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/page/2B/first"),
+		stylesheetAttrs("/page/2B/second"),
+	}
+	page2B.AddStylesheets(sheets)
 
 	// this fragment is not rendered, so it's stylesheets should not appear in page header
 	pageUnreferenced := NewStringFragment("<unreferenced-body/>")
-	pageUnreferenced.AddStylesheets([]string{"/unreferenced/first", "/unreferenced/second"})
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/unreferenced/first"),
+		stylesheetAttrs("/unreferenced/second"),
+	}
+	pageUnreferenced.AddStylesheets(sheets)
 
 	cm.AddContent(&MemoryContent{
 		name: "example1.com",
 		body: map[string]Fragment{
-			"page2-a": page2A,
-			"page2-b": page2B,
+			"page2-a":      page2A,
+			"page2-b":      page2B,
 			"unreferenced": pageUnreferenced,
 		}}, 0)
 
 	page3A := NewStringFragment("<page3-body-a/>")
-	page3A.AddStylesheets([]string{"/page/3A/first", "/page/3A/second"})
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/page/3A/first"),
+		stylesheetAttrs("/page/3A/second"),
+	}
+	page3A.AddStylesheets(sheets)
 	cm.AddContent(&MemoryContent{
 		name: "example2.com",
 		body: map[string]Fragment{

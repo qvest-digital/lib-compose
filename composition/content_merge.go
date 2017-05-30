@@ -3,9 +3,11 @@ package composition
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
-	"fmt"
+
+	"golang.org/x/net/html"
 )
 
 const (
@@ -36,7 +38,7 @@ type ContentMerge struct {
 	priorities map[Content]int
 
 	// all stylesheets contained in used fragments
-	stylesheets []string
+	stylesheets [][]html.Attribute
 }
 
 // NewContentMerge creates a new buffered ContentMerge
@@ -58,8 +60,9 @@ func (cntx *ContentMerge) collectStylesheets(f Fragment) {
 }
 
 func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
-	for _, href := range cntx.stylesheets {
-		stylesheet := fmt.Sprintf("\n    <link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">", href)
+	for _, attrs := range cntx.stylesheets {
+		joinedAttr := joinAttrs(attrs)
+		stylesheet := fmt.Sprintf("\n    <link %s>", joinedAttr)
 		io.WriteString(w, stylesheet)
 	}
 }

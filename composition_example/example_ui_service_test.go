@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/yosssi/gohtml"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/yosssi/gohtml"
 )
 
 func Test_integration_test(t *testing.T) {
@@ -26,6 +27,10 @@ func Test_integration_test(t *testing.T) {
 
 	expected, err := ioutil.ReadFile("./expected_test_result.html")
 	expectedS := strings.Replace(string(expected), "http://127.0.0.1:8080", s.URL, -1)
+
+	// debug - don't commit!
+	ioutil.WriteFile("/tmp/expected", []byte(expectedS), 0644)
+	ioutil.WriteFile("/tmp/result", body, 0644)
 
 	a.NoError(err)
 	htmlEqual(t, expectedS, string(body))

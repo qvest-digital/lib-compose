@@ -52,7 +52,7 @@ func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 }
 
 func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
-	var stylesheets []string
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 
@@ -79,8 +79,8 @@ forloop:
 				}
 				continue
 			}
-			if href, isStylesheed := getStylesheet(tag, attrs); isStylesheed {
-				stylesheets = append(stylesheets, href)
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
 				continue
 			}
 		case tt == html.EndTagToken:
@@ -101,16 +101,17 @@ forloop:
 	return nil
 }
 
-func getStylesheet(tag []byte, attrs []html.Attribute) (href string, isStylesheet bool) {
+func getStylesheet(tag []byte, attrs []html.Attribute) (styleAttrs []html.Attribute, isStylesheet bool) {
+	styleAttrs = nil
 	if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
-		href, _ := getAttr(attrs, "href")
-		return href.Val, true
+		styleAttrs = append(styleAttrs, attrs...)
+		return styleAttrs, true
 	}
-	return "", false
+	return styleAttrs, false
 }
 
 func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
-	var stylesheets []string
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
@@ -178,8 +179,8 @@ forloop:
 					continue
 				}
 			}
-			if href, isStylesheed := getStylesheet(tag, attrs); isStylesheed {
-				stylesheets = append(stylesheets, href)
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
 				continue
 			}
 
@@ -204,7 +205,7 @@ forloop:
 }
 
 func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
-	var stylesheets []string
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	dependencies = make(map[string]Params)
 
@@ -240,8 +241,8 @@ forloop:
 				continue
 			}
 
-			if href, isStylesheed := getStylesheet(tag, attrs); isStylesheed {
-				stylesheets = append(stylesheets, href)
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
 				continue
 			}
 
