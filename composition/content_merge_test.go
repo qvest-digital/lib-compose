@@ -2,9 +2,16 @@ package composition
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 )
+
+func stylesheetAttrs(href string) []html.Attribute {
+	commonAttr := []html.Attribute{{Key: "rel", Val: "stylesheet"}, {Key: "type", Val: "text/css"}}
+	return append(commonAttr, html.Attribute{Key: "href", Val: href})
+}
 
 func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a := assert.New(t)
@@ -15,6 +22,8 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
     <page1-head/>
     <page2-head/>
     <page3-head/>
+    <link rel="stylesheet" type="text/css" href="/abc/def">
+    <link rel="stylesheet" type="text/css" href="/üst/das/möglich">
   </head>
   <body a="b" foo="bar">
     <page1-body-main>
@@ -36,6 +45,12 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
     </page1-body-main>
 `)
 
+	sheets := [][]html.Attribute{
+		stylesheetAttrs("/abc/def"),
+		stylesheetAttrs("/üst/das/möglich"),
+	}
+
+	body.AddStylesheets(sheets)
 	cm := NewContentMerge(nil)
 
 	cm.AddContent(&MemoryContent{
@@ -75,6 +90,14 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 <html>
   <head>
     
+    <link rel="stylesheet" type="text/css" href="/body/first">
+    <link rel="stylesheet" type="text/css" href="/body/second">
+    <link rel="stylesheet" type="text/css" href="/page/2A/first">
+    <link rel="stylesheet" type="text/css" href="/page/2A/second">
+    <link rel="stylesheet" type="text/css" href="/page/2B/first">
+    <link rel="stylesheet" type="text/css" href="/page/2B/second">
+    <link rel="stylesheet" type="text/css" href="/page/3A/first">
+    <link rel="stylesheet" type="text/css" href="/page/3A/second">
   </head>
   <body>
     <page1-body-main>
@@ -88,32 +111,71 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 
 	cm := NewContentMerge(nil)
 
-	cm.AddContent(&MemoryContent{
-		name: LayoutFragmentName,
-		body: map[string]Fragment{
-			"": NewStringFragment(
-				`<page1-body-main>
+	body := NewStringFragment(
+		`<page1-body-main>
       §[> page2-a]§
       §[> example1.com#page2-b]§
       §[> page3-a]§
-    </page1-body-main>`)}}, 0)
+    </page1-body-main>`)
+
+	sheets := [][]html.Attribute{
+		stylesheetAttrs("/body/first"),
+		stylesheetAttrs("/body/second"),
+	}
+	body.AddStylesheets(sheets)
+
+	cm.AddContent(&MemoryContent{
+		name: LayoutFragmentName,
+		body: map[string]Fragment{
+			"": body}}, 0)
+
+	page2A := NewStringFragment("<page2-body-a/>")
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/page/2A/first"),
+		stylesheetAttrs("/page/2A/second"),
+	}
+	page2A.AddStylesheets(sheets)
+
+	page2B := NewStringFragment("<page2-body-b/>")
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/page/2B/first"),
+		stylesheetAttrs("/page/2B/second"),
+	}
+	page2B.AddStylesheets(sheets)
+
+	// this fragment is not rendered, so it's stylesheets should not appear in page header
+	pageUnreferenced := NewStringFragment("<unreferenced-body/>")
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/unreferenced/first"),
+		stylesheetAttrs("/unreferenced/second"),
+	}
+	pageUnreferenced.AddStylesheets(sheets)
 
 	cm.AddContent(&MemoryContent{
 		name: "example1.com",
 		body: map[string]Fragment{
-			"page2-a": NewStringFragment("<page2-body-a/>"),
-			"page2-b": NewStringFragment("<page2-body-b/>"),
+			"page2-a":      page2A,
+			"page2-b":      page2B,
+			"unreferenced": pageUnreferenced,
 		}}, 0)
 
+	page3A := NewStringFragment("<page3-body-a/>")
+	sheets = [][]html.Attribute{
+		stylesheetAttrs("/page/3A/first"),
+		stylesheetAttrs("/page/3A/second"),
+	}
+	page3A.AddStylesheets(sheets)
 	cm.AddContent(&MemoryContent{
 		name: "example2.com",
 		body: map[string]Fragment{
-			"page3-a": NewStringFragment("<page3-body-a/>"),
+			"page3-a": page3A,
 		}}, 0)
 
 	html, err := cm.GetHtml()
 	a.NoError(err)
-	a.Equal(expected, string(html))
+	expected = removeTabsAndNewLines(expected)
+	result := removeTabsAndNewLines(string(html))
+	a.Equal(expected, result)
 }
 
 func Test_ContentMerge_LookupByDifferentFragmentNames(t *testing.T) {

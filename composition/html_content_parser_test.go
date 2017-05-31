@@ -3,12 +3,13 @@ package composition
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/html"
 	_ "regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 )
 
 var productUiGeneratedHtml = `<!DOCTYPE html>
@@ -356,6 +357,73 @@ func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a.Equal("bar", c.Meta()["foo"])
 }
 
+func Test_HtmlContentParser_collectStylesheets_bodyAsDefaultFragment(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := bytes.NewBufferString(`<head>
+	<!-- will be found by the HeaderParser -->
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-03174ed18d.css">
+</head>
+<body>
+	<div>
+		<!-- will be found by the BodyParser -->
+		<link rel="stylesheet" href="/productservice/stylesheets/main-93174ed18d.css">
+		<uic-fragment name="content">
+		Bli Bla blub
+		<link rel="stylesheet" href="/basketservice/stylesheets/main-93174ed18d.css">
+		</uic-fragment>
+	</div>
+</body>
+`)
+
+	c := NewMemoryContent()
+	err := parser.Parse(c, z)
+	a.NoError(err)
+	a.Equal("rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/productservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()[""].Stylesheets()[0]))
+}
+
+func Test_HtmlContentParser_collectStylesheets_OverrideDefault(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := bytes.NewBufferString(`<head>
+	<!-- will be found by the HeaderParser -->
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-03174ed18d.css">
+</head>
+<body>
+	<div>
+		<!-- will be found by the BodyParser -->
+		<link rel="stylesheet" href="/productservice/stylesheets/main-93174ed18d.css">
+		<uic-fragment name="content">
+		Bli Bla blub
+		<link rel="stylesheet" href="/basketservice/stylesheets/main-93174ed18d.css">
+		</uic-fragment>
+		<uic-fragment name="">
+		Bli Bla blub
+		<link rel="stylesheet" href="/override/stylesheets/main-93174ed18d.css">
+		</uic-fragment>
+	</div>
+</body>
+`)
+
+	c := NewMemoryContent()
+	err := parser.Parse(c, z)
+	a.NoError(err)
+	a.Equal(
+		"rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/override/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()[""].Stylesheets()[0]))
+}
+
 func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a := assert.New(t)
 
@@ -492,6 +560,9 @@ func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
     <uic-fragment>
       Overwritten
     </uic-fragment>
+	<uic-fragment name="content">
+      Unused
+    </uic-fragment>
   </body>`))
 
 	z.Next() // At <body ..
@@ -499,8 +570,9 @@ func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 	err := parser.parseBody(z, c)
 	a.NoError(err)
 
-	a.Equal(1, len(c.Body()))
+	a.Equal(2, len(c.Body()))
 	eqFragment(t, "Overwritten", c.Body()[""])
+	eqFragment(t, "Unused", c.Body()["content"])
 }
 
 func Test_HtmlContentParser_parseHead_JsonError(t *testing.T) {
@@ -525,7 +597,8 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
       Bli Bla blub
-      <br>
+      <link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+      <Br>
       <uic-include src="example.com/foo#content" required="true"/>
       <uic-include src="example.com/optional#content" required="false"/>
       <div uic-remove>
@@ -541,6 +614,7 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	a.NoError(err)
 
 	expected := `Bli Bla blub
+
       <br>
       §[> example.com/foo#content]§
       §[#> example.com/optional#content]§§[/example.com/optional#content]§
@@ -551,6 +625,8 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	z.Next()
 	endTag, _ := z.TagName()
 	a.Equal("testend", string(endTag))
+	a.Equal(`rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css"`, joinAttrs(f.Stylesheets()[0]))
+	a.Equal(1, len(f.Stylesheets()))
 }
 
 // Regression test: to ensure, that escaped entities in attributes do not lead to a problem.
@@ -588,6 +664,7 @@ func Test_HtmlContentParser_parseMetaJson(t *testing.T) {
 	a.NoError(err)
 
 	a.Equal("bar", c.Meta()["foo"])
+	a.Equal("bazz", c.Meta()["boo"])
 }
 
 func Test_HtmlContentParser_parseMetaJson_Errors(t *testing.T) {
@@ -666,7 +743,7 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 	expectedStripped = strings.Replace(expectedStripped, "\n", "", -1)
 
 	if expectedStripped != sfStripped {
-		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual:  ", sf)
+		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual: ", sf)
 	}
 }
 

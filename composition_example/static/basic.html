@@ -1,12 +1,15 @@
 <html>
   <head>
-    <link rel="stylesheet" href="/static/basic.css">
-    <link uic-remove rel="stylesheet" href="basic.css">
+    <link rel="stylesheet" href="/static/head/basic.css" type="text/css" media="screen" title="no title" charset="utf-8">
+    <link uic-remove rel="stylesheet" href="removed.basic.css">
   </head>
   <body>
     <h1 uic-remove>Basic Web Elements</h1>
     <h3 uic-remove>The Header</h3>
     <uic-fragment name="header">
+      <link rel="stylesheet" href="/static/body/basic.css#header">
+      <link rel="stylesheet" href="/static/body/basic2.css#header">
+      <link rel="stylesheet" href="/static/body/basic3.css#header">
       <div class="header-box">
         The Header: §[header_text]§
       </div>
@@ -15,6 +18,7 @@
     <h3 uic-remove>The Subheader</h3>
     <uic-fragment name="subheader">
       <div class="header-box">
+          <link rel="stylesheet" href="/static/body/basic.css#subheader">
         The Subheader
       </div>
     </uic-fragment>
@@ -23,6 +27,7 @@
     <uic-fragment name="footer">
       <hr>
       <small>The footer</small>
+      <link rel="stylesheet" href="/static/body/basic.css#footer">
     </uic-fragment>
   </body>
 </html>

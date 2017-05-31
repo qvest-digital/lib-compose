@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/html"
 	"io"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 const (
@@ -51,6 +52,7 @@ func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 }
 
 func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 
@@ -77,6 +79,10 @@ forloop:
 				}
 				continue
 			}
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
+				continue
+			}
 		case tt == html.EndTagToken:
 			if string(tag) == "head" {
 				break forloop
@@ -87,13 +93,25 @@ forloop:
 
 	s := headBuff.String()
 	st := strings.Trim(s, " \n")
-	if len(st) > 0 {
-		c.head = NewStringFragment(st)
+	if len(st) > 0 || len(stylesheets) > 0 {
+		frg := NewStringFragment(st)
+		frg.AddStylesheets(stylesheets)
+		c.head = frg
 	}
 	return nil
 }
 
+func getStylesheet(tag []byte, attrs []html.Attribute) (styleAttrs []html.Attribute, isStylesheet bool) {
+	styleAttrs = nil
+	if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
+		styleAttrs = append(styleAttrs, attrs...)
+		return styleAttrs, true
+	}
+	return styleAttrs, false
+}
+
 func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
@@ -161,6 +179,10 @@ forloop:
 					continue
 				}
 			}
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
+				continue
+			}
 
 		case tt == html.EndTagToken:
 			if string(tag) == "body" {
@@ -172,8 +194,10 @@ forloop:
 
 	s := bodyBuff.String()
 	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
-		if st := strings.Trim(s, " \n"); len(st) > 0 {
-			c.body[""] = NewStringFragment(st)
+		if st := strings.Trim(s, " \n"); len(st) > 0 || len(stylesheets) > 0 {
+			frg := NewStringFragment(st)
+			frg.AddStylesheets(stylesheets)
+			c.body[""] = frg
 		}
 	}
 
@@ -181,6 +205,7 @@ forloop:
 }
 
 func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	dependencies = make(map[string]Params)
 
@@ -216,6 +241,11 @@ forloop:
 				continue
 			}
 
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
+				continue
+			}
+
 		case tt == html.EndTagToken:
 			if string(tag) == UicFragment || string(tag) == UicTail {
 				break forloop
@@ -224,7 +254,9 @@ forloop:
 		buff.Write(raw)
 	}
 
-	return NewStringFragment(buff.String()), dependencies, nil
+	frg := NewStringFragment(buff.String())
+	frg.AddStylesheets(stylesheets)
+	return frg, dependencies, nil
 }
 
 func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {
@@ -347,7 +379,7 @@ forloop:
 	s := headBuff.String()
 
 	if len(s) > 0 {
-		*fragment = *NewStringFragment(s)
+		fragment.SetContent(s)
 	}
 	return nil
 }
