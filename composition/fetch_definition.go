@@ -76,20 +76,25 @@ type FetchDefinition struct {
 	ServiceDiscoveryActive bool
 	ServiceDiscovery       servicediscovery.ServiceDiscovery
 	Priority               int
+	// Defines whether the result of this FD should remain cached
+	// even if all cached entries of an erroneous context are removed
+	// (e.g. the FD relates to a central component which is used everywhere)
+	NoPurgeOnMergeError bool
 }
 
 // Creates a fetch definition (warning: this one will not forward any request headers).
 func NewFetchDefinition(url string) *FetchDefinition {
 	return &FetchDefinition{
-		Name:            urlToName(url), // the name defauls to the url
-		URL:             url,
-		Timeout:         DefaultTimeout,
-		FollowRedirects: false,
-		Required:        true,
-		Method:          "GET",
-		ErrHandler:      NewDefaultErrorHandler(),
-		CacheStrategy:   cache.DefaultCacheStrategy,
-		Priority:        DefaultPriority,
+		Name:                urlToName(url), // the name defauls to the url
+		URL:                 url,
+		Timeout:             DefaultTimeout,
+		FollowRedirects:     false,
+		Required:            true,
+		Method:              "GET",
+		ErrHandler:          NewDefaultErrorHandler(),
+		CacheStrategy:       cache.DefaultCacheStrategy,
+		Priority:            DefaultPriority,
+		NoPurgeOnMergeError: false,
 	}
 }
 
@@ -136,6 +141,11 @@ func (fd *FetchDefinition) WithResponseProcessor(rp ResponseProcessor) *FetchDef
 // Set a name to be used in the merge context later on
 func (fd *FetchDefinition) WithName(name string) *FetchDefinition {
 	fd.Name = name
+	return fd
+}
+
+func (fd *FetchDefinition) ShouldSurviveContextPurge(shouldSurvive bool) *FetchDefinition {
+	fd.NoPurgeOnMergeError = shouldSurvive
 	return fd
 }
 

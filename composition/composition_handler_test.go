@@ -346,14 +346,21 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 				Err:     nil,
 				Hash:    "hashString",
 			},
+			&FetchResult{
+				Def:     NewFetchDefinition("/bar").ShouldSurviveContextPurge(true),
+				Content: &MemoryContent{},
+				Err:     nil,
+				Hash:    "survivor",
+			},
 		}
 	}
 
 	aggregator := NewCompositionHandlerWithCache(ContentFetcherFactory(contentFetcherFactory), cache.NewCache("my-cache", 100, 100, time.Millisecond))
 	aggregator.cache.Set("hashString", "", 1, nil)
+	aggregator.cache.Set("survivor", "", 1, nil)
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any(), 0)
+		merger.EXPECT().AddContent(gomock.Any(), 0).Times(2)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
 		return merger
 	}
@@ -364,8 +371,10 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 	aggregator.ServeHTTP(resp, r)
 
 	_, foundInCache := aggregator.cache.Get("hashString")
+	_, foundSurvivorInCache := aggregator.cache.Get("survivor")
 
 	a.False(foundInCache)
+	a.True(foundSurvivorInCache)
 	a.Equal("Internal Server Error: an error\n", string(resp.Body.Bytes()))
 	a.Equal(500, resp.Code)
 }
