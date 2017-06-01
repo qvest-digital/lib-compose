@@ -1,11 +1,8 @@
 package composition
 
 import (
-	"strings"
-
 	"golang.org/x/net/html"
 )
-
 
 // NOOP strategy.
 // This strategy will insert all found stylesheets w/o any filtering.
@@ -24,17 +21,18 @@ type SimpleDeduplicationStrategy struct {
 
 // Remove duplicate entries from hrefs.
 func (strategy *SimpleDeduplicationStrategy) Deduplicate(stylesheets [][]html.Attribute) (result [][]html.Attribute) {
-	var knownHrefs string
-	const delimiter = "-|-"
+	knownHrefs := map[string]bool{}
+	var meaninglessValue bool
 	for _, stylesheetAttrs := range stylesheets {
 		hrefAttr, attrExists := getAttr(stylesheetAttrs, "href")
 		if !attrExists {
 			continue
 		}
 		href := hrefAttr.Val
-		if !strings.Contains(knownHrefs, href) {
+		_, known := knownHrefs[href]
+		if !known {
 			result = append(result, stylesheetAttrs)
-			knownHrefs += delimiter + href
+			knownHrefs[href] = meaninglessValue
 		}
 	}
 	return result
