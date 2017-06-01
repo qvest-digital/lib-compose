@@ -3,9 +3,6 @@ package composition
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	"github.com/tarent/lib-compose/cache"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +10,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/tarent/lib-compose/cache"
+	"golang.org/x/net/html"
 )
 
 func Test_CompositionHandler_PositiveCase(t *testing.T) {
@@ -21,12 +23,18 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	a := assert.New(t)
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		frag := NewStringFragment("Hello World\n")
+		frag.AddStylesheets([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css"),
+			stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css")})
+
 		return MockFetchResultSupplier{
 			&FetchResult{
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": NewStringFragment("Hello World\n"),
+						"": frag,
 					},
 				},
 			},
@@ -42,6 +50,57 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 <html>
   <head>
     
+    <link rel="stylesheet" type="text/css" href="/path/to/style1.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style2.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style1.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style2.css">
+  </head>
+  <body>
+    Hello World
+
+  </body>
+</html>
+`
+	a.Equal(expected, string(resp.Body.Bytes()))
+	a.Equal(200, resp.Code)
+}
+
+func Test_CompositionHandler_PositiveCaseWithSimpleDeduplicationStrategy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		frag := NewStringFragment("Hello World\n")
+		frag.AddStylesheets([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css"),
+			stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css")})
+
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": frag,
+					},
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	ch.WithDeduplicationStrategy(new(SimpleDeduplicationStrategy))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	expected := `<!DOCTYPE html>
+<html>
+  <head>
+    
+    <link rel="stylesheet" type="text/css" href="/path/to/style1.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style2.css">
   </head>
   <body>
     Hello World
@@ -479,7 +538,6 @@ func Test_getBaseUrlFromRequest(t *testing.T) {
 	}
 }
 
-
 // Jira 3946: go deletes the "Host" header from the request (for whatever reasons):
 // https://golang.org/src/net/http/request.go:
 //   123		// For incoming requests, the Host header is promoted to the
@@ -513,7 +571,6 @@ func Test_CompositionHandler_RestoreHostHeader(t *testing.T) {
 	a.Equal(200, resp.Code)
 	a.Equal("MyHost", r.Header.Get("Host"))
 }
-
 
 type MockFetchResultSupplier []*FetchResult
 
