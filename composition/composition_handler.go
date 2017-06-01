@@ -1,11 +1,12 @@
 package composition
 
 import (
-	"github.com/tarent/lib-compose/logging"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/tarent/lib-compose/logging"
 )
 
 // A ContentFetcherFactory returns a configured fetch job for a request
@@ -30,14 +31,31 @@ func NewCompositionHandler(contentFetcherFactory ContentFetcherFactory) *Composi
 	}
 }
 
+// NewCompositionHandlerWithCache creates a new Handler with the supplied defaultData,
+// which is used for each request.
+// Use this constructor, if you created a caching content loader and provide
+// the handle to it's cache as argument.
 func NewCompositionHandlerWithCache(contentFetcherFactory ContentFetcherFactory, cache Cache) *CompositionHandler {
-	return &CompositionHandler{
-		contentFetcherFactory: contentFetcherFactory,
-		contentMergerFactory: func(metaJSON map[string]interface{}) ContentMerger {
-			return NewContentMerge(metaJSON)
-		},
-		cache: cache,
+	return NewCompositionHandler(contentFetcherFactory).WithCache(cache)
+}
+
+func (agg *CompositionHandler) WithCache(cache Cache) *CompositionHandler {
+	agg.cache = cache
+	return agg
+}
+
+// Set the deduplication strategy to be used by the constructed content merger
+// This method will first take effect in the upcomping call of ServeHTTP()
+func (agg *CompositionHandler) WithDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) *CompositionHandler {
+	wrapped := agg.contentMergerFactory
+	agg.contentMergerFactory = func(metaJSON map[string]interface{}) ContentMerger {
+		cm := wrapped(metaJSON)
+		if cm != nil {
+			cm.SetDeduplicationStrategy(strategy)
+		}
+		return cm
 	}
+	return agg
 }
 
 func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

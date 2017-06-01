@@ -6,18 +6,9 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Initialization: Sets the default deduplication strategy to be used.
-func init() {
-	SetStrategy(new(IdentityDeduplicationStrategy))
-}
-
-// Set another deduplication strategy.
-func SetStrategy(strategy StylesheetDeduplicationStrategy) {
-	stylesheetDeduplicationStrategy = strategy
-}
 
 // NOOP strategy.
-// This stragegy will insert all found stylesheets w/o any filtering.
+// This strategy will insert all found stylesheets w/o any filtering.
 type IdentityDeduplicationStrategy struct {
 }
 
@@ -26,7 +17,7 @@ func (strategy *IdentityDeduplicationStrategy) Deduplicate(stylesheets [][]html.
 }
 
 // Simple strategy
-// Implements a very simple deduplication stragegy. That is, it filters out
+// Implements a very simple deduplication strategy. That is, it filters out
 // stylesheets with duplicate href value.
 type SimpleDeduplicationStrategy struct {
 }
@@ -48,6 +39,3 @@ func (strategy *SimpleDeduplicationStrategy) Deduplicate(stylesheets [][]html.At
 	}
 	return result
 }
-
-// Variable to hold the active strategy
-var stylesheetDeduplicationStrategy StylesheetDeduplicationStrategy

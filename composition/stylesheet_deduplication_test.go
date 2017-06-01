@@ -13,10 +13,11 @@ func stylesheetAttrs(href string) []html.Attribute {
 	return append(commonAttr, html.Attribute{Key: "href", Val: href})
 }
 
-func Test_DefaultDeduplicationStrategy(t *testing.T) {
+func Test_IdentityDeduplicationStrategy(t *testing.T) {
 	a := assert.New(t)
 	stylesheets := [][]html.Attribute{stylesheetAttrs("/a"), stylesheetAttrs("/b")}
-	result := stylesheetDeduplicationStrategy.Deduplicate(stylesheets)
+	deduper := new(IdentityDeduplicationStrategy)
+	result := deduper.Deduplicate(stylesheets)
 	a.EqualValues(stylesheets, result)
 }
 
@@ -51,25 +52,4 @@ func (strategy *Strategy) Deduplicate(stylesheets [][]html.Attribute) (result []
 		}
 	}
 	return result
-}
-
-func Test_OwnDeduplicationStrategy(t *testing.T) {
-	strategy := new(Strategy)
-	SetStrategy(strategy)
-
-	a := assert.New(t)
-	stylesheets := [][]html.Attribute{
-		stylesheetAttrs("/a"),
-		stylesheetAttrs("/b"),
-		stylesheetAttrs("/c"),
-		stylesheetAttrs("/d"),
-		stylesheetAttrs("/e"),
-	}
-	expected := [][]html.Attribute{
-		stylesheetAttrs("/a"),
-		stylesheetAttrs("/c"),
-		stylesheetAttrs("/e"),
-	}
-	result := stylesheetDeduplicationStrategy.Deduplicate(stylesheets)
-	a.EqualValues(expected, result)
 }

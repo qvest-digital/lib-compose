@@ -5,7 +5,7 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	
+
 	io "io"
 	http "net/http"
 )
@@ -258,6 +258,9 @@ func (_m *MockContentMerger) GetHtml() ([]byte, error) {
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
+}
+
+func (_m *MockContentMerger) SetDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) {
 }
 
 func (_mr *_MockContentMergerRecorder) GetHtml() *gomock.Call {

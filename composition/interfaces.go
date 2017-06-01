@@ -105,6 +105,9 @@ type ContentMerger interface {
 
 	// Return the html as byte array
 	GetHtml() ([]byte, error)
+
+	// Set the stratgy for stylesheet deduplication
+	SetDeduplicationStrategy(stategy StylesheetDeduplicationStrategy)
 }
 
 type ResponseProcessor interface {
