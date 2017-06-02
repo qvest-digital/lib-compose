@@ -8,11 +8,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-func stylesheetAttrs(href string) []html.Attribute {
-	commonAttr := []html.Attribute{{Key: "rel", Val: "stylesheet"}, {Key: "type", Val: "text/css"}}
-	return append(commonAttr, html.Attribute{Key: "href", Val: href})
-}
-
 func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a := assert.New(t)
 

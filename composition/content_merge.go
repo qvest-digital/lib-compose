@@ -39,6 +39,9 @@ type ContentMerge struct {
 
 	// all stylesheets contained in used fragments
 	stylesheets [][]html.Attribute
+
+	// strategy to prevent duplicacte <link rel="stylesheet"> tags
+	stylesheetDeduplicationStrategy StylesheetDeduplicationStrategy
 }
 
 // NewContentMerge creates a new buffered ContentMerge
@@ -55,11 +58,25 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	return cntx
 }
 
+func (cntx *ContentMerge) SetDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) {
+	cntx.stylesheetDeduplicationStrategy = strategy
+}
+
 func (cntx *ContentMerge) collectStylesheets(f Fragment) {
 	cntx.stylesheets = append(cntx.stylesheets, f.Stylesheets()...)
 }
 
+func (cntx *ContentMerge) deduplicateStylesheets() {
+	if cntx.stylesheetDeduplicationStrategy != nil {
+		cntx.stylesheets = cntx.stylesheetDeduplicationStrategy.Deduplicate(cntx.stylesheets)
+	}
+}
+
 func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
+
+	// first make sure, stylesheets are deduplicated
+	cntx.deduplicateStylesheets()
+
 	for _, attrs := range cntx.stylesheets {
 		joinedAttr := joinAttrs(attrs)
 		stylesheet := fmt.Sprintf("\n    <link %s>", joinedAttr)

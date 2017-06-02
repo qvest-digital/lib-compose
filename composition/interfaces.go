@@ -105,6 +105,9 @@ type ContentMerger interface {
 
 	// Return the html as byte array
 	GetHtml() ([]byte, error)
+
+	// Set the stratgy for stylesheet deduplication
+	SetDeduplicationStrategy(stategy StylesheetDeduplicationStrategy)
 }
 
 type ResponseProcessor interface {
@@ -123,4 +126,8 @@ type Cache interface {
 	Set(hash string, label string, memorySize int, cacheObject interface{})
 	Invalidate()
 	PurgeEntries(keys []string)
+}
+
+type StylesheetDeduplicationStrategy interface {
+	Deduplicate(stylesheetAttrs [][]html.Attribute) [][]html.Attribute
 }

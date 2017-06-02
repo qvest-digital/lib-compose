@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	gorilla "github.com/gorilla/handlers"
-	"github.com/tarent/lib-compose/composition"
 	"net/http"
 	"os"
+
+	gorilla "github.com/gorilla/handlers"
+	"github.com/tarent/lib-compose/composition"
 )
 
 var host = "127.0.0.1:8080"
@@ -41,7 +42,7 @@ func compositionHandler() http.Handler {
 
 		return fetcher
 	}
-	return composition.NewCompositionHandler(contentFetcherFactory)
+	return composition.NewCompositionHandler(contentFetcherFactory).WithDeduplicationStrategy(new(composition.SimpleDeduplicationStrategy))
 }
 
 func staticHandler() http.Handler {
