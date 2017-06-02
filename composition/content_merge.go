@@ -66,12 +66,18 @@ func (cntx *ContentMerge) collectStylesheets(f Fragment) {
 	cntx.stylesheets = append(cntx.stylesheets, f.Stylesheets()...)
 }
 
-func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
-	stylesheets := cntx.stylesheets
+func (cntx *ContentMerge) deduplicateStylesheets() {
 	if cntx.stylesheetDeduplicationStrategy != nil {
-		stylesheets = cntx.stylesheetDeduplicationStrategy.Deduplicate(cntx.stylesheets)
+		cntx.stylesheets = cntx.stylesheetDeduplicationStrategy.Deduplicate(cntx.stylesheets)
 	}
-	for _, attrs := range stylesheets {
+}
+
+func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
+
+	// first make sure, stylesheets are deduplicated
+	cntx.deduplicateStylesheets()
+
+	for _, attrs := range cntx.stylesheets {
 		joinedAttr := joinAttrs(attrs)
 		stylesheet := fmt.Sprintf("\n    <link %s>", joinedAttr)
 		io.WriteString(w, stylesheet)
