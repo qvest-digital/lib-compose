@@ -107,9 +107,17 @@ func (agg *CompositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	html, err := agg.processHtml(mergeContext, w, r)
-	// Return if an error occured within the html aggregation
+	// Return if an error occured within the html aggregation and
+	// remove potentially erroneous results from cache
 	if err != nil {
-		agg.purgeCacheEntries(results)
+		//Filter without allocating
+		resultsToPurge := results[:0]
+		for _, res := range results {
+			if !res.Def.NoPurgeOnMergeError {
+				resultsToPurge = append(resultsToPurge, res)
+			}
+		}
+		agg.purgeCacheEntries(resultsToPurge)
 		return
 	}
 
