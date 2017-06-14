@@ -351,25 +351,32 @@ forloop:
 				return z.Err()
 			}
 			break forloop
+
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 
-			if string(tag) == "meta" {
-				if processMetaTag(string(tag), attrs, headPropertyMap) {
+			switch {
+			case string(tag) == "meta":
+				if (processMetaTag(string(tag), attrs, headPropertyMap)) {
 					headBuff.Write(raw)
 				}
-				continue
-			}
-			if string(tag) == "title" {
-				if headPropertyMap["title"] == "" {
+				continue forloop
+			case string(tag) == "link":
+				if (processLinkTag(attrs, headPropertyMap)) {
+					headBuff.Write(raw)
+				}
+				continue forloop
+			case string(tag) == "title":
+				if (headPropertyMap["title"] == "") {
 					headPropertyMap["title"] = "title"
 					headBuff.Write(raw)
-				} else if tt != html.SelfClosingTagToken {
+				} else if (tt != html.SelfClosingTagToken) {
 					skipCompleteTag(z, "title")
-					continue
 				}
-			} else {
+				continue forloop
+			default:
 				headBuff.Write(raw)
 			}
+
 		default:
 			headBuff.Write(raw)
 		}
@@ -412,14 +419,14 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 
 	key := tagName
 	value := ""
-	// TODO: check explizit for attrName "http-equiv" || "name" || "charset" ?
 
-	// e.g.: <meta charset="utf-8">
+	// e.g.: <meta charset="utf-8"> => key = meta_charset; val = utf-8
 	if len(attrs) == 1 {
 		key = tagName + "_" + attrs[0].Key
 		value = attrs[0].Val
 	}
 
+	// e.g.: <meta name="content-language" content="de"> => key = meta_name_content-language; val = content_de
 	if len(attrs) > 1 {
 		key = tagName + "_" + attrs[0].Key + "_" + attrs[0].Val
 		value = attrs[1].Key + "_" + attrs[1].Val
@@ -428,9 +435,41 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 	if metaMap[key] == "" {
 		metaMap[key] = value
 		return true
-
 	}
 	return false
+}
+
+/**
+Returns true if a link tag can be processed.
+Checks if a <link> tag contains a canonical relation and avoids multiple canonical definitions.
+ */
+func processLinkTag(attrs []html.Attribute, metaMap map[string]string) bool {
+	if (len(attrs) == 0) {
+		return true
+	}
+
+        const canonical = "canonical"
+	var key string
+	var value string
+
+        // e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
+	for _, attr := range attrs {
+                if (attr.Key == "rel" && attr.Val == canonical) {
+                        key = canonical
+                }
+                if (attr.Key == "href") {
+                        value = attr.Val
+                }
+        }
+        if (key == canonical && metaMap[canonical] != "") {
+                // if canonical is already in map then don't process this link tag
+                return false
+        }
+
+        if (key != "" && value != "") {
+                metaMap[key] = value
+        }
+	return true
 }
 
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {
