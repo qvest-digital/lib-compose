@@ -89,10 +89,10 @@ func Test_CompositionHandler_PositiveCaseWithSimpleDeduplicationStrategy(t *test
 		}
 	}
 	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
-	sdf := func() StylesheetDeduplicationStrategy {
+	factory := func() StylesheetDeduplicationStrategy {
 		return new(SimpleDeduplicationStrategy)
 	}
-	ch.WithDeduplicationStrategyFactory(sdf)
+	ch.WithDeduplicationStrategyFactory(factory)
 
 	resp := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://example.com", nil)
