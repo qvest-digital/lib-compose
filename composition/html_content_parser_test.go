@@ -2,12 +2,14 @@ package composition
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/html"
+	"fmt"
+	_ "regexp"
 	"strings"
 	"testing"
 	"time"
-_	"regexp"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 )
 
 var productUiGeneratedHtml = `<!DOCTYPE html>
@@ -217,8 +219,11 @@ var integratedTestHtml = `<html>
     </uic-fragment>
     <uic-fragment name="content">
       Bli Bla blub
-      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-fetch src="example.com/foo" timeout="100" required="true"/>
+      <uic-include src="example.com/foo#content" required="true"/>
+      <uic-include src="example.com/optional#content">
+        <p>some alternative text</p>
+      </uic-include>
       <div uic-remove>
          Some element for testing
       </div>
@@ -250,7 +255,9 @@ var integratedTestHtmlExpectedHeadline = `<h1>This is a headline</h1>`
 var integratedTestHtmlExpectedContent = `
       Bli Bla blub
       §[> example.com/foo#content]§
-      §[> example.com/optional#content]§
+      §[#> example.com/optional#content]§
+         <p>some alternative text</p>
+      §[/example.com/optional#content]§
       <hr/>
       Bli Bla blub`
 
@@ -295,7 +302,6 @@ func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles_and_Canoni
         containsFragment(t, "<title>navigationservice</title>", c.Head())
 }
 
-
 func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a := assert.New(t)
 
@@ -336,27 +342,96 @@ func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a.Equal("bar", c.Meta()["foo"])
 }
 
+func Test_HtmlContentParser_collectStylesheets_bodyAsDefaultFragment(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := bytes.NewBufferString(`<head>
+	<!-- will be found by the HeaderParser -->
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-03174ed18d.css">
+</head>
+<body>
+	<div>
+		<!-- will be found by the BodyParser -->
+		<link rel="stylesheet" href="/productservice/stylesheets/main-93174ed18d.css">
+		<uic-fragment name="content">
+		Bli Bla blub
+		<link rel="stylesheet" href="/basketservice/stylesheets/main-93174ed18d.css">
+		</uic-fragment>
+	</div>
+</body>
+`)
+
+	c := NewMemoryContent()
+	err := parser.Parse(c, z)
+	a.NoError(err)
+	a.Equal("rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/productservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()[""].Stylesheets()[0]))
+}
+
+func Test_HtmlContentParser_collectStylesheets_OverrideDefault(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := bytes.NewBufferString(`<head>
+	<!-- will be found by the HeaderParser -->
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<link rel="stylesheet" href="/navigationservice/stylesheets/main-03174ed18d.css">
+</head>
+<body>
+	<div>
+		<!-- will be found by the BodyParser -->
+		<link rel="stylesheet" href="/productservice/stylesheets/main-93174ed18d.css">
+		<uic-fragment name="content">
+		Bli Bla blub
+		<link rel="stylesheet" href="/basketservice/stylesheets/main-93174ed18d.css">
+		</uic-fragment>
+		<uic-fragment name="">
+		Bli Bla blub
+		<link rel="stylesheet" href="/override/stylesheets/main-93174ed18d.css">
+		</uic-fragment>
+	</div>
+</body>
+`)
+
+	c := NewMemoryContent()
+	err := parser.Parse(c, z)
+	a.NoError(err)
+	a.Equal(
+		"rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/override/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Body()[""].Stylesheets()[0]))
+}
+
 func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a := assert.New(t)
 
 	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body some="attribute">
     <h1>Default Fragment Content</h1><br>
+    <uic-include src="example.com/xyz" required="true" param-foo="bar" param-bazz="buzz"/>
     <ul uic-remove>
       <!-- A Navigation for testing -->
     </ul>
     <uic-fragment name="headline">
       <h1>Headline</h1>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-include src="example.com/optional#content"/>
     </uic-fragment>
     <uic-fragment name="content">
       some content
-      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <uic-include src="example.com/foo#content" required="true" param-bli="bla"/>
+      <uic-include src="example.com/optional#content" required="false"/>
+      <uic-include src="#local" required="true"/>
     </uic-fragment>
     <uic-tail>
       <!-- tail -->
-      <uic-include src="example.com/tail" timeout="100" required="false"/>
+      <uic-include src="example.com/tail" timeout="100" required="true"/>
     </uic-tail>
   </body>`))
 
@@ -366,30 +441,81 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a.NoError(err)
 
 	a.Equal(3, len(c.Body()))
-	eqFragment(t, "<h1>Default Fragment Content</h1><br>", c.Body()[""])
-	eqFragment(t, `<h1>Headline</h1> §[> example.com/optional#content]§`, c.Body()["headline"])
-	eqFragment(t, `some content §[> example.com/foo#content]§ §[> example.com/optional#content]§`, c.Body()["content"])
+	eqFragment(t, "<h1>Default Fragment Content</h1><br>\n§[> example.com/xyz]§", c.Body()[""])
+	eqFragment(t, `<h1>Headline</h1> §[#> example.com/optional#content]§§[/example.com/optional#content]§`, c.Body()["headline"])
+	eqFragment(t, `some content`+
+		`§[> example.com/foo#content]§`+
+		`§[#> example.com/optional#content]§§[/example.com/optional#content]§`+
+		`§[> local]§`, c.Body()["content"])
 	eqFragment(t, "<!-- tail -->§[> example.com/tail]§", c.Tail())
 
 	eqFragment(t, `some="attribute"`, c.BodyAttributes())
 
+	a.Equal(5, len(c.Dependencies()))
+	a.Equal(c.Dependencies()["example.com/xyz"], Params{"foo": "bar", "bazz": "buzz"})
+	a.Equal(c.Dependencies()["example.com/foo"], Params{"bli": "bla"})
+}
+
+func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
+	a := assert.New(t)
+
+	parser := &HtmlContentParser{}
+	z := html.NewTokenizer(bytes.NewBufferString(`<body>
+           foo
+           <uic-fetch src="example.com/foo" timeout="42000" required="true" name="foo"/>
+           <uic-fetch src="example.com/optional" timeout="100" required="false"/>
+           <uic-fetch src="discovered" discoveredBy="192.168.0.42:8008"/>
+         </body>`))
+
+	z.Next() // At <body ..
+	c := NewMemoryContent()
+	err := parser.parseBody(z, c)
+	a.NoError(err)
+
+	eqFragment(t, "foo", c.Body()[""])
+
 	a.Equal(3, len(c.RequiredContent()))
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/foo",
+		Name:     "foo",
 		Timeout:  time.Millisecond * 42000,
 		Required: true,
 	}, c.requiredContent["example.com/foo"])
 
 	a.Equal(&FetchDefinition{
 		URL:      "example.com/optional",
+		Name:     "example.com/optional",
 		Timeout:  time.Millisecond * 100,
 		Required: false,
 	}, c.requiredContent["example.com/optional"])
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/tail",
-		Timeout:  time.Millisecond * 100,
-		Required: false,
-	}, c.requiredContent["example.com/tail"])
+
+	a.True(c.requiredContent["discovered"].ServiceDiscoveryActive)
+	a.NotNil(c.requiredContent["discovered"].ServiceDiscovery)
+
+}
+
+func Test_HtmlContentParser_fetchAndInclude_ErrorCases(t *testing.T) {
+	a := assert.New(t)
+
+	testCases := []string{
+		`<uic-fetch/>`,
+		`<uic-fetch src="example.com/foo" required="tr42ue"/>`,
+		`<uic-fetch src="example.com/foo" timeout="sdcascdsdc"/>`,
+		`<uic-fragment name="bla"><uic-include/><uic-fragment>`,
+		`<uic-include src="example.com/foo" required="tr42ue"/>`,
+	}
+
+	for i, test := range testCases {
+		t.Run(fmt.Sprintf("test #%v", i), func(t *testing.T) {
+			parser := &HtmlContentParser{}
+			z := html.NewTokenizer(bytes.NewBufferString(
+				"<body>" + test + "</body>",
+			))
+			z.Next() // At <body ..
+			err := parser.parseBody(z, NewMemoryContent())
+			a.Error(err)
+		})
+	}
 }
 
 func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
@@ -398,7 +524,7 @@ func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 	parser := &HtmlContentParser{}
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
-    <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
+    <uic-include src="example.com/foo#content" required="true"/>
   </body>`))
 
 	z.Next() // At <body ..
@@ -408,13 +534,6 @@ func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 
 	a.Equal(1, len(c.Body()))
 	eqFragment(t, "<h1>Default Fragment Content</h1><br> §[> example.com/foo#content]§", c.Body()[""])
-
-	a.Equal(1, len(c.RequiredContent()))
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo",
-		Timeout:  time.Millisecond * 42000,
-		Required: true,
-	}, c.requiredContent["example.com/foo"])
 }
 
 func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
@@ -426,6 +545,9 @@ func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
     <uic-fragment>
       Overwritten
     </uic-fragment>
+	<uic-fragment name="content">
+      Unused
+    </uic-fragment>
   </body>`))
 
 	z.Next() // At <body ..
@@ -433,8 +555,9 @@ func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 	err := parser.parseBody(z, c)
 	a.NoError(err)
 
-	a.Equal(1, len(c.Body()))
+	a.Equal(2, len(c.Body()))
 	eqFragment(t, "Overwritten", c.Body()[""])
+	eqFragment(t, "Unused", c.Body()["content"])
 }
 
 func Test_HtmlContentParser_parseHead_JsonError(t *testing.T) {
@@ -459,9 +582,10 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
       Bli Bla blub
-      <br>
-      <uic-include src="example.com/foo#content" timeout="42000" required="true"/>
-      <uic-include src="example.com/optional#content" timeout="100" required="false"/>
+      <link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+      <Br>
+      <uic-include src="example.com/foo#content" required="true"/>
+      <uic-include src="example.com/optional#content" required="false"/>
       <div uic-remove>
          <br>
          Some element for testing
@@ -471,34 +595,23 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
     </uic-fragment><testend>`))
 
 	z.Next() // At <uic-fragment name ..
-	f, deps, err := parseFragment(z)
+	f, _, err := parseFragment(z)
 	a.NoError(err)
 
-	a.Equal(2, len(deps))
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/foo",
-		Timeout:  time.Millisecond * 42000,
-		Required: true,
-	}, deps[0])
-
-	a.Equal(&FetchDefinition{
-		URL:      "example.com/optional",
-		Timeout:  time.Millisecond * 100,
-		Required: false,
-	}, deps[1])
-
-	sFragment := f.(StringFragment)
 	expected := `Bli Bla blub
+
       <br>
       §[> example.com/foo#content]§
-      §[> example.com/optional#content]§
+      §[#> example.com/optional#content]§§[/example.com/optional#content]§
       <hr/>
       Bli Bla §[ aVariable ]§ blub`
-	eqFragment(t, expected, sFragment)
+	eqFragment(t, expected, f)
 
 	z.Next()
 	endTag, _ := z.TagName()
 	a.Equal("testend", string(endTag))
+	a.Equal(`rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css"`, joinAttrs(f.Stylesheets()[0]))
+	a.Equal(1, len(f.Stylesheets()))
 }
 
 // Regression test: to ensure, that escaped entities in attributes do not lead to a problem.
@@ -536,6 +649,7 @@ func Test_HtmlContentParser_parseMetaJson(t *testing.T) {
 	a.NoError(err)
 
 	a.Equal("bar", c.Meta()["foo"])
+	a.Equal("bazz", c.Meta()["boo"])
 }
 
 func Test_HtmlContentParser_parseMetaJson_Errors(t *testing.T) {
@@ -607,14 +721,14 @@ func eqFragment(t *testing.T, expected string, f Fragment) {
 		t.Error("Fragment is nil, but expected:", expected)
 		return
 	}
-	sf := f.(StringFragment)
+	sf := f.(*StringFragment).Content()
 	sfStripped := strings.Replace(string(sf), " ", "", -1)
 	sfStripped = strings.Replace(string(sfStripped), "\n", "", -1)
 	expectedStripped := strings.Replace(expected, " ", "", -1)
 	expectedStripped = strings.Replace(expectedStripped, "\n", "", -1)
 
 	if expectedStripped != sfStripped {
-		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual:  ", sf)
+		t.Error("Fragment is not equal: \nexpected: ", expected, "\nactual: ", sf)
 	}
 }
 
@@ -717,13 +831,13 @@ func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 	<!-- fonts.com - Async Font Loading -->`
 
 	headPropertyMap := make(map[string]string)
-	headPropertyMap["title"]="title"
-	headFragment := StringFragment(originalHeadString)
+	headPropertyMap["title"] = "title"
+	headFragment := NewStringFragment(originalHeadString)
 
-	ParseHeadFragment(&headFragment, headPropertyMap)
+	ParseHeadFragment(headFragment, headPropertyMap)
 
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
-	resultString := removeTabsAndNewLines(string(headFragment))
+	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
 }
@@ -816,8 +930,8 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 	headMetaPropertyMap["meta_charset"] = "whatever"
 	headMetaPropertyMap["meta_name_viewport"] = "already_exists"
 
-	headFragment := StringFragment(originalHeadString)
-	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+	headFragment := NewStringFragment(originalHeadString)
+	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
 	resultString := removeTabsAndNewLines(string(headFragment))
@@ -939,12 +1053,12 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
 
         // THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
-	resultString := removeTabsAndNewLines(string(headFragment))
+	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
 }
 
-func removeTabsAndNewLines(stringToProcess string) string{
+func removeTabsAndNewLines(stringToProcess string) string {
 	stringToProcess = strings.Replace(stringToProcess, "\n", "", -1)
 	stringToProcess = strings.Replace(stringToProcess, "\t", "", -1)
 	return stringToProcess

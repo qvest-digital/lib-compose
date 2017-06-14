@@ -1,9 +1,9 @@
 <html>
   <head>
-    <link rel="stylesheet" href="/static/stylesheet.css">
+    <link rel="stylesheet" href="/static/head/styles/stylesheet.css">
   </head>
   <body>
-    <h1 uic-remove>This file only defines some styles and generic javascript for the head.</h1>
+    <h1>This file only defines some styles and generic javascript for the head.</h1>
     <uic-tail>
       <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
       <script>
@@ -11,6 +11,7 @@
          $('<div>some dynamic text at the end</div>').appendTo('body');
        })    
       </script>
+      <link rel="stylesheet" href="/static/tail/styles/stylesheet.css">
     </uic-tail>
   </body>
 </html>

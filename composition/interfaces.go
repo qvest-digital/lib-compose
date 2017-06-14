@@ -8,6 +8,8 @@ package composition
 import (
 	"io"
 	"net/http"
+
+	"golang.org/x/net/html"
 )
 
 type Fragment interface {
@@ -15,6 +17,9 @@ type Fragment interface {
 
 	// MemorySize return the estimated size in bytes, for this object in memory
 	MemorySize() int
+
+	// Return the list of stylesheets used in this fragment
+	Stylesheets() [][]html.Attribute
 }
 
 type ContentLoader interface {
@@ -44,15 +49,22 @@ type CacheStrategy interface {
 	IsCacheable(method string, url string, statusCode int, requestHeader http.Header, responseHeader http.Header) bool
 }
 
+// Params is a value type for a parameter map
+type Params map[string]string
+
 // Vontent is the abstration over includable data.
 // Content may be parsed of it may contain a stream represented by a non nil Reader(), not both.
 type Content interface {
 
-	// The URL, from where the content was loaded
-	URL() string
+	// The Name of the content, as given in the fetch definition
+	Name() string
 
 	// RequiredContent returns a list of Content Elements to load
 	RequiredContent() []*FetchDefinition
+
+	// Dependencies returns list of referenced content element names.
+	// The list only contains the base names of the includes e.g. 'foo' for '<uic-include src="foo#bar"/>'
+	Dependencies() map[string]Params
 
 	// Meta returns a data structure to add to the global
 	// data context.
@@ -89,13 +101,13 @@ type Content interface {
 
 type ContentMerger interface {
 	// Add content to the merger
-	AddContent(fetchResult *FetchResult)
+	AddContent(c Content, priority int)
 
 	// Return the html as byte array
 	GetHtml() ([]byte, error)
 
-	// Return hashes related to the given contents
-	GetHashes() []string
+	// Set the stratgy for stylesheet deduplication
+	SetDeduplicationStrategy(stategy StylesheetDeduplicationStrategy)
 }
 
 type ResponseProcessor interface {
@@ -114,4 +126,8 @@ type Cache interface {
 	Set(hash string, label string, memorySize int, cacheObject interface{})
 	Invalidate()
 	PurgeEntries(keys []string)
+}
+
+type StylesheetDeduplicationStrategy interface {
+	Deduplicate(stylesheetAttrs [][]html.Attribute) [][]html.Attribute
 }

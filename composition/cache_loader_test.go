@@ -18,7 +18,7 @@ func Test_CacheLoader_Found(t *testing.T) {
 	// given:
 	fd := NewFetchDefinition("/foo")
 	c := NewMemoryContent()
-	c.url = "/foo"
+	c.name = "/foo"
 
 	// and a cache returning the memory content by the hash
 	cacheMocK := NewMockCache(ctrl)
@@ -78,7 +78,7 @@ func Test_CacheLoader_NoLookupForPostRequests(t *testing.T) {
 	fd := NewFetchDefinition("/foo")
 	fd.Method = "POST"
 	c := NewMemoryContent()
-	c.url = "/foo"
+	c.name = "/foo"
 
 	// and a cache returning nothing
 	cacheMocK := NewMockCache(ctrl)
@@ -110,9 +110,9 @@ func Test_CacheLoader_NotFound(t *testing.T) {
 
 		// given:
 		c := NewMemoryContent()
-		c.url = test.url
+		c.name = test.url
 		c.httpStatusCode = 200
-		fd := NewFetchDefinition(c.url)
+		fd := NewFetchDefinition(test.url)
 		fd.Method = test.method
 
 		// and a cache returning nothing
@@ -157,10 +157,10 @@ func Test_CacheLoader_NotFound_With_Stream(t *testing.T) {
 
 		// given:
 		c := NewMemoryContent()
-		c.url = test.url
+		c.name = test.url
 		c.httpStatusCode = 200
 		c.reader = test.reader
-		fd := NewFetchDefinition(c.url)
+		fd := NewFetchDefinition(test.url)
 		fd.Method = test.method
 
 		// and a cache returning nothing

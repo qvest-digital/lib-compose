@@ -5,6 +5,7 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
+
 	io "io"
 	http "net/http"
 )
@@ -123,6 +124,16 @@ func (_mr *_MockContentRecorder) BodyAttributes() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "BodyAttributes")
 }
 
+func (_m *MockContent) Dependencies() map[string]Params {
+	ret := _m.ctrl.Call(_m, "Dependencies")
+	ret0, _ := ret[0].(map[string]Params)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) Dependencies() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Dependencies")
+}
+
 func (_m *MockContent) Head() Fragment {
 	ret := _m.ctrl.Call(_m, "Head")
 	ret0, _ := ret[0].(Fragment)
@@ -173,6 +184,16 @@ func (_mr *_MockContentRecorder) Meta() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Meta")
 }
 
+func (_m *MockContent) Name() string {
+	ret := _m.ctrl.Call(_m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) Name() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Name")
+}
+
 func (_m *MockContent) Reader() io.ReadCloser {
 	ret := _m.ctrl.Call(_m, "Reader")
 	ret0, _ := ret[0].(io.ReadCloser)
@@ -203,16 +224,6 @@ func (_mr *_MockContentRecorder) Tail() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Tail")
 }
 
-func (_m *MockContent) URL() string {
-	ret := _m.ctrl.Call(_m, "URL")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-func (_mr *_MockContentRecorder) URL() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "URL")
-}
-
 // Mock of ContentMerger interface
 type MockContentMerger struct {
 	ctrl     *gomock.Controller
@@ -234,22 +245,12 @@ func (_m *MockContentMerger) EXPECT() *_MockContentMergerRecorder {
 	return _m.recorder
 }
 
-func (_m *MockContentMerger) AddContent(_param0 *FetchResult) {
-	_m.ctrl.Call(_m, "AddContent", _param0)
+func (_m *MockContentMerger) AddContent(_param0 Content, _param1 int) {
+	_m.ctrl.Call(_m, "AddContent", _param0, _param1)
 }
 
-func (_mr *_MockContentMergerRecorder) AddContent(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddContent", arg0)
-}
-
-func (_m *MockContentMerger) GetHashes() []string {
-	ret := _m.ctrl.Call(_m, "GetHashes")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-func (_mr *_MockContentMergerRecorder) GetHashes() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetHashes")
+func (_mr *_MockContentMergerRecorder) AddContent(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "AddContent", arg0, arg1)
 }
 
 func (_m *MockContentMerger) GetHtml() ([]byte, error) {
@@ -257,6 +258,9 @@ func (_m *MockContentMerger) GetHtml() ([]byte, error) {
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
+}
+
+func (_m *MockContentMerger) SetDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) {
 }
 
 func (_mr *_MockContentMergerRecorder) GetHtml() *gomock.Call {

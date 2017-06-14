@@ -3,8 +3,7 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	logstash "github.com/bshuster-repo/logrus-logstash-hook"
+	"github.com/tarent/logrus"
 	"net/http"
 	"os"
 	"strings"
@@ -33,7 +32,7 @@ func Set(level string, textLogging bool) error {
 	if textLogging {
 		logger.Formatter = &logrus.TextFormatter{}
 	} else {
-		logger.Formatter = &logstash.LogstashFormatter{TimestampFormat: time.RFC3339Nano}
+		logger.Formatter = &LogstashFormatter{TimestampFormat: time.RFC3339Nano}
 	}
 	logger.Level = l
 	Logger = logger
@@ -218,7 +217,7 @@ func LifecycleStop(appName string, signal os.Signal, err error) {
 			WithError(err).
 			Errorf("stopping application: %v (%v)", appName, err)
 	} else {
-		Logger.WithFields(fields).Infof("stopping application: %v (%v)", appName, signal.String())
+		Logger.WithFields(fields).Infof("stopping application: %v (%v)", appName, signal)
 	}
 }
 

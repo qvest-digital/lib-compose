@@ -10,8 +10,9 @@ import (
 )
 
 const MAX_PRIORITY int = 4294967295
+
 // ForwardRequestHeaders are those headers,
-// which are incuded from the original client request to the backend request.
+// which are included from the original client request to the backend request.
 // TODO: Add Host header to an XFF header
 var ForwardRequestHeaders = []string{
 	"Authorization",
@@ -30,10 +31,11 @@ var ForwardRequestHeaders = []string{
 	"X-Forwarded-Host",
 	"X-Correlation-Id",
 	"X-Feature-Toggle",
+	"Host",
 }
 
 // ForwardResponseHeaders are those headers,
-// which are incuded from the servers backend response to the client.
+// which are included from the servers backend response to the client.
 var ForwardResponseHeaders = []string{
 	"Age",
 	"Allow",
@@ -52,13 +54,15 @@ var ForwardResponseHeaders = []string{
 	"WWW-Authenticate"}
 
 const (
-	DefaultTimeout time.Duration = 10 * time.Second
-	FileURLPrefix                = "file://"
-	DefaultPriority              = 0
+	DefaultTimeout  time.Duration = 10 * time.Second
+	FileURLPrefix                 = "file://"
+	DefaultPriority               = 0
 )
 
 // FetchDefinition is a descriptor for fetching Content from an endpoint.
 type FetchDefinition struct {
+	// The name of the fetch definition
+	Name                   string
 	URL                    string
 	Timeout                time.Duration
 	FollowRedirects        bool
@@ -74,80 +78,31 @@ type FetchDefinition struct {
 	Priority               int
 }
 
-// Creates a fetch definition
+// Creates a fetch definition (warning: this one will not forward any request headers).
 func NewFetchDefinition(url string) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, DefaultPriority)
-}
-
-func NewFetchDefinitionWithPriority(url string, priority int) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, nil, priority)
-}
-
-func NewFetchDefinitionWithErrorHandler(url string, errHandler ErrorHandler) *FetchDefinition {
-	return NewFetchDefinitionWithErrorHandlerAndPriority(url, errHandler, DefaultPriority)
-}
-
-func NewFetchDefinitionWithErrorHandlerAndPriority(url string, errHandler ErrorHandler, priority int) *FetchDefinition {
-	if errHandler == nil {
-		errHandler = NewDefaultErrorHandler()
-	}
 	return &FetchDefinition{
+		Name:            urlToName(url), // the name defauls to the url
 		URL:             url,
 		Timeout:         DefaultTimeout,
 		FollowRedirects: false,
 		Required:        true,
 		Method:          "GET",
-		ErrHandler:      errHandler,
-		CacheStrategy:   cache.DefaultCacheStrategy,
-		Priority:	 priority,
-	}
-}
-
-// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
-func NewFetchDefinitionWithResponseProcessor(url string, rp ResponseProcessor) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriority(url, rp, DefaultPriority)
-}
-
-// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
-// Priority is used to determine which property from which head has to be taken by collision of multiple fetches
-func NewFetchDefinitionWithResponseProcessorAndPriority(url string, rp ResponseProcessor, priority int) *FetchDefinition {
-	return &FetchDefinition{
-		URL:             url,
-		Timeout:         DefaultTimeout,
-		FollowRedirects: false,
-		Required:        true,
-		Method:          "GET",
-		RespProc:        rp,
 		ErrHandler:      NewDefaultErrorHandler(),
 		CacheStrategy:   cache.DefaultCacheStrategy,
-		Priority:        priority,
+		Priority:        DefaultPriority,
 	}
 }
 
-// NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the scheme, host and port with the provided base url
-func NewFetchDefinitionFromRequest(baseUrl string, r *http.Request) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl, r, nil, DefaultPriority)
+// Priority is used to determine which property from which head has to be taken by collision of multiple fetches
+func (fd *FetchDefinition) WithPriority(priority int) *FetchDefinition {
+	fd.Priority = priority
+	return fd
 }
 
-// NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the scheme, host and port with the provided base url
-func NewFetchDefinitionWithPriorityFromRequest(baseUrl string, r *http.Request, priority int) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl, r, nil, priority)
-}
-
-// NewFetchDefinitionFromRequest creates a fetch definition
-// from the request path, but replaces the scheme, host and port with the provided base url
-// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
-// Only those headers, defined in ForwardRequestHeaders are copied to the FetchDefinition.
-func NewFetchDefinitionWithResponseProcessorFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor) *FetchDefinition {
-	return NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl, r, rp, DefaultPriority)
-}
-
-// NewFetchDefinitionWithResponseProcessorFromRequest with priority setting for head property collision handling
-func NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl string, r *http.Request, rp ResponseProcessor, priority int) *FetchDefinition {
-	if strings.HasSuffix(baseUrl, "/") {
-		baseUrl = baseUrl[:len(baseUrl)-1]
+// Use a given request to extract a path, method and body for the fetch request
+func (fd *FetchDefinition) FromRequest(r *http.Request) *FetchDefinition {
+	if strings.HasSuffix(fd.URL, "/") {
+		fd.URL = fd.URL[:len(fd.URL)-1]
 	}
 
 	fullPath := r.URL.Path
@@ -158,18 +113,30 @@ func NewFetchDefinitionWithResponseProcessorAndPriorityFromRequest(baseUrl strin
 		fullPath += "?" + r.URL.RawQuery
 	}
 
-	return &FetchDefinition{
-		URL:             baseUrl + fullPath,
-		Timeout:         DefaultTimeout,
-		FollowRedirects: false,
-		Header:          copyHeaders(r.Header, nil, ForwardRequestHeaders),
-		Method:          r.Method,
-		Body:            r.Body,
-		Required:        true,
-		RespProc:        rp,
-		ErrHandler:      NewDefaultErrorHandler(),
-		Priority:        priority,
-	}
+	fd.URL = fd.URL + fullPath
+	fd.Body = r.Body
+	fd.Method = r.Method
+	fd.Header = copyHeaders(r.Header, fd.Header, ForwardRequestHeaders)
+
+	return fd
+}
+
+// Copy headers to the fetchdefinition (but only the ones which are part of the whitelist)
+func (fd *FetchDefinition) WithHeaders(header http.Header) *FetchDefinition {
+	fd.Header = copyHeaders(header, fd.Header, ForwardRequestHeaders)
+	return fd
+}
+
+// If a ResponseProcessor-Implementation is given it can be used to change the response before composition
+func (fd *FetchDefinition) WithResponseProcessor(rp ResponseProcessor) *FetchDefinition {
+	fd.RespProc = rp
+	return fd
+}
+
+// Set a name to be used in the merge context later on
+func (fd *FetchDefinition) WithName(name string) *FetchDefinition {
+	fd.Name = name
+	return fd
 }
 
 // Hash returns a unique hash for the fetch request.
@@ -193,8 +160,15 @@ func (def *FetchDefinition) IsReadableFromCache() bool {
 	return def.IsCacheable(200, nil)
 }
 
+// Returns a name from a url, which has template placeholders eliminated
+func urlToName(url string) string {
+	url = strings.Replace(url, `§[`, `\§\[`, -1)
+	url = strings.Replace(url, `]§`, `\]\§`, -1)
+	return url
+}
+
 // copyHeaders copies only the header contained in the the whitelist
-// from src to test. If dest is nil, it will be created.
+// from src to dest. If dest is nil, it will be created.
 // The dest will also be returned.
 func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 	if dest == nil {
@@ -206,6 +180,7 @@ func copyHeaders(src, dest http.Header, whitelist []string) http.Header {
 			dest.Add(k, v)
 		}
 	}
+
 	return dest
 }
 

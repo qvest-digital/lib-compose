@@ -3,9 +3,6 @@ package composition
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	"github.com/tarent/lib-compose/cache"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +10,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/tarent/lib-compose/cache"
+	"golang.org/x/net/html"
 )
 
 func Test_CompositionHandler_PositiveCase(t *testing.T) {
@@ -21,12 +23,18 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 	a := assert.New(t)
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		frag := NewStringFragment("Hello World\n")
+		frag.AddStylesheets([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css"),
+			stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css")})
+
 		return MockFetchResultSupplier{
 			&FetchResult{
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment("Hello World\n"),
+						"": frag,
 					},
 				},
 			},
@@ -42,6 +50,57 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 <html>
   <head>
     
+    <link rel="stylesheet" type="text/css" href="/path/to/style1.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style2.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style1.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style2.css">
+  </head>
+  <body>
+    Hello World
+
+  </body>
+</html>
+`
+	a.Equal(expected, string(resp.Body.Bytes()))
+	a.Equal(200, resp.Code)
+}
+
+func Test_CompositionHandler_PositiveCaseWithSimpleDeduplicationStrategy(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		frag := NewStringFragment("Hello World\n")
+		frag.AddStylesheets([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css"),
+			stylesheetAttrs("/path/to/style1.css"),
+			stylesheetAttrs("/path/to/style2.css")})
+
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": frag,
+					},
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+	ch.WithDeduplicationStrategy(new(SimpleDeduplicationStrategy))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	expected := `<!DOCTYPE html>
+<html>
+  <head>
+    
+    <link rel="stylesheet" type="text/css" href="/path/to/style1.css">
+    <link rel="stylesheet" type="text/css" href="/path/to/style2.css">
   </head>
   <body>
     Hello World
@@ -64,10 +123,10 @@ func Test_CompositionHandler_PositiveCaseWithCache(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment("Hello World\n"),
+						"": NewStringFragment("Hello World\n"),
 					},
 				},
-				Hash:    "hashString",
+				Hash: "hashString",
 			},
 		}
 	}
@@ -94,7 +153,57 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 				Def: NewFetchDefinition("/foo"),
 				Content: &MemoryContent{
 					body: map[string]Fragment{
-						"": StringFragment(""),
+						"": NewStringFragment(""),
+					},
+					httpHeader: http.Header{
+						"Transfer-Encoding": {"gzip"}, // removed
+						"Set-Cookie": {
+							"cookie-content 1",
+							"cookie-content 2",
+						},
+					},
+					httpStatusCode: 200,
+				},
+			},
+			&FetchResult{
+				Def: NewFetchDefinition("..."),
+				Content: &MemoryContent{
+					httpHeader: http.Header{
+						"Set-Cookie": {
+							"cookie-content 3",
+						},
+					},
+					httpStatusCode: 201,
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(200, resp.Code)
+	a.Equal(3, len(resp.Header())) // Set-Cookie + Content-Type + Content-Length
+	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 3")
+}
+
+func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned_onRedirect(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": NewStringFragment(""),
 					},
 					httpHeader: http.Header{
 						"Transfer-Encoding": {"gzip"}, // removed
@@ -127,6 +236,91 @@ func Test_CompositionHandler_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
 	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
 }
 
+func Test_CompositionHandler_HeadRequest_CorrectHeaderAndStatusCodeReturned(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					httpHeader: http.Header{
+						"Transfer-Encoding": {"gzip"}, // removed
+						"Location":          {"/look/somewhere"},
+						"Set-Cookie": {
+							"cookie-content 1",
+							"cookie-content 2",
+						},
+					},
+					httpStatusCode: 200,
+				},
+			},
+			&FetchResult{
+				Def:     NewFetchDefinition("..."),
+				Content: &MemoryContent{},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("HEAD", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(200, resp.Code)
+	a.Equal(2, len(resp.Header()))
+	a.Equal("/look/somewhere", resp.Header().Get("Location"))
+	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
+}
+
+func Test_CompositionHandler_CorrectStatusCodeReturned(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": NewStringFragment(""),
+					},
+					httpHeader: http.Header{
+						"Transfer-Encoding": {"gzip"}, // removed
+						"Location":          {"/look/somewhere"},
+						"Set-Cookie": {
+							"cookie-content 1",
+							"cookie-content 2",
+						},
+					},
+					httpStatusCode: 200,
+				},
+			},
+			&FetchResult{
+				Def:     NewFetchDefinition("..."),
+				Content: &MemoryContent{},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "http://example.com", nil)
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(200, resp.Code)
+	a.Equal(4, len(resp.Header()))
+	a.Equal("/look/somewhere", resp.Header().Get("Location"))
+	a.Equal("", resp.Header().Get("Transfer-Encoding"))
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 1")
+	a.Contains(resp.Header()["Set-Cookie"], "cookie-content 2")
+}
+
 func Test_CompositionHandler_ReturnStream(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -134,7 +328,7 @@ func Test_CompositionHandler_ReturnStream(t *testing.T) {
 
 	contentWithFragment := &MemoryContent{
 		body: map[string]Fragment{
-			"": StringFragment("Hello World\n"),
+			"": NewStringFragment("Hello World\n"),
 		},
 	}
 
@@ -184,7 +378,7 @@ func Test_CompositionHandler_ErrorInMerging(t *testing.T) {
 	aggregator := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
 		return merger
 	}
@@ -218,9 +412,8 @@ func Test_CompositionHandler_ErrorInMergingWithCache(t *testing.T) {
 	aggregator.cache.Set("hashString", "", 1, nil)
 	aggregator.contentMergerFactory = func(jsonData map[string]interface{}) ContentMerger {
 		merger := NewMockContentMerger(ctrl)
-		merger.EXPECT().AddContent(gomock.Any())
+		merger.EXPECT().AddContent(gomock.Any(), 0)
 		merger.EXPECT().GetHtml().Return(nil, errors.New("an error"))
-		merger.EXPECT().GetHashes().Return([]string{"hashString"})
 		return merger
 	}
 
@@ -343,6 +536,40 @@ func Test_getBaseUrlFromRequest(t *testing.T) {
 		host := getHostFromRequest(r)
 		a.Equal(test.expectedHost, host)
 	}
+}
+
+// Jira 3946: go deletes the "Host" header from the request (for whatever reasons):
+// https://golang.org/src/net/http/request.go:
+//   123		// For incoming requests, the Host header is promoted to the
+//   124		// Request.Host field and removed from the Header map.
+// But our cache strategies might want this header in order to generate different
+// cache-IDs (hashes) for different host names (e.g. preview-mode-whatever.de vs. production-whatever.de).
+func Test_CompositionHandler_RestoreHostHeader(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
+		return MockFetchResultSupplier{
+			&FetchResult{
+				Def: NewFetchDefinition("/foo"),
+				Content: &MemoryContent{
+					body: map[string]Fragment{
+						"": NewStringFragment("Hello World\n"),
+					},
+				},
+			},
+		}
+	}
+	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
+
+	resp := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Host = "MyHost"
+	ch.ServeHTTP(resp, r)
+
+	a.Equal(200, resp.Code)
+	a.Equal("MyHost", r.Header.Get("Host"))
 }
 
 type MockFetchResultSupplier []*FetchResult

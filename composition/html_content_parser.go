@@ -4,19 +4,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/html"
 	"io"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 const (
-	UicRemove      = "uic-remove"
-	UicInclude     = "uic-include"
-	UicFragment    = "uic-fragment"
-	UicTail        = "uic-tail"
-	ScriptTypeMeta = "text/uic-meta"
+	UicRemove       = "uic-remove"
+	UicInclude      = "uic-include"
+	UicFetch        = "uic-fetch"
+	UicFragment     = "uic-fragment"
+	UicTail         = "uic-tail"
+	ScriptTypeMeta  = "text/uic-meta"
+	ParamAttrPrefix = "param-"
 )
 
 type HtmlContentParser struct {
@@ -49,6 +52,7 @@ func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 }
 
 func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 
@@ -75,6 +79,10 @@ forloop:
 				}
 				continue
 			}
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
+				continue
+			}
 		case tt == html.EndTagToken:
 			if string(tag) == "head" {
 				break forloop
@@ -85,19 +93,31 @@ forloop:
 
 	s := headBuff.String()
 	st := strings.Trim(s, " \n")
-	if len(st) > 0 {
-		c.head = StringFragment(st)
+	if len(st) > 0 || len(stylesheets) > 0 {
+		frg := NewStringFragment(st)
+		frg.AddStylesheets(stylesheets)
+		c.head = frg
 	}
 	return nil
 }
 
+func getStylesheet(tag []byte, attrs []html.Attribute) (styleAttrs []html.Attribute, isStylesheet bool) {
+	styleAttrs = nil
+	if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
+		styleAttrs = append(styleAttrs, attrs...)
+		return styleAttrs, true
+	}
+	return styleAttrs, false
+}
+
 func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
 	attrs = readAttributes(z, attrs)
 	if len(attrs) > 0 {
-		c.bodyAttributes = StringFragment(joinAttrs(attrs))
+		c.bodyAttributes = NewStringFragment(joinAttrs(attrs))
 	}
 
 forloop:
@@ -122,8 +142,8 @@ forloop:
 					return err
 				} else {
 					c.body[getFragmentName(attrs)] = f
-					for _, dep := range deps {
-						c.requiredContent[dep.URL] = dep
+					for depName, depParams := range deps {
+						c.dependencies[depName] = depParams
 					}
 				}
 				continue
@@ -133,20 +153,35 @@ forloop:
 					return err
 				} else {
 					c.tail = f
-					for _, dep := range deps {
-						c.requiredContent[dep.URL] = dep
+					for depName, depParams := range deps {
+						c.dependencies[depName] = depParams
 					}
 				}
 				continue
 			}
-			if string(tag) == UicInclude {
-				if fd, replaceText, err := getInclude(z, attrs); err != nil {
+			if string(tag) == UicFetch {
+				if fd, err := getFetch(z, attrs); err != nil {
 					return err
 				} else {
 					c.requiredContent[fd.URL] = fd
-					bodyBuff.WriteString(replaceText)
 					continue
 				}
+			}
+			if string(tag) == UicInclude {
+				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
+					return err
+				} else {
+					c.dependencies[dependencyName] = dependencyParams
+					bodyBuff.WriteString(replaceTextStart)
+					// Enhancement: WriteOut sub tree, to allow alternative content
+					//              for optional includes.
+					bodyBuff.WriteString(replaceTextEnd)
+					continue
+				}
+			}
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
+				continue
 			}
 
 		case tt == html.EndTagToken:
@@ -159,17 +194,20 @@ forloop:
 
 	s := bodyBuff.String()
 	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
-		if st := strings.Trim(s, " \n"); len(st) > 0 {
-			c.body[""] = StringFragment(st)
+		if st := strings.Trim(s, " \n"); len(st) > 0 || len(stylesheets) > 0 {
+			frg := NewStringFragment(st)
+			frg.AddStylesheets(stylesheets)
+			c.body[""] = frg
 		}
 	}
 
 	return nil
 }
 
-func parseFragment(z *html.Tokenizer) (f Fragment, dependencies []*FetchDefinition, err error) {
+func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
+	var stylesheets [][]html.Attribute
 	attrs := make([]html.Attribute, 0, 10)
-	dependencies = make([]*FetchDefinition, 0, 0)
+	dependencies = make(map[string]Params)
 
 	buff := bytes.NewBuffer(nil)
 forloop:
@@ -187,16 +225,24 @@ forloop:
 			break forloop
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if string(tag) == UicInclude {
-				if fd, replaceText, err := getInclude(z, attrs); err != nil {
+				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
 					return nil, nil, err
 				} else {
-					dependencies = append(dependencies, fd)
-					fmt.Fprintf(buff, replaceText)
+					dependencies[dependencyName] = dependencyParams
+					fmt.Fprintf(buff, replaceTextStart)
+					// Enhancement: WriteOut sub tree, to allow alternative content
+					//              for optional includes.
+					fmt.Fprintf(buff, replaceTextEnd)
 					continue
 				}
 			}
 
 			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
+				continue
+			}
+
+			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
+				stylesheets = append(stylesheets, styleAttrs)
 				continue
 			}
 
@@ -208,28 +254,65 @@ forloop:
 		buff.Write(raw)
 	}
 
-	return StringFragment(buff.String()), dependencies, nil
+	frg := NewStringFragment(buff.String())
+	frg.AddStylesheets(stylesheets)
+	return frg, dependencies, nil
 }
 
-func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, string, error) {
-	fd := &FetchDefinition{}
-
+func getInclude(z *html.Tokenizer, attrs []html.Attribute) (startMarker, endMarker, dependencyName string, dependencyParams Params, error error) {
 	var srcString string
 	if url, hasUrl := getAttr(attrs, "src"); !hasUrl {
-		return nil, "", fmt.Errorf("include definition without src %s", z.Raw())
+		return "", "", "", nil, fmt.Errorf("include definition without src %s", z.Raw())
 	} else {
 		srcString = strings.TrimSpace(url.Val)
+		if strings.HasPrefix(srcString, "#") {
+			srcString = srcString[1:]
+		}
+		dependencyName = strings.Split(srcString, "#")[0]
 	}
 
-	if hashPosition := strings.Index(srcString, "#"); hashPosition > -1 {
-		fd.URL = srcString[:hashPosition]
+	dependencyParams = Params{}
+	for _, a := range attrs {
+		if strings.HasPrefix(a.Key, ParamAttrPrefix) {
+			key := a.Key[len(ParamAttrPrefix):]
+			dependencyParams[key] = a.Val
+		}
+	}
+
+	required := false
+	if r, hasRequired := getAttr(attrs, "required"); hasRequired {
+		if requiredBool, err := strconv.ParseBool(r.Val); err != nil {
+			return "", "", "", nil, fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
+		} else {
+			required = requiredBool
+		}
+	}
+
+	if required {
+		return fmt.Sprintf("§[> %s]§", srcString), "", dependencyName, dependencyParams, nil
 	} else {
-		fd.URL = srcString
+		return fmt.Sprintf("§[#> %s]§", srcString), fmt.Sprintf("§[/%s]§", srcString), dependencyName, dependencyParams, nil
+	}
+}
+
+func getFetch(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, error) {
+	fd := &FetchDefinition{}
+
+	url, hasUrl := getAttr(attrs, "src")
+	if !hasUrl {
+		return nil, fmt.Errorf("include definition without src %s", z.Raw())
+	}
+	fd.URL = strings.TrimSpace(url.Val)
+
+	if name, hasName := getAttr(attrs, "name"); hasName {
+		fd.Name = name.Val
+	} else {
+		fd.Name = urlToName(fd.URL)
 	}
 
 	if timeout, hasTimeout := getAttr(attrs, "timeout"); hasTimeout {
 		if timeoutInt, err := strconv.Atoi(timeout.Val); err != nil {
-			return nil, "", fmt.Errorf("error parsing timeout in %s: %s", z.Raw(), err.Error())
+			return nil, fmt.Errorf("error parsing timeout in %s: %s", z.Raw(), err.Error())
 		} else {
 			fd.Timeout = time.Millisecond * time.Duration(timeoutInt)
 		}
@@ -237,30 +320,25 @@ func getInclude(z *html.Tokenizer, attrs []html.Attribute) (*FetchDefinition, st
 
 	if required, hasRequired := getAttr(attrs, "required"); hasRequired {
 		if requiredBool, err := strconv.ParseBool(required.Val); err != nil {
-			return nil, "", fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
+			return nil, fmt.Errorf("error parsing bool in %s: %s", z.Raw(), err.Error())
 		} else {
 			fd.Required = requiredBool
 		}
 	}
 
-	placeholder := urlToFragmentName(srcString)
-	if strings.HasPrefix(placeholder, "#") {
-		placeholder = placeholder[1:]
-	}
-
-	attr, found := getAttr(attrs, "discoveredBy")
+	attr, found := getAttr(attrs, "discoveredby")
 	if found {
 		fd.DiscoveredBy(attr.Val)
 	}
 
-	return fd, fmt.Sprintf("§[> %s]§", placeholder), nil
+	return fd, nil
 }
 
 func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]string) error {
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
-	z := html.NewTokenizer(strings.NewReader(string(*fragment)))
-	forloop:
+	z := html.NewTokenizer(strings.NewReader(fragment.Content()))
+forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
@@ -276,28 +354,28 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 
-                        switch {
-                        case string(tag) == "meta":
-                                if (processMetaTag(string(tag), attrs, headPropertyMap)) {
-                                        headBuff.Write(raw)
-                                }
-                                continue forloop
-                        case string(tag) == "link":
-                                if (processLinkTag(attrs, headPropertyMap)) {
-                                        headBuff.Write(raw)
-                                }
-                                continue forloop
-                        case string(tag) == "title":
-                                if (headPropertyMap["title"] == "") {
-                                        headPropertyMap["title"] = "title"
-                                        headBuff.Write(raw)
-                                } else if (tt != html.SelfClosingTagToken) {
-                                        skipCompleteTag(z, "title")
-                                }
-                                continue forloop
-                        default:
-                                headBuff.Write(raw)
-                        }
+			switch {
+			case string(tag) == "meta":
+				if (processMetaTag(string(tag), attrs, headPropertyMap)) {
+					headBuff.Write(raw)
+				}
+				continue forloop
+			case string(tag) == "link":
+				if (processLinkTag(attrs, headPropertyMap)) {
+					headBuff.Write(raw)
+				}
+				continue forloop
+			case string(tag) == "title":
+				if (headPropertyMap["title"] == "") {
+					headPropertyMap["title"] = "title"
+					headBuff.Write(raw)
+				} else if (tt != html.SelfClosingTagToken) {
+					skipCompleteTag(z, "title")
+				}
+				continue forloop
+			default:
+				headBuff.Write(raw)
+			}
 
 		default:
 			headBuff.Write(raw)
@@ -308,14 +386,13 @@ func ParseHeadFragment(fragment *StringFragment, headPropertyMap map[string]stri
 	s := headBuff.String()
 
 	if len(s) > 0 {
-		*fragment = StringFragment(s)
+		fragment.SetContent(s)
 	}
 	return nil
 }
 
-
 func skipCompleteTag(z *html.Tokenizer, tagName string) error {
-	forloop:
+forloop:
 	for {
 		tt := z.Next()
 		tag, _ := z.TagName()
@@ -336,7 +413,7 @@ func skipCompleteTag(z *html.Tokenizer, tagName string) error {
 }
 
 func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]string) bool {
-	if (len(attrs) == 0) {
+	if len(attrs) == 0 {
 		return true
 	}
 
@@ -344,18 +421,18 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 	value := ""
 
 	// e.g.: <meta charset="utf-8"> => key = meta_charset; val = utf-8
-	if (len(attrs) == 1) {
+	if len(attrs) == 1 {
 		key = tagName + "_" + attrs[0].Key
 		value = attrs[0].Val
 	}
 
 	// e.g.: <meta name="content-language" content="de"> => key = meta_name_content-language; val = content_de
-	if (len(attrs) > 1) {
+	if len(attrs) > 1 {
 		key = tagName + "_" + attrs[0].Key + "_" + attrs[0].Val
 		value = attrs[1].Key + "_" + attrs[1].Val
 	}
 
-	if (metaMap[key] == "") {
+	if metaMap[key] == "" {
 		metaMap[key] = value
 		return true
 	}

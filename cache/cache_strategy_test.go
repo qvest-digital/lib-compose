@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+	"github.com/tarent/lib-compose/util"
 )
 
 type hashCall struct {
@@ -172,6 +173,16 @@ func Test_CacheStrategy_IsCachable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			DefaultCacheStrategy,
+			"GET",
+			200,
+			nil,
+			http.Header{
+				"Cache-Control": {"no-store, no-cache"},
+			},
+			false,
+		},
 	}
 
 	for _, t := range tests {
@@ -188,21 +199,21 @@ func Test_CacheStrategy_IsCachable(t *testing.T) {
 func Test_CacheStrategy_readCookieValue(t *testing.T) {
 	a := assert.New(t)
 
-	v, found := readCookieValue(http.Header{"Cookie": {"foo=bar"}}, "foo")
+	v, found := util.ReadCookieValue(http.Header{"Cookie": {"foo=bar"}}, "foo")
 	a.True(found)
 	a.Equal("bar", v)
 
-	v, found = readCookieValue(http.Header{"Cookie": {`foo="bar"`}}, "foo")
+	v, found = util.ReadCookieValue(http.Header{"Cookie": {`foo="bar"`}}, "foo")
 	a.True(found)
 	a.Equal("bar", v)
 
-	v, found = readCookieValue(http.Header{"Cookie": {"foo"}}, "foo")
+	v, found = util.ReadCookieValue(http.Header{"Cookie": {"foo"}}, "foo")
 	a.True(found)
 	a.Equal("", v)
 
-	v, found = readCookieValue(http.Header{"Cookie": {";"}}, "foo")
+	v, found = util.ReadCookieValue(http.Header{"Cookie": {";"}}, "foo")
 	a.False(found)
 
-	v, found = readCookieValue(http.Header{"Cookie": {""}}, "foo")
+	v, found = util.ReadCookieValue(http.Header{"Cookie": {""}}, "foo")
 	a.False(found)
 }

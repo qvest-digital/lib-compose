@@ -3,9 +3,9 @@ package composition
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"testing"
 	"time"
-        "sort"
 )
 
 func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
@@ -52,6 +52,48 @@ func Test_ContentFetcher_Empty(t *testing.T) {
 	a.True(fetcher.Empty())
 }
 
+func Test_ContentFetcher_LazyDependencies(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	a := assert.New(t)
+
+	loader := NewMockContentLoader(ctrl)
+
+	parent := NewFetchDefinition("/parent")
+	content := NewMockContent(ctrl)
+	loader.EXPECT().
+		Load(parent).
+		Return(content, nil)
+
+	content.EXPECT().
+		RequiredContent().
+		Return([]*FetchDefinition{})
+	content.EXPECT().
+		Meta().
+		Return(nil)
+	content.EXPECT().
+		Dependencies().
+		Return(map[string]Params{"child": Params{"foo": "bar"}})
+
+	child := getFetchDefinitionMock(ctrl, loader, "/child", nil, time.Millisecond*2, nil)
+
+	fetcher := NewContentFetcher(nil)
+	fetcher.Loader = loader
+	fetcher.SetFetchDefinitionFactory(func(name string, params Params) (fd *FetchDefinition, exist bool, err error) {
+		a.Equal("child", name)
+		a.Equal("bar", params["foo"])
+		return child, true, nil
+	})
+
+	fetcher.AddFetchJob(parent)
+	results := fetcher.WaitForResults()
+
+	a.Equal(2, len(results))
+	a.False(fetcher.Empty())
+	a.Equal("/parent", results[0].Def.URL)
+	a.Equal("/child", results[1].Def.URL)
+}
+
 func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoader, url string, requiredContent []*FetchDefinition, loaderBlocking time.Duration, metaJSON map[string]interface{}) *FetchDefinition {
 	fd := NewFetchDefinition(url)
 	fd.Timeout = time.Second * 42
@@ -65,6 +107,10 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 		Meta().
 		Return(metaJSON)
 
+	content.EXPECT().
+		Dependencies().
+		Return(map[string]Params{})
+
 	loaderMock.EXPECT().
 		Load(fd).
 		Do(
@@ -77,25 +123,24 @@ func getFetchDefinitionMock(ctrl *gomock.Controller, loaderMock *MockContentLoad
 }
 
 func Test_ContentFetchResultPrioritySort(t *testing.T) {
-        a := assert.New(t)
+	a := assert.New(t)
 
-        barFd := NewFetchDefinitionWithPriority("/bar", 30)
-        fooFd := NewFetchDefinitionWithPriority("/foo", 10)
-        bazzFd := NewFetchDefinitionWithPriority("/bazz", 5)
+	barFd := NewFetchDefinition("/bar").WithPriority(30)
+	fooFd := NewFetchDefinition("/foo").WithPriority(10)
+	bazzFd := NewFetchDefinition("/bazz").WithPriority(5)
 
-        results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
+	results := []*FetchResult{{Def: barFd}, {Def: fooFd}, {Def: bazzFd}}
 
-        a.Equal(30, results[0].Def.Priority)
-        a.Equal(10, results[1].Def.Priority)
-        a.Equal(5, results[2].Def.Priority)
+	a.Equal(30, results[0].Def.Priority)
+	a.Equal(10, results[1].Def.Priority)
+	a.Equal(5, results[2].Def.Priority)
 
-        sort.Sort(FetchResults(results))
+	sort.Sort(FetchResults(results))
 
-        a.Equal(5, results[0].Def.Priority)
-        a.Equal(10, results[1].Def.Priority)
-        a.Equal(30, results[2].Def.Priority)
+	a.Equal(5, results[0].Def.Priority)
+	a.Equal(10, results[1].Def.Priority)
+	a.Equal(30, results[2].Def.Priority)
 }
-
 
 func Test_ContentFetcher_PriorityOrderAfterFetchCompletion(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -116,7 +161,6 @@ func Test_ContentFetcher_PriorityOrderAfterFetchCompletion(t *testing.T) {
 	fetcher.AddFetchJob(barFd)
 	fetcher.AddFetchJob(fooFd)
 	fetcher.AddFetchJob(bazzFd)
-
 
 	results := fetcher.WaitForResults()
 
