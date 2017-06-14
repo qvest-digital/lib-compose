@@ -42,7 +42,10 @@ func compositionHandler() http.Handler {
 
 		return fetcher
 	}
-	return composition.NewCompositionHandler(contentFetcherFactory).WithDeduplicationStrategy(new(composition.SimpleDeduplicationStrategy))
+	sdf := func() composition.StylesheetDeduplicationStrategy {
+		return new(composition.SimpleDeduplicationStrategy)
+	}
+	return composition.NewCompositionHandler(contentFetcherFactory).WithDeduplicationStrategyFactory(sdf)
 }
 
 func staticHandler() http.Handler {
