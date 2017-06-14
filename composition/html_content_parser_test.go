@@ -737,7 +737,7 @@ func containsFragment(t *testing.T, contained string, f Fragment) {
 		t.Error("Fragment is nil, but expected:", contained)
 		return
 	}
-	sf := f.(StringFragment)
+	sf := f.(*StringFragment).Content()
 	sfStripped := strings.Replace(string(sf), " ", "", -1)
 	sfStripped = strings.Replace(string(sfStripped), "\n", "", -1)
 
@@ -934,7 +934,7 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
-	resultString := removeTabsAndNewLines(string(headFragment))
+	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
 }
@@ -1010,13 +1010,13 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 	headMetaPropertyMap := make(map[string]string)
 	headMetaPropertyMap["canonical"] = "/baumarkt/suche"
 
-	headFragment := StringFragment(originalHeadString)
+	headFragment := NewStringFragment(originalHeadString)
         // WHEN
-	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
         // THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
-	resultString := removeTabsAndNewLines(string(headFragment))
+	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
 }
@@ -1033,6 +1033,7 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
 	<link rel="canonical"
 	        href="/navigationservice">
 	<foo bar=""/>
+	<link    href="/feedbackservice"   rel="canonical">
 	<title>navigationservice</title>
 	`
 
@@ -1047,9 +1048,9 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
 
 	headMetaPropertyMap := make(map[string]string)
 
-	headFragment := StringFragment(originalHeadString)
+	headFragment := NewStringFragment(originalHeadString)
         // WHEN
-	ParseHeadFragment(&headFragment, headMetaPropertyMap)
+	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
         // THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
