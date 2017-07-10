@@ -236,11 +236,6 @@ func setCorrelationIds(fields logrus.Fields, h http.Header) {
 	if correlationId != "" {
 		fields["correlation_id"] = correlationId
 	}
-
-	userCorrelationId := GetUserCorrelationId(h)
-	if userCorrelationId != "" {
-		fields["user_correlation_id"] = userCorrelationId
-	}
 }
 
 func contains(s []string, e string) bool {
