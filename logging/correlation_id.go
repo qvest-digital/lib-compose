@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"github.com/tarent/lib-compose/util"
 	"math/rand"
 	"net/http"
 	"time"
@@ -14,7 +13,6 @@ func init() {
 }
 
 var CorrelationIdHeader = "X-Correlation-Id"
-var UserCorrelationCookie = ""
 
 // EnsureCorrelationId returns the correlation from of the request.
 // If the request does not have a correlation id, one will be generated and set to the request.
@@ -38,14 +36,4 @@ func randStringBytes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
-}
-
-// GetCorrelationId returns the users correlation id of the headers.
-func GetUserCorrelationId(h http.Header) string {
-	if UserCorrelationCookie != "" {
-		if value, found := util.ReadCookieValue(h, UserCorrelationCookie); found {
-			return value
-		}
-	}
-	return ""
 }
