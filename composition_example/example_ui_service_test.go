@@ -30,6 +30,8 @@ func Test_integration_test(t *testing.T) {
 	expectedS := strings.Replace(string(expected), "http://127.0.0.1:8080", s.URL, -1)
 	expectedS = removeEmptyLines(expectedS)
 	result := removeEmptyLines(string(body))
+	ioutil.WriteFile("/tmp/expected", []byte(expectedS), 0644)
+	ioutil.WriteFile("/tmp/result", []byte(result), 0644)
 	a.NoError(err)
 	htmlEqual(t, expectedS, result)
 }

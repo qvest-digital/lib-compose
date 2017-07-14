@@ -52,11 +52,11 @@ type ContentFetcher struct {
 // NewContentFetcher creates a ContentFetcher with an HtmlContentParser as default.
 // TODO: The FetchResults should always be returned in a predictable order,
 // independent of the actual response times of the fetch jobs.
-func NewContentFetcher(defaultMetaJSON map[string]interface{}) *ContentFetcher {
+func NewContentFetcher(defaultMetaJSON map[string]interface{}, collectLinks bool, collectScripts bool) *ContentFetcher {
 	f := &ContentFetcher{}
 	f.r.results = make([]*FetchResult, 0, 0)
 	f.r.sheduledFetchDefinitionNames = make(map[string]string)
-	f.Loader = NewHttpContentLoader()
+	f.Loader = NewHttpContentLoader(collectLinks, collectScripts)
 	f.meta.json = defaultMetaJSON
 	if f.meta.json == nil {
 		f.meta.json = make(map[string]interface{})

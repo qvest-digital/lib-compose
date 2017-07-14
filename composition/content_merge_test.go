@@ -1,7 +1,10 @@
 package composition
 
 import (
+	"bytes"
 	"errors"
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +48,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 		stylesheetAttrs("/üst/das/möglich"),
 	}
 
-	body.AddStylesheets(sheets)
+	body.AddLinkTags(sheets)
 	cm := NewContentMerge(nil)
 
 	cm.AddContent(&MemoryContent{
@@ -117,7 +120,7 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 		stylesheetAttrs("/body/first"),
 		stylesheetAttrs("/body/second"),
 	}
-	body.AddStylesheets(sheets)
+	body.AddLinkTags(sheets)
 
 	cm.AddContent(&MemoryContent{
 		name: LayoutFragmentName,
@@ -129,14 +132,14 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 		stylesheetAttrs("/page/2A/first"),
 		stylesheetAttrs("/page/2A/second"),
 	}
-	page2A.AddStylesheets(sheets)
+	page2A.AddLinkTags(sheets)
 
 	page2B := NewStringFragment("<page2-body-b/>")
 	sheets = [][]html.Attribute{
 		stylesheetAttrs("/page/2B/first"),
 		stylesheetAttrs("/page/2B/second"),
 	}
-	page2B.AddStylesheets(sheets)
+	page2B.AddLinkTags(sheets)
 
 	// this fragment is not rendered, so it's stylesheets should not appear in page header
 	pageUnreferenced := NewStringFragment("<unreferenced-body/>")
@@ -144,7 +147,7 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 		stylesheetAttrs("/unreferenced/first"),
 		stylesheetAttrs("/unreferenced/second"),
 	}
-	pageUnreferenced.AddStylesheets(sheets)
+	pageUnreferenced.AddLinkTags(sheets)
 
 	cm.AddContent(&MemoryContent{
 		name: "example1.com",
@@ -159,7 +162,7 @@ func Test_ContentMerge_BodyCompositionWithExplicitNames(t *testing.T) {
 		stylesheetAttrs("/page/3A/first"),
 		stylesheetAttrs("/page/3A/second"),
 	}
-	page3A.AddStylesheets(sheets)
+	page3A.AddLinkTags(sheets)
 	cm.AddContent(&MemoryContent{
 		name: "example2.com",
 		body: map[string]Fragment{
@@ -251,4 +254,121 @@ func (buff closedWriterMock) Write(b []byte) (int, error) {
 
 func asFetchResult(c Content) *FetchResult {
 	return &FetchResult{Content: c, Def: &FetchDefinition{URL: c.Name()}}
+}
+
+func Test_MergeMultipleContents(t *testing.T) {
+	a := assert.New(t)
+
+	cm := NewContentMerge(nil)
+	cm.AddContent(getFixtureWithName(LayoutFragmentName, "simple/layout1.html"), 0)
+	cm.AddContent(getFixture("simple/fragment_header.html"), 0)
+	cm.AddContent(getFixture("simple/fragment_content.html"), 0)
+	cm.AddContent(getFixture("simple/fragment_header2.html"), 0)
+
+	html, err := cm.GetHtml()
+	a.NoError(err)
+	sHtml := string(html)
+	a.Contains(sHtml, "TEST-CONTENT")
+	a.Contains(sHtml, "TEST-HEADER 2")
+	a.Contains(sHtml, "<title>layout-header</title>")
+	a.Contains(sHtml, "<title>test-header</title>")
+	a.Contains(sHtml, "<title>content-header</title>")
+	a.Contains(sHtml, "<title>test-header 2</title>")
+}
+
+func Test_MergeMultipleContentsPrioritized(t *testing.T) {
+	a := assert.New(t)
+
+	cm := NewContentMerge(nil)
+	cm.AddContent(getFixtureWithName(LayoutFragmentName, "simple/layout1.html"), 0)
+	cm.AddContent(getFixture("simple/fragment_header.html"), 0)
+	cm.AddContent(getFixture("simple/fragment_content.html"), 1)
+	cm.AddContent(getFixture("simple/fragment_header2.html"), 0)
+
+	html, err := cm.GetHtml()
+	a.NoError(err)
+	sHtml := string(html)
+	a.Contains(sHtml, "TEST-CONTENT")
+	a.Contains(sHtml, "TEST-HEADER 2")
+	// Notice: This assertion is somewhat unexpected. Normally one would expect
+	// the title of fragment_content.html here, which is given a higher priority.
+	// But prioritization is done somewhere else in this library and the
+	// priority value of the AddContent() method is only used as a flag.
+	a.Contains(sHtml, "<title>test-header 2</title>")
+}
+
+func Test_MergeScriptTags(t *testing.T) {
+	a := assert.New(t)
+
+	cm := NewContentMerge(nil)
+	cm.AddContent(getFixtureWithName(LayoutFragmentName, "with_scripts/layout_scripts.html"), 0)
+	cm.AddContent(getFixture("with_scripts/fragment_scripts_header.html"), 0)
+	cm.AddContent(getFixture("with_scripts/fragment_scripts_footer.html"), 1)
+	cm.AddContent(getFixture("with_scripts/fragment_scripts_content.html"), 0)
+
+	expected, err := ioutil.ReadFile("testdata/with_scripts/expected_scripts.html")
+	sExpected := trim(string(expected))
+	a.NoError(err)
+
+	html, err := cm.GetHtml()
+	a.NoError(err)
+	sHtml := trim(string(html))
+	a.Equal(sHtml, sExpected)
+}
+
+func Test_MergeScriptTagsWithPrios(t *testing.T) {
+	a := assert.New(t)
+
+	cm := NewContentMerge(nil)
+	cm.AddContent(getFixtureWithName(LayoutFragmentName, "with_scripts/layout_scripts.html"), 0)
+	cm.AddContent(getFixture("with_scripts/fragment_scripts_header.html"), 0)
+	cm.AddContent(getFixture("with_scripts/fragment_scripts_footer.html"), 1)
+	cm.AddContent(getFixture("with_scripts/fragment_scripts_content.html"), 0)
+
+	expected, err := ioutil.ReadFile("testdata/with_scripts/expected_scripts.html")
+	sExpected := trim(string(expected))
+	a.NoError(err)
+
+	html, err := cm.GetHtml()
+	a.NoError(err)
+	sHtml := trim(string(html))
+	a.Equal(sHtml, sExpected)
+}
+
+func trim(html string) string {
+	splitted := strings.Split(html, "\n")
+	var result []string
+	for _, v := range splitted {
+		trimmed := strings.Trim(v, " \t\n\r")
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return strings.Join(result, "\n")
+}
+
+func getFixtureWithName(name string, filename string) (c *MemoryContent) {
+	c = getFixture(filename)
+	c.name = name
+	return c
+}
+
+func getFixture(filename string) (c *MemoryContent) {
+	dat, err := ioutil.ReadFile("testdata/" + filename)
+	if err != nil {
+		panic(err)
+	}
+	c, err = parse(string(dat))
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+func parse(buf string) (c *MemoryContent, err error) {
+	parser := NewContentParser(true, true)
+	z := bytes.NewBufferString(buf)
+	c = NewMemoryContent()
+	err = parser.Parse(c, z)
+	return c, err
 }

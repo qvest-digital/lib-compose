@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>content-header</title>
+    </head>
+    <body>
+        <h1>This is the script layout</h1>
+        <!-- header start -->
+        <div>
+            TEST-HEADER
+        </div>
+        <!-- header end -->
+        <!-- content start -->
+        <div>
+            TEST-CONTENT
+        </div>
+        <hr>
+        <!-- content end -->
+        <!-- footer start -->
+        <div>
+            TEST-FOOTER
+        </div>
+        <!-- footer end -->
+        <script charset="utf-8">
+            // inline script - layout.head
+        </script>
+        <script src="layout/head.js" charset="utf-8"></script>
+        <script src="header/head.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - header.head
+        </script>
+        <script src="footer/head.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - footer.head
+        </script>
+        <script charset="utf-8">
+            // inline script - content.head
+        </script>
+        <script src="content/head.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - layout.body
+        </script>
+        <script src="layout/body.js" charset="utf-8"></script>
+        <script src="header/body/header.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - header.body#header
+        </script>
+        <script charset="utf-8">
+            // inline script - content.body#content
+        </script>
+        <script src="content/body/content.js" charset="utf-8"></script>
+        <script src="footer/body/footer.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - footer.body#footer
+        </script>
+        <script src="footer/uic-tail.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - content.body#uic-tail - 1
+        </script>
+        <script src="content/body/content/uic-tail.js" charset="utf-8"></script>
+        <script charset="utf-8">
+            // inline script - content.body#uic-tail - 2
+        </script>
+        <!-- uic-tail content -->
+    </body>
+</html>

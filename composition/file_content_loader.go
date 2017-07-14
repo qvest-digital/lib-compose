@@ -3,11 +3,12 @@ package composition
 import (
 	"errors"
 	"fmt"
-	"github.com/tarent/lib-compose/logging"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tarent/lib-compose/logging"
 )
 
 var ResponseProcessorsNotApplicable = errors.New("request processors are not apliable on file content")
@@ -16,9 +17,9 @@ type FileContentLoader struct {
 	parser ContentParser
 }
 
-func NewFileContentLoader() *FileContentLoader {
+func NewFileContentLoader(collectLinks bool, collectScripts bool) *FileContentLoader {
 	return &FileContentLoader{
-		parser: &HtmlContentParser{},
+		parser: NewHtmlContentParser(collectLinks, collectScripts),
 	}
 }
 

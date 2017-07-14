@@ -18,8 +18,12 @@ type Fragment interface {
 	// MemorySize return the estimated size in bytes, for this object in memory
 	MemorySize() int
 
-	// Return the list of stylesheets used in this fragment
-	Stylesheets() [][]html.Attribute
+	// Return the content of this fragment
+	Content() string
+
+	// Return the list of link tags and script elements used in this fragment
+	LinkTags() [][]html.Attribute
+	ScriptElements() []ScriptElement
 }
 
 type ContentLoader interface {
@@ -107,7 +111,7 @@ type ContentMerger interface {
 	GetHtml() ([]byte, error)
 
 	// Set the stratgy for stylesheet deduplication
-	SetDeduplicationStrategy(stategy StylesheetDeduplicationStrategy)
+	SetDeduplicationStrategy(strategy DeduplicationStrategy)
 }
 
 type ResponseProcessor interface {
@@ -128,6 +132,7 @@ type Cache interface {
 	PurgeEntries(keys []string)
 }
 
-type StylesheetDeduplicationStrategy interface {
-	Deduplicate(stylesheetAttrs [][]html.Attribute) [][]html.Attribute
+type DeduplicationStrategy interface {
+	Deduplicate(linkTags [][]html.Attribute) [][]html.Attribute
+	DeduplicateElements(scriptElements []ScriptElement) []ScriptElement
 }

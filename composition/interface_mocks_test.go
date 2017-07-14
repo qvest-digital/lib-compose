@@ -260,7 +260,7 @@ func (_m *MockContentMerger) GetHtml() ([]byte, error) {
 	return ret0, ret1
 }
 
-func (_m *MockContentMerger) SetDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) {
+func (_m *MockContentMerger) SetDeduplicationStrategy(strategy DeduplicationStrategy) {
 }
 
 func (_mr *_MockContentMergerRecorder) GetHtml() *gomock.Call {

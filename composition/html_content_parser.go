@@ -12,6 +12,15 @@ import (
 	"golang.org/x/net/html"
 )
 
+type HtmlContentParser struct {
+	collectLinks   bool
+	collectScripts bool
+}
+
+func NewHtmlContentParser(collectLinks bool, collectScripts bool) *HtmlContentParser {
+	return &HtmlContentParser{collectLinks: collectLinks, collectScripts: collectScripts}
+}
+
 const (
 	UicRemove       = "uic-remove"
 	UicInclude      = "uic-include"
@@ -22,7 +31,32 @@ const (
 	ParamAttrPrefix = "param-"
 )
 
-type HtmlContentParser struct {
+type TagType int
+
+const (
+	LINK TagType = iota
+	META
+	SCRIPT
+	SCRIPT_INLINE
+	UNKNOWN
+)
+
+func getTag(tag []byte, attrs []html.Attribute) (tagAttrs []html.Attribute, tagType TagType) {
+	tagAttrs = nil
+	tagAttrs = append(tagAttrs, attrs...)
+	if string(tag) == "link" {
+		return tagAttrs, LINK
+	}
+	if string(tag) == "meta" {
+		return tagAttrs, META
+	}
+	if string(tag) == "script" {
+		if _, hasUrl := getAttr(attrs, "src"); !hasUrl {
+			return tagAttrs, SCRIPT_INLINE
+		}
+		return tagAttrs, SCRIPT
+	}
+	return nil, UNKNOWN
 }
 
 func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
@@ -51,67 +85,108 @@ func (parser *HtmlContentParser) Parse(c *MemoryContent, in io.Reader) error {
 	}
 }
 
+func (parser *HtmlContentParser) collectLinksAndScripts(tag []byte, attrs []html.Attribute, linkTags *[][]html.Attribute, scriptTags *[]ScriptElement, z *html.Tokenizer, tt html.TokenType) (skip bool, err error) {
+
+	skip = false
+	tagAttrs, tagType := getTag(tag, attrs)
+	if tagType == UNKNOWN {
+		// do nothing
+	} else if tagType == LINK && parser.collectLinks {
+		*linkTags = append(*linkTags, tagAttrs)
+		skip = true
+	} else if tagType == SCRIPT && parser.collectScripts {
+		*scriptTags = append(*scriptTags, newScriptElement(tagAttrs, nil))
+		if skipSubtree(z, tt, string(tag), attrs) {
+			skip = true
+		}
+	} else if tagType == SCRIPT_INLINE && parser.collectScripts {
+		txt, err := parseInlineScript(z)
+		if err != nil {
+			return false, err
+		}
+		*scriptTags = append(*scriptTags, newScriptElement(tagAttrs, txt))
+		skip = true
+	}
+	return skip, nil
+}
+
+func nextToken(z *html.Tokenizer, attrs []html.Attribute, stopToken ...string) (error, html.TokenType, []byte, []byte, []html.Attribute) {
+	tt := z.Next()
+	tag, _ := z.TagName()
+	raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
+	attrs = readAttributes(z, attrs)
+
+	switch {
+
+	case tt == html.ErrorToken:
+		return z.Err(), tt, tag, raw, attrs
+
+	case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
+		if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
+			return nextToken(z, attrs, stopToken...)
+		}
+
+	case tt == html.EndTagToken:
+		for _, tok := range stopToken {
+			if string(tag) == tok {
+				return io.EOF, tt, tag, raw, attrs
+			}
+		}
+	}
+
+	// return the next parseable token
+	return nil, tt, tag, raw, attrs
+}
+
 func (parser *HtmlContentParser) parseHead(z *html.Tokenizer, c *MemoryContent) error {
-	var stylesheets [][]html.Attribute
+	var linkTags [][]html.Attribute
+	var scriptTags []ScriptElement
 	attrs := make([]html.Attribute, 0, 10)
 	headBuff := bytes.NewBuffer(nil)
 
 forloop:
 	for {
-		tt := z.Next()
-		tag, _ := z.TagName()
-		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
-		attrs = readAttributes(z, attrs)
-
-		switch {
-		case tt == html.ErrorToken:
-			if z.Err() != io.EOF {
+		err, tt, tag, raw, attrs := nextToken(z, attrs, "head")
+		if err != nil {
+			if err != io.EOF {
 				return z.Err()
 			}
 			break forloop
-		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
-				continue
+		}
+
+		if string(tag) == "script" && attrHasValue(attrs, "type", ScriptTypeMeta) {
+			if err := parseMetaJson(z, c); err != nil {
+				return err
 			}
-			if string(tag) == "script" && attrHasValue(attrs, "type", ScriptTypeMeta) {
-				if err := parseMetaJson(z, c); err != nil {
-					return err
-				}
-				continue
-			}
-			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
-				stylesheets = append(stylesheets, styleAttrs)
-				continue
-			}
-		case tt == html.EndTagToken:
-			if string(tag) == "head" {
-				break forloop
-			}
+			continue
+		}
+
+		skip, err := parser.collectLinksAndScripts(tag, attrs, &linkTags, &scriptTags, z, tt)
+		if err != nil {
+			return err
+		}
+
+		if skip {
+			continue
 		}
 		headBuff.Write(raw)
 	}
 
 	s := headBuff.String()
 	st := strings.Trim(s, " \n")
-	if len(st) > 0 || len(stylesheets) > 0 {
+	if len(st) > 0 || len(linkTags) > 0 || len(scriptTags) > 0 {
 		frg := NewStringFragment(st)
-		frg.AddStylesheets(stylesheets)
+		frg.AddLinkTags(linkTags)
+		frg.AddScriptTags(scriptTags)
 		c.head = frg
 	}
 	return nil
 }
 
-func getStylesheet(tag []byte, attrs []html.Attribute) (styleAttrs []html.Attribute, isStylesheet bool) {
-	styleAttrs = nil
-	if string(tag) == "link" && attrHasValue(attrs, "rel", "stylesheet") {
-		styleAttrs = append(styleAttrs, attrs...)
-		return styleAttrs, true
-	}
-	return styleAttrs, false
-}
-
 func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) error {
-	var stylesheets [][]html.Attribute
+	var linkTags [][]html.Attribute
+	var scriptTags []ScriptElement
+
 	attrs := make([]html.Attribute, 0, 10)
 	bodyBuff := bytes.NewBuffer(nil)
 
@@ -122,23 +197,18 @@ func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) 
 
 forloop:
 	for {
-		tt := z.Next()
-		tag, _ := z.TagName()
-		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
-		attrs = readAttributes(z, attrs)
-
-		switch {
-		case tt == html.ErrorToken:
-			if z.Err() != io.EOF {
+		err, tt, tag, raw, attrs := nextToken(z, attrs, "body")
+		if err != nil {
+			if err != io.EOF {
 				return z.Err()
 			}
 			break forloop
+		}
+
+		switch {
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
-			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
-				continue
-			}
 			if string(tag) == UicFragment {
-				if f, deps, err := parseFragment(z); err != nil {
+				if f, deps, err := parser.parseFragment(z); err != nil {
 					return err
 				} else {
 					c.body[getFragmentName(attrs)] = f
@@ -149,7 +219,7 @@ forloop:
 				continue
 			}
 			if string(tag) == UicTail {
-				if f, deps, err := parseFragment(z); err != nil {
+				if f, deps, err := parser.parseFragment(z); err != nil {
 					return err
 				} else {
 					c.tail = f
@@ -179,14 +249,14 @@ forloop:
 					continue
 				}
 			}
-			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
-				stylesheets = append(stylesheets, styleAttrs)
-				continue
+
+			skip, err := parser.collectLinksAndScripts(tag, attrs, &linkTags, &scriptTags, z, tt)
+			if err != nil {
+				return err
 			}
 
-		case tt == html.EndTagToken:
-			if string(tag) == "body" {
-				break forloop
+			if skip {
+				continue
 			}
 		}
 		bodyBuff.Write(raw)
@@ -194,9 +264,10 @@ forloop:
 
 	s := bodyBuff.String()
 	if _, defaultFragmentExists := c.body[""]; !defaultFragmentExists {
-		if st := strings.Trim(s, " \n"); len(st) > 0 || len(stylesheets) > 0 {
+		if st := strings.Trim(s, " \n"); len(st) > 0 || len(linkTags) > 0 || len(scriptTags) > 0 {
 			frg := NewStringFragment(st)
-			frg.AddStylesheets(stylesheets)
+			frg.AddLinkTags(linkTags)
+			frg.AddScriptTags(scriptTags)
 			c.body[""] = frg
 		}
 	}
@@ -204,25 +275,24 @@ forloop:
 	return nil
 }
 
-func parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
-	var stylesheets [][]html.Attribute
+func (parser *HtmlContentParser) parseFragment(z *html.Tokenizer) (f Fragment, dependencies map[string]Params, err error) {
+	var linkTags [][]html.Attribute
+	var scriptTags []ScriptElement
 	attrs := make([]html.Attribute, 0, 10)
 	dependencies = make(map[string]Params)
 
 	buff := bytes.NewBuffer(nil)
 forloop:
 	for {
-		tt := z.Next()
-		tag, _ := z.TagName()
-		raw := byteCopy(z.Raw()) // create a copy here, because readAttributes modifies z.Raw, if attributes contain an &
-		attrs = readAttributes(z, attrs)
-
-		switch {
-		case tt == html.ErrorToken:
-			if z.Err() != io.EOF {
+		err, tt, tag, raw, attrs := nextToken(z, attrs, UicFragment, UicTail)
+		if err != nil {
+			if err != io.EOF {
 				return nil, nil, z.Err()
 			}
 			break forloop
+		}
+
+		switch {
 		case tt == html.StartTagToken || tt == html.SelfClosingTagToken:
 			if string(tag) == UicInclude {
 				if replaceTextStart, replaceTextEnd, dependencyName, dependencyParams, err := getInclude(z, attrs); err != nil {
@@ -237,25 +307,22 @@ forloop:
 				}
 			}
 
-			if skipSubtreeIfUicRemove(z, tt, string(tag), attrs) {
+			skip, err := parser.collectLinksAndScripts(tag, attrs, &linkTags, &scriptTags, z, tt)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if skip {
 				continue
 			}
 
-			if styleAttrs, isStylesheet := getStylesheet(tag, attrs); isStylesheet {
-				stylesheets = append(stylesheets, styleAttrs)
-				continue
-			}
-
-		case tt == html.EndTagToken:
-			if string(tag) == UicFragment || string(tag) == UicTail {
-				break forloop
-			}
 		}
 		buff.Write(raw)
 	}
 
 	frg := NewStringFragment(buff.String())
-	frg.AddStylesheets(stylesheets)
+	frg.AddLinkTags(linkTags)
+	frg.AddScriptTags(scriptTags)
 	return frg, dependencies, nil
 }
 
@@ -356,20 +423,20 @@ forloop:
 
 			switch {
 			case string(tag) == "meta":
-				if (processMetaTag(string(tag), attrs, headPropertyMap)) {
+				if processMetaTag(string(tag), attrs, headPropertyMap) {
 					headBuff.Write(raw)
 				}
 				continue forloop
 			case string(tag) == "link":
-				if (processLinkTag(attrs, headPropertyMap)) {
+				if processLinkTag(attrs, headPropertyMap) {
 					headBuff.Write(raw)
 				}
 				continue forloop
 			case string(tag) == "title":
-				if (headPropertyMap["title"] == "") {
+				if headPropertyMap["title"] == "" {
 					headPropertyMap["title"] = "title"
 					headBuff.Write(raw)
-				} else if (tt != html.SelfClosingTagToken) {
+				} else if tt != html.SelfClosingTagToken {
 					skipCompleteTag(z, "title")
 				}
 				continue forloop
@@ -442,34 +509,62 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 /**
 Returns true if a link tag can be processed.
 Checks if a <link> tag contains a canonical relation and avoids multiple canonical definitions.
- */
+*/
 func processLinkTag(attrs []html.Attribute, metaMap map[string]string) bool {
-	if (len(attrs) == 0) {
+	if len(attrs) == 0 {
 		return true
 	}
 
-        const canonical = "canonical"
+	const canonical = "canonical"
 	var key string
 	var value string
 
-        // e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
+	// e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
 	for _, attr := range attrs {
-                if (attr.Key == "rel" && attr.Val == canonical) {
-                        key = canonical
-                }
-                if (attr.Key == "href") {
-                        value = attr.Val
-                }
-        }
-        if (key == canonical && metaMap[canonical] != "") {
-                // if canonical is already in map then don't process this link tag
-                return false
-        }
+		if attr.Key == "rel" && attr.Val == canonical {
+			key = canonical
+		}
+		if attr.Key == "href" {
+			value = attr.Val
+		}
+	}
+	if key == canonical && metaMap[canonical] != "" {
+		// if canonical is already in map then don't process this link tag
+		return false
+	}
 
-        if (key != "" && value != "") {
-                metaMap[key] = value
-        }
+	if key != "" && value != "" {
+		metaMap[key] = value
+	}
 	return true
+}
+
+func parseInlineScript(z *html.Tokenizer) ([]byte, error) {
+	tt := z.Next()
+	if tt != html.TextToken {
+		tag, _ := z.TagName()
+		if tt == html.EndTagToken && string(tag) == "script" {
+			return nil, nil // don't treat empty scripts as error
+		}
+		return nil, fmt.Errorf("expected text node for inline script, but found %v, (%s)", tt.String(), z.Raw())
+	}
+
+	bytes := z.Text()
+
+	tt = z.Next()
+	tag, _ := z.TagName()
+	if tt != html.EndTagToken || string(tag) != "script" {
+		msg := "Tag not properly ended. Expected </script>"
+		if tag != nil {
+			msg = msg + ", but found " + string(tag)
+		}
+		if tt == html.ErrorToken {
+			msg = msg + ". Error was: " + z.Err().Error()
+		}
+		return nil, fmt.Errorf(msg)
+	}
+
+	return bytes, nil
 }
 
 func parseMetaJson(z *html.Tokenizer, c *MemoryContent) error {
@@ -498,7 +593,31 @@ func skipSubtreeIfUicRemove(z *html.Tokenizer, tt html.TokenType, tagName string
 	if !foundRemoveTag {
 		return false
 	}
+	// return skipSubtree(z, tt, tagName, attrs)
+	if isSelfClosingTag(tagName, tt) {
+		return true
+	}
 
+	depth := 0
+	for {
+		tt := z.Next()
+		tag, _ := z.TagName()
+
+		switch {
+		case tt == html.ErrorToken:
+			return true
+		case tt == html.StartTagToken && !isSelfClosingTag(string(tag), tt):
+			depth++
+		case tt == html.EndTagToken:
+			depth--
+			if depth < 0 {
+				return true
+			}
+		}
+	}
+}
+
+func skipSubtree(z *html.Tokenizer, tt html.TokenType, tagName string, attrs []html.Attribute) bool {
 	if isSelfClosingTag(tagName, tt) {
 		return true
 	}

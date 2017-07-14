@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="header/head.js" charset="utf-8">
+        </script>
+        <meta name="viewport" content="width=device-width" />
+        <script charset="utf-8">
+            // inline script - header.head
+        </script>
+        <title>test-header</title>
+    </head>
+    <body>
+        <script src="header/body.js" charset="utf-8"></script>
+        <uic-fragment name="unused">
+            <uic-tail>
+                <script src="header/head/uic-tail.js" charset="utf-8"></script>
+            </uic-tail>
+        </uic-fragment>
+        <uic-fragment name="header">
+            <div>
+                <script src="header/body/header.js" charset="utf-8">
+                </script>
+                TEST-HEADER
+                <script charset="utf-8">
+                    // inline script - header.body#header
+                </script>
+            </div>
+        </uic-fragment>
+    </body>
+</html>
