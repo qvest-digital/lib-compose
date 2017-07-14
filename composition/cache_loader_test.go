@@ -25,7 +25,7 @@ func Test_CacheLoader_Found(t *testing.T) {
 	cacheMocK.EXPECT().Get(fd.Hash()).Return(c, true)
 
 	// when: we load the object
-	loader := NewCachingContentLoader(cacheMocK)
+	loader := NewCachingContentLoader(cacheMocK, true, true)
 
 	// it is returned
 	result, err := loader.Load(fd)
@@ -48,7 +48,7 @@ func Test_CacheLoader_No_Cache_Lookup_For_Uncachable_Objects(t *testing.T) {
 	// and mocked Content Loaders
 	fileContentLoaderMock := NewMockContentLoader(ctrl)
 	httpContentLoaderMock := NewMockContentLoader(ctrl)
-	loader := NewCachingContentLoader(cacheMocK)
+	loader := NewCachingContentLoader(cacheMocK, true, true)
 	loader.fileContentLoader = fileContentLoaderMock
 	loader.httpContentLoader = httpContentLoaderMock
 
@@ -86,7 +86,7 @@ func Test_CacheLoader_NoLookupForPostRequests(t *testing.T) {
 	httpLoaderMocK.EXPECT().Load(gomock.Any()).Return(c, nil)
 
 	// when: we load the object
-	loader := NewCachingContentLoader(cacheMocK)
+	loader := NewCachingContentLoader(cacheMocK, true, true)
 	loader.httpContentLoader = httpLoaderMocK
 
 	// it is returned
@@ -126,7 +126,7 @@ func Test_CacheLoader_NotFound(t *testing.T) {
 		loaderMock.EXPECT().Load(gomock.Any()).Return(c, nil)
 
 		// when: we load the object
-		loader := NewCachingContentLoader(cacheMocK)
+		loader := NewCachingContentLoader(cacheMocK, true, true)
 		if test.url == "file:///some/file" {
 			loader.fileContentLoader = loaderMock
 		} else {
@@ -174,7 +174,7 @@ func Test_CacheLoader_NotFound_With_Stream(t *testing.T) {
 		loaderMock.EXPECT().Load(gomock.Any()).Return(c, nil)
 
 		// when: we load the object
-		loader := NewCachingContentLoader(cacheMocK)
+		loader := NewCachingContentLoader(cacheMocK, true, true)
 		if test.url == "file:///some/file" {
 			loader.fileContentLoader = loaderMock
 		} else {

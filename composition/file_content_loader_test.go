@@ -23,7 +23,7 @@ func Test_FileContentLoader_LoadHTML(t *testing.T) {
 	err := ioutil.WriteFile(fileName, []byte("<html><head>some head content</head></html>"), 0660)
 	a.NoError(err)
 
-	loader := NewFileContentLoader()
+	loader := NewFileContentLoader(true, true)
 	fd := NewFetchDefinition(FileURLPrefix + fileName)
 	fd.Name = "content"
 	c, err := loader.Load(fd)
@@ -40,7 +40,7 @@ func Test_FileContentLoader_LoadIndexForDirectory(t *testing.T) {
 	err := ioutil.WriteFile(fileName, []byte("<html><head>some head content</head></html>"), 0660)
 	a.NoError(err)
 
-	loader := NewFileContentLoader()
+	loader := NewFileContentLoader(true, true)
 	c, err := loader.Load(NewFetchDefinition(FileURLPrefix + dir))
 	assertContentLoaded(t, c, err, "some head content")
 }
@@ -62,7 +62,7 @@ func Test_FileContentLoader_LoadStream(t *testing.T) {
 	err := ioutil.WriteFile(fileName, []byte("some non html content"), 0660)
 	a.NoError(err)
 
-	loader := NewFileContentLoader()
+	loader := NewFileContentLoader(true, true)
 	c, err := loader.Load(NewFetchDefinition(FileURLPrefix + fileName))
 	a.NoError(err)
 	a.NotNil(c)
@@ -80,7 +80,7 @@ func Test_FileContentLoader_LoadError(t *testing.T) {
 	a.NoError(f.Chmod(os.FileMode(0)))
 	f.Close()
 
-	loader := NewFileContentLoader()
+	loader := NewFileContentLoader(true, true)
 	_, err = loader.Load(NewFetchDefinition(f.Name()))
 	a.Error(err)
 }
@@ -88,7 +88,7 @@ func Test_FileContentLoader_LoadError(t *testing.T) {
 func Test_FileContentLoader_Return404IfFileNotFound(t *testing.T) {
 	a := assert.New(t)
 
-	loader := NewFileContentLoader()
+	loader := NewFileContentLoader(true, true)
 	c, err := loader.Load(NewFetchDefinition("/tmp/some/non/existing/path"))
 	a.NotNil(c)
 	a.Error(err)
@@ -103,7 +103,7 @@ func Test_FileContentLoader_RequestProcessor(t *testing.T) {
 	fd := NewFetchDefinition("/tmp/some/non/existing/path")
 	fd.RespProc = NewMockResponseProcessor(ctrl)
 
-	_, err := NewFileContentLoader().Load(fd)
+	_, err := NewFileContentLoader(true, true).Load(fd)
 	a.Equal(ResponseProcessorsNotApplicable, err)
 }
 

@@ -46,7 +46,7 @@ func (agg *CompositionHandler) WithCache(cache Cache) *CompositionHandler {
 
 // Set the deduplication strategy to be used by the constructed content merger
 // This method will first take effect in the upcomping call of ServeHTTP()
-func (agg *CompositionHandler) WithDeduplicationStrategyFactory(strategyFactory func() StylesheetDeduplicationStrategy) *CompositionHandler {
+func (agg *CompositionHandler) WithDeduplicationStrategyFactory(strategyFactory func() DeduplicationStrategy) *CompositionHandler {
 	wrapped := agg.contentMergerFactory
 	agg.contentMergerFactory = func(metaJSON map[string]interface{}) ContentMerger {
 		cm := wrapped(metaJSON)

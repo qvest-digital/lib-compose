@@ -23,7 +23,7 @@ func Test_HttpContentLoader_Load(t *testing.T) {
 	server := testServer("the body", time.Millisecond*0)
 	defer server.Close()
 
-	loader := NewHttpContentLoader()
+	loader := NewHttpContentLoader(true, true)
 	mockParser := NewMockContentParser(ctrl)
 	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
 		Do(func(c *MemoryContent, in io.Reader) {
@@ -57,7 +57,7 @@ func Test_HttpContentLoader_Load_ResponseProcessor(t *testing.T) {
 	server := testServer("the body", time.Millisecond*0)
 	defer server.Close()
 
-	loader := NewHttpContentLoader()
+	loader := NewHttpContentLoader(true, true)
 	mockParser := NewMockContentParser(ctrl)
 	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
 		Do(func(c *MemoryContent, in io.Reader) {
@@ -94,7 +94,7 @@ func Test_HttpContentLoader_Load_POST(t *testing.T) {
 		w.Write([]byte("the body"))
 	}))
 
-	loader := NewHttpContentLoader()
+	loader := NewHttpContentLoader(true, true)
 	mockParser := NewMockContentParser(ctrl)
 	mockParser.EXPECT().Parse(gomock.Any(), gomock.Any()).
 		Do(func(c *MemoryContent, in io.Reader) {

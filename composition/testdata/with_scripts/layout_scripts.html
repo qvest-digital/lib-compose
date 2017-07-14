@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+        <script charset="utf-8">
+            // inline script - layout.head
+        </script>
+        <script src="layout/head.js" charset="utf-8">
+        </script>
+        <title>layout-header</title>
+    </head>
+    <body>
+        <h1>This is the script layout</h1>
+        <!-- header start --><uic-include src="#header"/><!-- header end -->
+        <script charset="utf-8">
+            // inline script - layout.body
+        </script>
+        <script src="layout/body.js" charset="utf-8">
+        </script>
+        <!-- content start --><uic-include src="#content"/><!-- content end -->
+        <!-- footer start --><uic-include src="#footer"/><!-- footer end -->
+        <uic-include src="#footerData"/>
+    </body>
+</html>

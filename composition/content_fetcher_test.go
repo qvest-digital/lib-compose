@@ -18,7 +18,7 @@ func Test_ContentFetcher_FetchingWithDependency(t *testing.T) {
 	fooFd := getFetchDefinitionMock(ctrl, loader, "/foo", []*FetchDefinition{barFd}, time.Millisecond*2, map[string]interface{}{"bli": "bla"})
 	bazzFd := getFetchDefinitionMock(ctrl, loader, "/bazz", []*FetchDefinition{barFd}, time.Millisecond, map[string]interface{}{})
 
-	fetcher := NewContentFetcher(nil)
+	fetcher := NewContentFetcher(nil, true, true)
 	fetcher.Loader = loader
 
 	fetcher.AddFetchJob(fooFd)
@@ -46,7 +46,7 @@ func Test_ContentFetcher_Empty(t *testing.T) {
 
 	loader := NewMockContentLoader(ctrl)
 
-	fetcher := NewContentFetcher(nil)
+	fetcher := NewContentFetcher(nil, true, true)
 	fetcher.Loader = loader
 
 	a.True(fetcher.Empty())
@@ -77,7 +77,7 @@ func Test_ContentFetcher_LazyDependencies(t *testing.T) {
 
 	child := getFetchDefinitionMock(ctrl, loader, "/child", nil, time.Millisecond*2, nil)
 
-	fetcher := NewContentFetcher(nil)
+	fetcher := NewContentFetcher(nil, true, true)
 	fetcher.Loader = loader
 	fetcher.SetFetchDefinitionFactory(func(name string, params Params) (fd *FetchDefinition, exist bool, err error) {
 		a.Equal("child", name)
@@ -155,7 +155,7 @@ func Test_ContentFetcher_PriorityOrderAfterFetchCompletion(t *testing.T) {
 	bazzFd := getFetchDefinitionMock(ctrl, loader, "/bazz", nil, time.Millisecond, map[string]interface{}{})
 	bazzFd.Priority = 412
 
-	fetcher := NewContentFetcher(nil)
+	fetcher := NewContentFetcher(nil, true, true)
 	fetcher.Loader = loader
 
 	fetcher.AddFetchJob(barFd)

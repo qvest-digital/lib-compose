@@ -37,11 +37,16 @@ type ContentMerge struct {
 	// no entry means priority == 0
 	priorities map[Content]int
 
-	// all stylesheets contained in used fragments
-	stylesheets [][]html.Attribute
+	// all linkTags contained in used fragments
+	linkTags [][]html.Attribute
+	// all script elements contained in used fragments
+	scriptElements []ScriptElement
 
-	// strategy to prevent duplicacte <link rel="stylesheet"> tags
-	stylesheetDeduplicationStrategy StylesheetDeduplicationStrategy
+	// strategy to prevent duplicacte <link> tags
+	linksDeduplicationStrategy DeduplicationStrategy
+
+	// strategy to prevent duplicacte <script> tags
+	scriptsDeduplicationStrategy DeduplicationStrategy
 }
 
 // NewContentMerge creates a new buffered ContentMerge
@@ -58,29 +63,52 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	return cntx
 }
 
-func (cntx *ContentMerge) SetDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) {
-	cntx.stylesheetDeduplicationStrategy = strategy
+func (cntx *ContentMerge) SetDeduplicationStrategy(strategy DeduplicationStrategy) {
+	cntx.linksDeduplicationStrategy = strategy
 }
 
-func (cntx *ContentMerge) collectStylesheets(f Fragment) {
-	cntx.stylesheets = append(cntx.stylesheets, f.Stylesheets()...)
+func (cntx *ContentMerge) collectLinksAndScripts(f Fragment) {
+	cntx.linkTags = append(cntx.linkTags, f.LinkTags()...)
+	cntx.scriptElements = append(cntx.scriptElements, f.ScriptElements()...)
 }
 
-func (cntx *ContentMerge) deduplicateStylesheets() {
-	if cntx.stylesheetDeduplicationStrategy != nil {
-		cntx.stylesheets = cntx.stylesheetDeduplicationStrategy.Deduplicate(cntx.stylesheets)
+func (cntx *ContentMerge) deduplicateLinks() {
+	if cntx.linksDeduplicationStrategy != nil {
+		cntx.linkTags = cntx.linksDeduplicationStrategy.Deduplicate(cntx.linkTags)
 	}
 }
 
-func (cntx *ContentMerge) writeStylesheets(w io.Writer) {
+func (cntx *ContentMerge) deduplicateScripts() {
+	if cntx.scriptsDeduplicationStrategy != nil {
+		cntx.scriptElements = cntx.scriptsDeduplicationStrategy.DeduplicateElements(cntx.scriptElements)
+	}
+}
 
-	// first make sure, stylesheets are deduplicated
-	cntx.deduplicateStylesheets()
+func (cntx *ContentMerge) writeLinks(w io.Writer) {
 
-	for _, attrs := range cntx.stylesheets {
+	// first make sure, linkTags are deduplicated
+	cntx.deduplicateLinks()
+
+	for _, attrs := range cntx.linkTags {
 		joinedAttr := joinAttrs(attrs)
 		stylesheet := fmt.Sprintf("\n    <link %s>", joinedAttr)
 		io.WriteString(w, stylesheet)
+	}
+}
+
+func (cntx *ContentMerge) writeScripts(w io.Writer) {
+
+	// TODO: first make sure, script elements are deduplicated
+	cntx.deduplicateScripts()
+
+	for _, scriptData := range cntx.scriptElements {
+		var tagTmpl string
+		if scriptData.Attrs != nil {
+			tagTmpl = fmt.Sprintf("\n      <script %s>%%s</script>", joinAttrs(scriptData.Attrs))
+		} else {
+			tagTmpl = "\n      <script>%s</script>"
+		}
+		io.WriteString(w, fmt.Sprintf(tagTmpl, string(scriptData.Text)))
 	}
 }
 
@@ -91,7 +119,7 @@ func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment
 			missingFragmentString := generateMissingFragmentString(cntx.Body, fragmentName)
 			return errors.New(missingFragmentString)
 		}
-		cntx.collectStylesheets(f)
+		cntx.collectLinksAndScripts(f)
 		return f.Execute(w, cntx.MetaJSON, executeFragment)
 	}
 	return executeFragment
@@ -108,7 +136,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	io.WriteString(header, "<!DOCTYPE html>\n<html>\n  <head>\n    ")
 
 	for _, f := range cntx.Head {
-		cntx.collectStylesheets(f)
+		cntx.collectLinksAndScripts(f)
 		executeFragment := generateExecutionFunction(cntx, header)
 		if err := f.Execute(header, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
@@ -139,20 +167,29 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 		return nil, err
 	}
 
+	// write content of uic-tail fragments to own buffer
+	tailContent := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	for _, f := range cntx.Tail {
-		cntx.collectStylesheets(f)
-		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
+		cntx.collectLinksAndScripts(f)
+		if err := f.Execute(tailContent, cntx.MetaJSON, executeFragment); err != nil {
 			return nil, err
 		}
 	}
-	io.WriteString(body, "\n  </body>\n</html>\n")
 
-	// write the collected stylesheets to the header and close it
-	cntx.writeStylesheets(header)
+	io.WriteString(tailContent, "\n  </body>\n</html>\n")
+
+	// write the collected linkTags to the header and close it
+	cntx.writeLinks(header)
 	io.WriteString(header, "\n  </head>")
 
-	// return concatenated header and body
-	html := append(header.Bytes(), body.Bytes()...)
+	// write the collected script elements to own buffer
+	tailScripts := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
+	cntx.writeScripts(tailScripts)
+
+	// return concatenated header, body, scripts, tail
+	html := append(header.Bytes(),
+		append(body.Bytes(),
+			append(tailScripts.Bytes(), tailContent.Bytes()...)...)...)
 	return html, nil
 }
 

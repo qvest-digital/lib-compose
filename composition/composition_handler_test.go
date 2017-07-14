@@ -24,7 +24,7 @@ func Test_CompositionHandler_PositiveCase(t *testing.T) {
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		frag := NewStringFragment("Hello World\n")
-		frag.AddStylesheets([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
+		frag.AddLinkTags([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
 			stylesheetAttrs("/path/to/style2.css"),
 			stylesheetAttrs("/path/to/style1.css"),
 			stylesheetAttrs("/path/to/style2.css")})
@@ -72,7 +72,7 @@ func Test_CompositionHandler_PositiveCaseWithSimpleDeduplicationStrategy(t *test
 
 	contentFetcherFactory := func(r *http.Request) FetchResultSupplier {
 		frag := NewStringFragment("Hello World\n")
-		frag.AddStylesheets([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
+		frag.AddLinkTags([][]html.Attribute{stylesheetAttrs("/path/to/style1.css"),
 			stylesheetAttrs("/path/to/style2.css"),
 			stylesheetAttrs("/path/to/style1.css"),
 			stylesheetAttrs("/path/to/style2.css")})
@@ -89,7 +89,7 @@ func Test_CompositionHandler_PositiveCaseWithSimpleDeduplicationStrategy(t *test
 		}
 	}
 	ch := NewCompositionHandler(ContentFetcherFactory(contentFetcherFactory))
-	factory := func() StylesheetDeduplicationStrategy {
+	factory := func() DeduplicationStrategy {
 		return new(SimpleDeduplicationStrategy)
 	}
 	ch.WithDeduplicationStrategyFactory(factory)

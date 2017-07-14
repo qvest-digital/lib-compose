@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="footer/head.js" charset="utf-8">
+        </script>
+        <meta name="viewport" content="width=device-width" />
+        <script charset="utf-8">
+            // inline script - footer.head
+        </script>
+        <title>test-header</title>
+    </head>
+    <body>
+        <script src="footer/body.js" charset="utf-8"></script>
+        <uic-tail>
+            <!-- uic-tail content -->
+            <script src="footer/uic-tail.js" charset="utf-8"></script>
+        </uic-tail>
+        <uic-fragment name="footer">
+            <div>
+                <script src="footer/body/footer.js" charset="utf-8">
+                </script>
+                TEST-FOOTER
+                <script charset="utf-8">
+                    // inline script - footer.body#footer
+                </script>
+            </div>
+        </uic-fragment>
+    </body>
+</html>

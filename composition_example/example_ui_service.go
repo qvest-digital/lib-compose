@@ -30,7 +30,8 @@ func compositionHandler() http.Handler {
 			"request":     composition.MetadataForRequest(r),
 		}
 
-		fetcher := composition.NewContentFetcher(defaultMetaJSON)
+		// create a fetcher that collects link tags and script elements
+		fetcher := composition.NewContentFetcher(defaultMetaJSON, true, true)
 
 		// defines the 'teaser' fd for lazy fetching
 		fetcher.SetFetchDefinitionFactory(NewLazyFdFactory(r).getFetchDefinitions)
@@ -42,7 +43,7 @@ func compositionHandler() http.Handler {
 
 		return fetcher
 	}
-	factory := func() composition.StylesheetDeduplicationStrategy {
+	factory := func() composition.DeduplicationStrategy {
 		return new(composition.SimpleDeduplicationStrategy)
 	}
 	return composition.NewCompositionHandler(contentFetcherFactory).WithDeduplicationStrategyFactory(factory)

@@ -14,10 +14,10 @@ type CachingContentLoader struct {
 	cache             Cache
 }
 
-func NewCachingContentLoader(cache Cache) *CachingContentLoader {
+func NewCachingContentLoader(cache Cache, collectLinks bool, collectScripts bool) *CachingContentLoader {
 	return &CachingContentLoader{
-		httpContentLoader: NewHttpContentLoader(),
-		fileContentLoader: NewFileContentLoader(),
+		httpContentLoader: NewHttpContentLoader(collectLinks, collectScripts),
+		fileContentLoader: NewFileContentLoader(collectLinks, collectScripts),
 		cache:             cache,
 	}
 }

@@ -277,7 +277,7 @@ func Test_HtmlContentParser_LoadEmptyContent(t *testing.T) {
 </html>
 `)
 	c := NewMemoryContent()
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	err := parser.Parse(c, in)
 	a.NoError(err)
 
@@ -288,24 +288,90 @@ func Test_HtmlContentParser_LoadEmptyContent(t *testing.T) {
 	a.Nil(c.Tail())
 }
 
+func Test_HtmlContentParser_ParseBrokenScript(t *testing.T) {
+	a := assert.New(t)
+
+	in := strings.NewReader(`<html>
+  <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script> // this script is not closed correctly </ipt>
+  </head>
+  <body>
+  <h1>Crash!</h1>
+  </body>
+</html>
+`)
+	c := NewMemoryContent()
+	parser := NewHtmlContentParser(true, true)
+	err := parser.Parse(c, in)
+	a.Error(err)
+	a.Contains(err.Error(), "Tag not properly ended. Expected </script>. Error was: EOF")
+	a.Equal(0, len(c.Body()))
+	a.Equal(0, len(c.Meta()))
+	a.Equal(0, len(c.RequiredContent()))
+	a.Nil(c.Head())
+	a.Nil(c.Tail())
+}
+
+func Test_HtmlContentParser_ParseBrokenScript2(t *testing.T) {
+	a := assert.New(t)
+
+	in := strings.NewReader(`<html>
+  <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>`)
+	c := NewMemoryContent()
+	parser := NewHtmlContentParser(true, true)
+	err := parser.Parse(c, in)
+	a.Error(err)
+	a.Contains(err.Error(), "expected text node for inline script, but found Error")
+	a.Equal(0, len(c.Body()))
+	a.Equal(0, len(c.Meta()))
+	a.Equal(0, len(c.RequiredContent()))
+	a.Nil(c.Head())
+	a.Nil(c.Tail())
+}
+
+func Test_HtmlContentParser_ParseEmptyScript(t *testing.T) {
+	a := assert.New(t)
+
+	in := strings.NewReader(`<html>
+  <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script></script> <!-- dont treat it as an error -->
+  </head>
+  <body>
+  </body>
+</html>
+`)
+	c := NewMemoryContent()
+	parser := NewHtmlContentParser(true, true)
+	err := parser.Parse(c, in)
+	a.NoError(err)
+	a.Equal(0, len(c.Body()))
+	a.Equal(0, len(c.Meta()))
+	a.Equal(0, len(c.RequiredContent()))
+	a.NotNil(c.Head()) // Head contains the (empty) script
+	a.Nil(c.Tail())
+}
+
 func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles_and_Canonicals(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(productUiGeneratedHtml))
 
 	z.Next()
 	c := NewMemoryContent()
 	err := parser.parseHead(z, c)
 	a.NoError(err)
-
-        containsFragment(t, "<title>navigationservice</title>", c.Head())
+	containsFragment(t, "<title>navigationservice</title>", c.Head())
 }
 
 func Test_HtmlContentParser_parseHead(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(`<head>
   <div uic-remove>
     <script>
@@ -345,20 +411,30 @@ func Test_HtmlContentParser_parseHead(t *testing.T) {
 func Test_HtmlContentParser_collectStylesheets_bodyAsDefaultFragment(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := bytes.NewBufferString(`<head>
 	<!-- will be found by the HeaderParser -->
 	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
 	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
+	<script src="/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js" async></script>
+	<script>var test="abc";</script>
+	<script src="/rebrush/assets/typo/javascripts/jquery.min.js" async></script>
+	<link rel="canonical" href="/baumarkt/bauen-renovieren/suche">
 	<link rel="stylesheet" href="/navigationservice/stylesheets/main-03174ed18d.css">
 </head>
 <body>
 	<div>
 		<!-- will be found by the BodyParser -->
+		<script src="/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js" async></script>
 		<link rel="stylesheet" href="/productservice/stylesheets/main-93174ed18d.css">
+		<script>var test="abc";</script>
+		<script src="/rebrush/assets/typo/javascripts/jquery.min.js" async></script>
 		<uic-fragment name="content">
-		Bli Bla blub
-		<link rel="stylesheet" href="/basketservice/stylesheets/main-93174ed18d.css">
+			Bli Bla blub
+			<script src="/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js" async></script>
+			<script>var test="abc";</script>
+			<link rel="stylesheet" href="/basketservice/stylesheets/main-93174ed18d.css">
+			<script src="/rebrush/assets/typo/javascripts/jquery.min.js" async></script>
 		</uic-fragment>
 	</div>
 </body>
@@ -367,16 +443,57 @@ func Test_HtmlContentParser_collectStylesheets_bodyAsDefaultFragment(t *testing.
 	c := NewMemoryContent()
 	err := parser.Parse(c, z)
 	a.NoError(err)
+	// all head link elements were found
+	a.Equal("rel=\"stylesheet\" href=\"/navigationservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Head().LinkTags()[0]))
+	a.Equal("rel=\"stylesheet\" href=\"/navigationservice/stylesheets/main-93174ed18d.css\"",
+		joinAttrs(c.Head().LinkTags()[1]))
+	a.Equal("rel=\"canonical\" href=\"/baumarkt/bauen-renovieren/suche\"",
+		joinAttrs(c.Head().LinkTags()[2]))
+	a.Equal("rel=\"stylesheet\" href=\"/navigationservice/stylesheets/main-03174ed18d.css\"",
+		joinAttrs(c.Head().LinkTags()[3]))
+	// all body-fragment link elements were found
 	a.Equal("rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
-		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+		joinAttrs(c.Body()["content"].LinkTags()[0]))
 	a.Equal("rel=\"stylesheet\" href=\"/productservice/stylesheets/main-93174ed18d.css\"",
-		joinAttrs(c.Body()[""].Stylesheets()[0]))
+		joinAttrs(c.Body()[""].LinkTags()[0]))
+
+	// test script tags
+	scriptTags := c.Head().ScriptElements()
+	a.Equal("src=\"/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js\" async=\"\"",
+		joinAttrs(scriptTags[0].Attrs))
+	a.Equal(`var test="abc";`, string(scriptTags[1].Text))
+	a.Equal("src=\"/rebrush/assets/typo/javascripts/jquery.min.js\" async=\"\"",
+		joinAttrs(scriptTags[2].Attrs))
+	a.Equal(3, len(scriptTags))
+
+	scriptTags = c.Body()[""].ScriptElements()
+	a.Equal("src=\"/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js\" async=\"\"",
+		joinAttrs(scriptTags[0].Attrs))
+	a.Equal(`var test="abc";`, string(scriptTags[1].Text))
+	a.Equal("src=\"/rebrush/assets/typo/javascripts/jquery.min.js\" async=\"\"",
+		joinAttrs(scriptTags[2].Attrs))
+	a.Equal(3, len(scriptTags))
+
+	scriptTags = c.Body()["content"].ScriptElements()
+	a.Equal("src=\"/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js\" async=\"\"",
+		joinAttrs(scriptTags[0].Attrs))
+	a.Equal(`var test="abc";`, string(scriptTags[1].Text))
+	a.Equal("src=\"/rebrush/assets/typo/javascripts/jquery.min.js\" async=\"\"",
+		joinAttrs(scriptTags[2].Attrs))
+	a.Equal(3, len(scriptTags))
+
+	// assert that scripts were removed from the fragment content
+	a.NotContains(c.Body()[""].(*StringFragment).Content(), `<script>var test="abc";</script>`)
+	a.NotContains(c.Body()[""].(*StringFragment).Content(), `<script src="/rebrush/assets/typo/javascripts/picturefill-f350acdff4.min.js" async></script>`)
+	a.NotContains(c.Body()[""].(*StringFragment).Content(), ` </script>`)
+	a.NotContains(c.Head().(*StringFragment).Content(), ` </script>`)
 }
 
 func Test_HtmlContentParser_collectStylesheets_OverrideDefault(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := bytes.NewBufferString(`<head>
 	<!-- will be found by the HeaderParser -->
 	<link rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css">
@@ -404,15 +521,15 @@ func Test_HtmlContentParser_collectStylesheets_OverrideDefault(t *testing.T) {
 	a.NoError(err)
 	a.Equal(
 		"rel=\"stylesheet\" href=\"/basketservice/stylesheets/main-93174ed18d.css\"",
-		joinAttrs(c.Body()["content"].Stylesheets()[0]))
+		joinAttrs(c.Body()["content"].LinkTags()[0]))
 	a.Equal("rel=\"stylesheet\" href=\"/override/stylesheets/main-93174ed18d.css\"",
-		joinAttrs(c.Body()[""].Stylesheets()[0]))
+		joinAttrs(c.Body()[""].LinkTags()[0]))
 }
 
 func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(`<body some="attribute">
     <h1>Default Fragment Content</h1><br>
     <uic-include src="example.com/xyz" required="true" param-foo="bar" param-bazz="buzz"/>
@@ -454,12 +571,17 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 	a.Equal(5, len(c.Dependencies()))
 	a.Equal(c.Dependencies()["example.com/xyz"], Params{"foo": "bar", "bazz": "buzz"})
 	a.Equal(c.Dependencies()["example.com/foo"], Params{"bli": "bla"})
+	a.Contains(c.Dependencies(), "example.com/foo")
+	a.Contains(c.Dependencies(), "example.com/optional")
+	a.Contains(c.Dependencies(), "example.com/tail")
+	a.Contains(c.Dependencies(), "example.com/xyz")
+	a.Contains(c.Dependencies(), "local")
 }
 
 func Test_HtmlContentParser_fetchDependencies(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
            foo
            <uic-fetch src="example.com/foo" timeout="42000" required="true" name="foo"/>
@@ -507,7 +629,7 @@ func Test_HtmlContentParser_fetchAndInclude_ErrorCases(t *testing.T) {
 
 	for i, test := range testCases {
 		t.Run(fmt.Sprintf("test #%v", i), func(t *testing.T) {
-			parser := &HtmlContentParser{}
+			parser := NewHtmlContentParser(true, true)
 			z := html.NewTokenizer(bytes.NewBufferString(
 				"<body>" + test + "</body>",
 			))
@@ -521,7 +643,7 @@ func Test_HtmlContentParser_fetchAndInclude_ErrorCases(t *testing.T) {
 func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
     <uic-include src="example.com/foo#content" required="true"/>
@@ -539,7 +661,7 @@ func Test_HtmlContentParser_parseBody_OnlyDefaultFragment(t *testing.T) {
 func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(`<body>
     <h1>Default Fragment Content</h1><br>
     <uic-fragment>
@@ -563,7 +685,7 @@ func Test_HtmlContentParser_parseBody_DefaultFragmentOverwritten(t *testing.T) {
 func Test_HtmlContentParser_parseHead_JsonError(t *testing.T) {
 	a := assert.New(t)
 
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	z := html.NewTokenizer(bytes.NewBufferString(`
 <script type="text/uic-meta">
       {
@@ -578,6 +700,7 @@ func Test_HtmlContentParser_parseHead_JsonError(t *testing.T) {
 }
 
 func Test_HtmlContentParser_parseFragment(t *testing.T) {
+	parser := NewHtmlContentParser(true, true)
 	a := assert.New(t)
 
 	z := html.NewTokenizer(bytes.NewBufferString(`<uic-fragment name="content">
@@ -595,7 +718,7 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
     </uic-fragment><testend>`))
 
 	z.Next() // At <uic-fragment name ..
-	f, _, err := parseFragment(z)
+	f, _, err := parser.parseFragment(z)
 	a.NoError(err)
 
 	expected := `Bli Bla blub
@@ -610,8 +733,8 @@ func Test_HtmlContentParser_parseFragment(t *testing.T) {
 	z.Next()
 	endTag, _ := z.TagName()
 	a.Equal("testend", string(endTag))
-	a.Equal(`rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css"`, joinAttrs(f.Stylesheets()[0]))
-	a.Equal(1, len(f.Stylesheets()))
+	a.Equal(`rel="stylesheet" href="/navigationservice/stylesheets/main-93174ed18d.css"`, joinAttrs(f.LinkTags()[0]))
+	a.Equal(1, len(f.LinkTags()))
 }
 
 // Regression test: to ensure, that escaped entities in attributes do not lead to a problem.
@@ -623,7 +746,7 @@ func Test_HtmlContentParser_parseFragment_EntityAttribute(t *testing.T) {
 		testHtml + `<uic-fragment name="content">` + testHtml + `</uic-fragment></body></html>`)
 
 	c := NewMemoryContent()
-	parser := &HtmlContentParser{}
+	parser := NewHtmlContentParser(true, true)
 	err := parser.Parse(c, in)
 	a.NoError(err)
 
@@ -714,6 +837,7 @@ func Test_joinAttrs(t *testing.T) {
 	a.Equal(`a="b" some="attribute"`, joinAttrs([]html.Attribute{{Key: "a", Val: "b"}, {Key: "some", Val: "attribute"}}))
 	a.Equal(`a="--&#34;--"`, joinAttrs([]html.Attribute{{Key: "a", Val: `--"--`}}))
 	a.Equal(`ns:a="b"`, joinAttrs([]html.Attribute{{Namespace: "ns", Key: "a", Val: "b"}}))
+	a.Equal(`async=""`, joinAttrs([]html.Attribute{{Key: "async", Val: ""}}))
 }
 
 func eqFragment(t *testing.T, expected string, f Fragment) {
@@ -742,10 +866,9 @@ func containsFragment(t *testing.T, contained string, f Fragment) {
 	sfStripped = strings.Replace(string(sfStripped), "\n", "", -1)
 
 	if !strings.Contains(sfStripped, contained) {
-		t.Error("Fragment is not equal: \nexpected: ", contained, "\nactual:  ", sf)
+		t.Error("Fragment does not contain expected value: \nexpected: ", contained, "\nactual:  ", sf)
 	}
 }
-
 
 func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 	a := assert.New(t)
@@ -942,7 +1065,7 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 	a := assert.New(t)
 
-        // GIVEN
+	// GIVEN
 	originalHeadString := `<meta charset="utf-8">
 
 	<link rel="canonical" href="/navigationservice">
@@ -1011,10 +1134,10 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 	headMetaPropertyMap["canonical"] = "/baumarkt/suche"
 
 	headFragment := NewStringFragment(originalHeadString)
-        // WHEN
+	// WHEN
 	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
-        // THEN
+	// THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
 	resultString := removeTabsAndNewLines(headFragment.Content())
 
@@ -1022,7 +1145,7 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 }
 
 func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *testing.T) {
-        // GIVEN
+	// GIVEN
 	a := assert.New(t)
 
 	originalHeadString := `
@@ -1049,14 +1172,39 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
 	headMetaPropertyMap := make(map[string]string)
 
 	headFragment := NewStringFragment(originalHeadString)
-        // WHEN
+	// WHEN
 	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
-        // THEN
+	// THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
 	resultString := removeTabsAndNewLines(headFragment.Content())
 
 	a.Equal(expectedParsedHead, resultString)
+}
+
+func Test_getTag(t *testing.T) {
+	a := assert.New(t)
+
+	vals := []struct {
+		tagType TagType
+		string
+	}{
+		{LINK, `<link rel="apple-touch-icon" sizes="76x76" href="/productservice/favicons/apple-touch-icon-76x76-1499095290-5d8490ac47.png">`},
+		{LINK, `<LiNk rel="apple-touch-icon" sizes="76x76" href="/productservice/favicons/apple-touch-icon-76x76-1499095290-5d8490ac47.png">`},
+		{META, `<meta charset="utf-8">`},
+		{SCRIPT, `<script type="text/javascript" src="/productservice/javascripts/loadscript-1499095290-572cdaf4d3.js"></script>`},
+		{SCRIPT, `<Script type="text/javascript" src="/productservice/javascripts/loadscript-1499095290-572cdaf4d3.js"></script>`},
+		{SCRIPT_INLINE, `<script type="text/javascript">function inlineJS(){console.log('hello');}</script>`},
+	}
+
+	for _, v := range vals {
+		z := html.NewTokenizer(bytes.NewBufferString(v.string))
+		_ = z.Next()
+		tag, _ := z.TagName()
+		attrs := readAttributes(z, make([]html.Attribute, 0, 10))
+		_, typ := getTag(tag, attrs)
+		a.Equal(v.tagType, typ)
+	}
 }
 
 func removeTabsAndNewLines(stringToProcess string) string {

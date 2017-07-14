@@ -22,10 +22,10 @@ type HttpContentLoader struct {
 	parser map[string]ContentParser
 }
 
-func NewHttpContentLoader() *HttpContentLoader {
+func NewHttpContentLoader(collectLinks bool, collectScripts bool) *HttpContentLoader {
 	return &HttpContentLoader{
 		parser: map[string]ContentParser{
-			"text/html": &HtmlContentParser{},
+			"text/html": NewHtmlContentParser(collectLinks, collectScripts),
 		},
 	}
 }
