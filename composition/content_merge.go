@@ -96,6 +96,34 @@ func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment
 	return executeFragment
 }
 
+func collectBodyAttrs(bodyAttrs [][]html.Attribute) string {
+	var result map[string]string = make(map[string]string)
+	for _, attrs := range bodyAttrs {
+		for _, attr := range attrs {
+			val, exists := result[attr.Key]
+			if strings.ToLower(attr.Key) == "class" {
+				// aggregate all class attributes
+				var newVal string
+				if exists {
+					newVal = val + " "
+				}
+				newVal = newVal + attr.Val
+				result[attr.Key] = newVal
+			} else {
+				// but overwrite others
+				result[attr.Key] = attr.Val
+			}
+		}
+	}
+
+	var sResult string
+	for k, v := range result {
+		sResult = sResult + fmt.Sprintf(` %s="%s"`, k, v)
+	}
+
+	return sResult
+}
+
 func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 
 	if len(cntx.priorities) > 0 {
@@ -117,10 +145,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	// open body tag
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
-	for _, a := range cntx.BodyAttrs {
-		io.WriteString(body, " ")
-		io.WriteString(body, joinAttrs(a))
-	}
+	io.WriteString(body, collectBodyAttrs(cntx.BodyAttrs))
 
 	io.WriteString(body, ">\n    ")
 
