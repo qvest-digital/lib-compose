@@ -5,7 +5,8 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
-
+	
+	html "golang.org/x/net/html"
 	io "io"
 	http "net/http"
 )
@@ -49,6 +50,16 @@ func (_m *MockFragment) MemorySize() int {
 
 func (_mr *_MockFragmentRecorder) MemorySize() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "MemorySize")
+}
+
+func (_m *MockFragment) Stylesheets() [][]html.Attribute {
+	ret := _m.ctrl.Call(_m, "Stylesheets")
+	ret0, _ := ret[0].([][]html.Attribute)
+	return ret0
+}
+
+func (_mr *_MockFragmentRecorder) Stylesheets() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Stylesheets")
 }
 
 // Mock of ContentLoader interface
@@ -114,9 +125,9 @@ func (_mr *_MockContentRecorder) Body() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Body")
 }
 
-func (_m *MockContent) BodyAttributes() Fragment {
+func (_m *MockContent) BodyAttributes() []html.Attribute {
 	ret := _m.ctrl.Call(_m, "BodyAttributes")
-	ret0, _ := ret[0].(Fragment)
+	ret0, _ := ret[0].([]html.Attribute)
 	return ret0
 }
 
@@ -260,11 +271,16 @@ func (_m *MockContentMerger) GetHtml() ([]byte, error) {
 	return ret0, ret1
 }
 
-func (_m *MockContentMerger) SetDeduplicationStrategy(strategy StylesheetDeduplicationStrategy) {
-}
-
 func (_mr *_MockContentMergerRecorder) GetHtml() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetHtml")
+}
+
+func (_m *MockContentMerger) SetDeduplicationStrategy(_param0 StylesheetDeduplicationStrategy) {
+	_m.ctrl.Call(_m, "SetDeduplicationStrategy", _param0)
+}
+
+func (_mr *_MockContentMergerRecorder) SetDeduplicationStrategy(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "SetDeduplicationStrategy", arg0)
 }
 
 // Mock of ContentParser interface

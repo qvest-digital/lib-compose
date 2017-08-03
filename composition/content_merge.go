@@ -21,7 +21,7 @@ const (
 type ContentMerge struct {
 	MetaJSON  map[string]interface{}
 	Head      []Fragment
-	BodyAttrs []Fragment
+	BodyAttrs [][]html.Attribute
 
 	// Aggregator for the Body Fragments of the results.
 	// Each fragment is insertes twice with full name and local name,
@@ -49,7 +49,6 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	cntx := &ContentMerge{
 		MetaJSON:   metaJSON,
 		Head:       make([]Fragment, 0, 0),
-		BodyAttrs:  make([]Fragment, 0, 0),
 		Body:       make(map[string]Fragment),
 		Tail:       make([]Fragment, 0, 0),
 		Buffered:   true,
@@ -118,12 +117,9 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	// open body tag
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
-	for _, f := range cntx.BodyAttrs {
+	for _, a := range cntx.BodyAttrs {
 		io.WriteString(body, " ")
-		executeFragment := generateExecutionFunction(cntx, body)
-		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
-			return nil, err
-		}
+		io.WriteString(body, joinAttrs(a))
 	}
 
 	io.WriteString(body, ">\n    ")
@@ -192,9 +188,9 @@ func (cntx *ContentMerge) addHead(f Fragment) {
 	}
 }
 
-func (cntx *ContentMerge) addBodyAttributes(f Fragment) {
-	if f != nil {
-		cntx.BodyAttrs = append(cntx.BodyAttrs, f)
+func (cntx *ContentMerge) addBodyAttributes(a []html.Attribute) {
+	if a != nil {
+		cntx.BodyAttrs = append(cntx.BodyAttrs, a)
 	}
 }
 

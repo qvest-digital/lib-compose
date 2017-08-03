@@ -3,6 +3,8 @@ package composition
 import (
 	"io"
 	"net/http"
+
+	"golang.org/x/net/html"
 )
 
 type MemoryContent struct {
@@ -13,7 +15,7 @@ type MemoryContent struct {
 	head            Fragment
 	body            map[string]Fragment
 	tail            Fragment
-	bodyAttributes  Fragment
+	bodyAttributes  []html.Attribute
 	reader          io.ReadCloser
 	httpHeader      http.Header
 	httpStatusCode  int
@@ -77,7 +79,7 @@ func (c *MemoryContent) Tail() Fragment {
 	return c.tail
 }
 
-func (c *MemoryContent) BodyAttributes() Fragment {
+func (c *MemoryContent) BodyAttributes() []html.Attribute {
 	return c.bodyAttributes
 }
 

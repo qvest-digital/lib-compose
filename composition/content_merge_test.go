@@ -51,7 +51,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	cm.AddContent(&MemoryContent{
 		name:           LayoutFragmentName,
 		head:           NewStringFragment("<page1-head/>\n"),
-		bodyAttributes: NewStringFragment(`a="b"`),
+		bodyAttributes: htmlAttributes(map[string]string{"a": "b"}),
 		tail:           NewStringFragment("    <page1-tail/>\n"),
 		body:           map[string]Fragment{"": body},
 	}, 0)
@@ -59,7 +59,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	cm.AddContent(&MemoryContent{
 		name:           "example.com",
 		head:           NewStringFragment("    <page2-head/>\n"),
-		bodyAttributes: NewStringFragment(`foo="bar"`),
+		bodyAttributes: htmlAttributes(map[string]string{"foo": "bar"}),
 		tail:           NewStringFragment("    <page2-tail/>"),
 		body: map[string]Fragment{
 			"page2-a": NewStringFragment("<page2-body-a/>"),
@@ -251,4 +251,12 @@ func (buff closedWriterMock) Write(b []byte) (int, error) {
 
 func asFetchResult(c Content) *FetchResult {
 	return &FetchResult{Content: c, Def: &FetchDefinition{URL: c.Name()}}
+}
+
+func htmlAttributes(m map[string]string) []html.Attribute {
+	var result []html.Attribute
+	for k, v := range m {
+		result = append(result, html.Attribute{Key: k, Val: v})
+	}
+	return result
 }

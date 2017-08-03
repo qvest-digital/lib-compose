@@ -83,7 +83,7 @@ type Content interface {
 	Tail() Fragment
 
 	// The attributes for the body element
-	BodyAttributes() Fragment
+	BodyAttributes() []html.Attribute
 
 	// Reader returns the stream with the content, of any.
 	// If Reader() == nil, no stream is available an it contains parsed data, only.

@@ -117,7 +117,9 @@ func (parser *HtmlContentParser) parseBody(z *html.Tokenizer, c *MemoryContent) 
 
 	attrs = readAttributes(z, attrs)
 	if len(attrs) > 0 {
-		c.bodyAttributes = NewStringFragment(joinAttrs(attrs))
+		for _, a := range attrs {
+			c.bodyAttributes = append(c.bodyAttributes, a)
+		}
 	}
 
 forloop:
@@ -356,20 +358,20 @@ forloop:
 
 			switch {
 			case string(tag) == "meta":
-				if (processMetaTag(string(tag), attrs, headPropertyMap)) {
+				if processMetaTag(string(tag), attrs, headPropertyMap) {
 					headBuff.Write(raw)
 				}
 				continue forloop
 			case string(tag) == "link":
-				if (processLinkTag(attrs, headPropertyMap)) {
+				if processLinkTag(attrs, headPropertyMap) {
 					headBuff.Write(raw)
 				}
 				continue forloop
 			case string(tag) == "title":
-				if (headPropertyMap["title"] == "") {
+				if headPropertyMap["title"] == "" {
 					headPropertyMap["title"] = "title"
 					headBuff.Write(raw)
-				} else if (tt != html.SelfClosingTagToken) {
+				} else if tt != html.SelfClosingTagToken {
 					skipCompleteTag(z, "title")
 				}
 				continue forloop
@@ -442,33 +444,33 @@ func processMetaTag(tagName string, attrs []html.Attribute, metaMap map[string]s
 /**
 Returns true if a link tag can be processed.
 Checks if a <link> tag contains a canonical relation and avoids multiple canonical definitions.
- */
+*/
 func processLinkTag(attrs []html.Attribute, metaMap map[string]string) bool {
-	if (len(attrs) == 0) {
+	if len(attrs) == 0 {
 		return true
 	}
 
-        const canonical = "canonical"
+	const canonical = "canonical"
 	var key string
 	var value string
 
-        // e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
+	// e.g.: <link rel="canonical" href="/baumarkt/suche"> => key = canonical; val = /baumarkt/suche
 	for _, attr := range attrs {
-                if (attr.Key == "rel" && attr.Val == canonical) {
-                        key = canonical
-                }
-                if (attr.Key == "href") {
-                        value = attr.Val
-                }
-        }
-        if (key == canonical && metaMap[canonical] != "") {
-                // if canonical is already in map then don't process this link tag
-                return false
-        }
+		if attr.Key == "rel" && attr.Val == canonical {
+			key = canonical
+		}
+		if attr.Key == "href" {
+			value = attr.Val
+		}
+	}
+	if key == canonical && metaMap[canonical] != "" {
+		// if canonical is already in map then don't process this link tag
+		return false
+	}
 
-        if (key != "" && value != "") {
-                metaMap[key] = value
-        }
+	if key != "" && value != "" {
+		metaMap[key] = value
+	}
 	return true
 }
 
