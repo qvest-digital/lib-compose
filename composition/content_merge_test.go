@@ -8,6 +8,51 @@ import (
 	"golang.org/x/net/html"
 )
 
+func Test_ContentMerge_MergeBodyAttributes(t *testing.T) {
+	a := assert.New(t)
+
+	layout := NewStringFragment(
+		`<page1-body-main>
+      §[> page2-a]§
+      §[> example.com#page2-b]§
+      §[> page3]§
+    </page1-body-main>
+`)
+
+	cm := NewContentMerge(nil)
+
+	cm.AddContent(&MemoryContent{
+		name:           LayoutFragmentName,
+		head:           NewStringFragment("<page1-head/>\n"),
+		bodyAttributes: htmlAttributes(map[string]string{"a": "b", "class": "class1 class2"}),
+		tail:           NewStringFragment("    <page1-tail/>\n"),
+		body:           map[string]Fragment{"": layout},
+	}, 0)
+
+	cm.AddContent(&MemoryContent{
+		name:           "example.com",
+		head:           NewStringFragment("    <page2-head/>\n"),
+		bodyAttributes: htmlAttributes(map[string]string{"foo": "bar", "class": "class3"}),
+		tail:           NewStringFragment("    <page2-tail/>"),
+		body: map[string]Fragment{
+			"page2-a": NewStringFragment("<page2-body-a/>"),
+			"page2-b": NewStringFragment("<page2-body-b/>"),
+		}}, 0)
+
+	cm.AddContent(&MemoryContent{
+		name:           "page3",
+		head:           NewStringFragment("    <page3-head/>"),
+		bodyAttributes: htmlAttributes(map[string]string{"foo": "bar", "class": "class4"}),
+		body: map[string]Fragment{
+			"": NewStringFragment("<page3-body-a/>"),
+		}}, MAX_PRIORITY) // just to trigger the priority-parsing and see that it doesn't crash..
+
+	html, err := cm.GetHtml()
+	a.NoError(err)
+	expectedBody := `<body a="b" class="class1 class2" foo="bar" class="class3" foo="bar" class="class4">`
+	a.Contains(string(html), expectedBody)
+}
+
 func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a := assert.New(t)
 
