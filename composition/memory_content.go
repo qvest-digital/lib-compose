@@ -79,7 +79,12 @@ func (c *MemoryContent) Tail() Fragment {
 	return c.tail
 }
 
-func (c *MemoryContent) BodyAttributes() []html.Attribute {
+// Deprecated: This method is deprecated
+func (c *MemoryContent) BodyAttributes() Fragment {
+	return NewStringFragment(joinAttrs(c.bodyAttributes))
+}
+
+func (c *MemoryContent) BodyAttributesArray() []html.Attribute {
 	return c.bodyAttributes
 }
 

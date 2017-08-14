@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/tarent/lib-compose/logging"
+
 	"golang.org/x/net/html"
 )
 
@@ -19,9 +21,10 @@ const (
 // ContentMerge is a helper type for creation of a combined html document
 // out of multiple Content pages.
 type ContentMerge struct {
-	MetaJSON  map[string]interface{}
-	Head      []Fragment
-	BodyAttrs [][]html.Attribute
+	MetaJSON       map[string]interface{}
+	Head           []Fragment
+	BodyAttrs      []Fragment
+	BodyAttrsArray [][]html.Attribute
 
 	// Aggregator for the Body Fragments of the results.
 	// Each fragment is insertes twice with full name and local name,
@@ -98,8 +101,9 @@ func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment
 
 func collectBodyAttrs(bodyAttrs [][]html.Attribute) string {
 	var result map[string]string = make(map[string]string)
-	for _, attrs := range bodyAttrs {
-		for _, attr := range attrs {
+	for i := range bodyAttrs {
+		for j := range bodyAttrs[i] {
+			attr := &bodyAttrs[i][j]
 			val, exists := result[attr.Key]
 			if strings.ToLower(attr.Key) == "class" {
 				// aggregate all class attributes
@@ -145,8 +149,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	// open body tag
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
-	io.WriteString(body, collectBodyAttrs(cntx.BodyAttrs))
-
+	io.WriteString(body, collectBodyAttrs(cntx.BodyAttrsArray))
 	io.WriteString(body, ">\n    ")
 
 	startFragmentName := ""
@@ -199,7 +202,12 @@ func (cntx *ContentMerge) GetBodyFragmentByName(name string) (Fragment, bool) {
 
 func (cntx *ContentMerge) AddContent(c Content, priority int) {
 	cntx.addHead(c.Head())
-	cntx.addBodyAttributes(c.BodyAttributes())
+	content2, ok := c.(Content2)
+	if ok {
+		cntx.addBodyAttributesArray(content2.BodyAttributesArray())
+	} else {
+		logging.Logger.Warnf("This body-content will not be rendered. Change type of c to Content2")
+	}
 	cntx.addBody(c)
 	cntx.addTail(c.Tail())
 	if priority > 0 {
@@ -213,9 +221,9 @@ func (cntx *ContentMerge) addHead(f Fragment) {
 	}
 }
 
-func (cntx *ContentMerge) addBodyAttributes(a []html.Attribute) {
+func (cntx *ContentMerge) addBodyAttributesArray(a []html.Attribute) {
 	if a != nil {
-		cntx.BodyAttrs = append(cntx.BodyAttrs, a)
+		cntx.BodyAttrsArray = append(cntx.BodyAttrsArray, a)
 	}
 }
 

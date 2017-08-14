@@ -125,14 +125,24 @@ func (_mr *_MockContentRecorder) Body() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Body")
 }
 
-func (_m *MockContent) BodyAttributes() []html.Attribute {
+func (_m *MockContent) BodyAttributes() Fragment {
 	ret := _m.ctrl.Call(_m, "BodyAttributes")
-	ret0, _ := ret[0].([]html.Attribute)
+	ret0, _ := ret[0].(Fragment)
 	return ret0
 }
 
 func (_mr *_MockContentRecorder) BodyAttributes() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "BodyAttributes")
+}
+
+func (_m *MockContent) BodyAttributesArray() []html.Attribute {
+	ret := _m.ctrl.Call(_m, "BodyAttributesArray")
+	ret0, _ := ret[0].([]html.Attribute)
+	return ret0
+}
+
+func (_mr *_MockContentRecorder) BodyAttributesArray() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "BodyAttributesArray")
 }
 
 func (_m *MockContent) Dependencies() map[string]Params {

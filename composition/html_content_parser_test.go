@@ -449,7 +449,10 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 		`§[> local]§`, c.Body()["content"])
 	eqFragment(t, "<!-- tail -->§[> example.com/tail]§", c.Tail())
 
-	a.Equal(`some="attribute"`, joinAttrs(c.BodyAttributes()))
+	a.Equal(`some="attribute"`, joinAttrs(c.BodyAttributesArray()))
+
+	// check deprecated BodyAttributes() method
+	eqFragment(t, `some="attribute"`, c.BodyAttributes())
 
 	a.Equal(5, len(c.Dependencies()))
 	a.Equal(c.Dependencies()["example.com/xyz"], Params{"foo": "bar", "bazz": "buzz"})
