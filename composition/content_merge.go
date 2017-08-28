@@ -202,11 +202,11 @@ func (cntx *ContentMerge) GetBodyFragmentByName(name string) (Fragment, bool) {
 
 func (cntx *ContentMerge) AddContent(c Content, priority int) {
 	cntx.addHead(c.Head())
-	content2, ok := c.(Content2)
+	contentV2, ok := c.(ContentV2)
 	if ok {
-		cntx.addBodyAttributesArray(content2.BodyAttributesArray())
+		cntx.addBodyAttributesArray(contentV2.BodyAttributesArray())
 	} else {
-		logging.Logger.Warnf("This body-content will not be rendered. Change type of c to Content2")
+		logging.Logger.Warnf("This body-content will not be rendered. Change type of c to ContentV2")
 	}
 	cntx.addBody(c)
 	cntx.addTail(c.Tail())

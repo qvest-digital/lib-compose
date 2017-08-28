@@ -99,7 +99,7 @@ type Content interface {
 	MemorySize() int
 }
 
-type Content2 interface {
+type ContentV2 interface {
 	Content
 
 	// Return the attributes for the body element as array.
