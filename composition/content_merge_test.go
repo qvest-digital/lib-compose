@@ -2,11 +2,68 @@ package composition
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
+
+func Test_ContentMerge_MergeBodyAttributes(t *testing.T) {
+	a := assert.New(t)
+
+	layout := NewStringFragment(
+		`<page1-body-main>
+      §[> page2-a]§
+      §[> example.com#page2-b]§
+      §[> page3]§
+    </page1-body-main>
+`)
+
+	cm := NewContentMerge(nil)
+
+	cm.AddContent(&MemoryContent{
+		name:           LayoutFragmentName,
+		head:           NewStringFragment("<page1-head/>\n"),
+		bodyAttributes: htmlAttributes(map[string]string{"a": "b", "foo": "bar0", "class": "class1 class2"}),
+		tail:           NewStringFragment("    <page1-tail/>\n"),
+		body:           map[string]Fragment{"": layout},
+	}, 0)
+
+	cm.AddContent(&MemoryContent{
+		name:           "example.com",
+		head:           NewStringFragment("    <page2-head/>\n"),
+		bodyAttributes: htmlAttributes(map[string]string{"foo": "bar1", "class": "class3"}),
+		tail:           NewStringFragment("    <page2-tail/>"),
+		body: map[string]Fragment{
+			"page2-a": NewStringFragment("<page2-body-a/>"),
+			"page2-b": NewStringFragment("<page2-body-b/>"),
+		}}, 0)
+
+	cm.AddContent(&MemoryContent{
+		name:           "page3",
+		head:           NewStringFragment("    <page3-head/>"),
+		bodyAttributes: htmlAttributes(map[string]string{"foo": "bar2", "class": "class4"}),
+		body: map[string]Fragment{
+			"": NewStringFragment("<page3-body-a/>"),
+		}}, MAX_PRIORITY) // just to trigger the priority-parsing and see that it doesn't crash..
+
+	html, err := cm.GetHtml()
+	a.Contains(string(html), `<body`)
+	bodyElement := strings.SplitN(string(html), "<body", 2)[1]
+	bodyElement = strings.SplitN(bodyElement, ">", 2)[0]
+	a.NoError(err)
+	// expect class attributes to be aggregated, all others to be overwritten (here: foo)
+	a.Contains(bodyElement, `a="b"`)
+	a.Contains(bodyElement, `foo="bar2"`)
+	a.NotContains(bodyElement, `foo="bar0"`)
+	a.NotContains(bodyElement, `foo="bar1"`)
+	a.Contains(bodyElement, `class="class1 class2 class3 class4"`)
+	// assure, there are no additional class attributes
+	a.NotContains(bodyElement, `class="class1 class2"`)
+	a.NotContains(bodyElement, `class="class3 class4"`)
+	a.NotContains(bodyElement, `class="class4"`)
+}
 
 func Test_ContentMerge_PositiveCase(t *testing.T) {
 	a := assert.New(t)
@@ -51,7 +108,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	cm.AddContent(&MemoryContent{
 		name:           LayoutFragmentName,
 		head:           NewStringFragment("<page1-head/>\n"),
-		bodyAttributes: NewStringFragment(`a="b"`),
+		bodyAttributes: htmlAttributes(map[string]string{"a": "b"}),
 		tail:           NewStringFragment("    <page1-tail/>\n"),
 		body:           map[string]Fragment{"": body},
 	}, 0)
@@ -59,7 +116,7 @@ func Test_ContentMerge_PositiveCase(t *testing.T) {
 	cm.AddContent(&MemoryContent{
 		name:           "example.com",
 		head:           NewStringFragment("    <page2-head/>\n"),
-		bodyAttributes: NewStringFragment(`foo="bar"`),
+		bodyAttributes: htmlAttributes(map[string]string{"foo": "bar"}),
 		tail:           NewStringFragment("    <page2-tail/>"),
 		body: map[string]Fragment{
 			"page2-a": NewStringFragment("<page2-body-a/>"),
@@ -251,4 +308,12 @@ func (buff closedWriterMock) Write(b []byte) (int, error) {
 
 func asFetchResult(c Content) *FetchResult {
 	return &FetchResult{Content: c, Def: &FetchDefinition{URL: c.Name()}}
+}
+
+func htmlAttributes(m map[string]string) []html.Attribute {
+	var result []html.Attribute
+	for k, v := range m {
+		result = append(result, html.Attribute{Key: k, Val: v})
+	}
+	return result
 }

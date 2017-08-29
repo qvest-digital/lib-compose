@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/tarent/lib-compose/logging"
+
 	"golang.org/x/net/html"
 )
 
@@ -19,9 +21,10 @@ const (
 // ContentMerge is a helper type for creation of a combined html document
 // out of multiple Content pages.
 type ContentMerge struct {
-	MetaJSON  map[string]interface{}
-	Head      []Fragment
-	BodyAttrs []Fragment
+	MetaJSON       map[string]interface{}
+	Head           []Fragment
+	BodyAttrs      []Fragment
+	BodyAttrsArray [][]html.Attribute
 
 	// Aggregator for the Body Fragments of the results.
 	// Each fragment is insertes twice with full name and local name,
@@ -49,7 +52,6 @@ func NewContentMerge(metaJSON map[string]interface{}) *ContentMerge {
 	cntx := &ContentMerge{
 		MetaJSON:   metaJSON,
 		Head:       make([]Fragment, 0, 0),
-		BodyAttrs:  make([]Fragment, 0, 0),
 		Body:       make(map[string]Fragment),
 		Tail:       make([]Fragment, 0, 0),
 		Buffered:   true,
@@ -97,6 +99,35 @@ func generateExecutionFunction(cntx *ContentMerge, w io.Writer) (executeFragment
 	return executeFragment
 }
 
+func collectBodyAttrs(bodyAttrs [][]html.Attribute) string {
+	var result map[string]string = make(map[string]string)
+	for i := range bodyAttrs {
+		for j := range bodyAttrs[i] {
+			attr := &bodyAttrs[i][j]
+			val, exists := result[attr.Key]
+			if strings.ToLower(attr.Key) == "class" {
+				// aggregate all class attributes
+				var newVal string
+				if exists {
+					newVal = val + " "
+				}
+				newVal = newVal + attr.Val
+				result[attr.Key] = newVal
+			} else {
+				// but overwrite others
+				result[attr.Key] = attr.Val
+			}
+		}
+	}
+
+	var sResult string
+	for k, v := range result {
+		sResult = sResult + fmt.Sprintf(` %s="%s"`, k, v)
+	}
+
+	return sResult
+}
+
 func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 
 	if len(cntx.priorities) > 0 {
@@ -118,14 +149,7 @@ func (cntx *ContentMerge) GetHtml() ([]byte, error) {
 	// open body tag
 	body := bytes.NewBuffer(make([]byte, 0, DefaultBufferSize))
 	io.WriteString(body, "\n  <body")
-	for _, f := range cntx.BodyAttrs {
-		io.WriteString(body, " ")
-		executeFragment := generateExecutionFunction(cntx, body)
-		if err := f.Execute(body, cntx.MetaJSON, executeFragment); err != nil {
-			return nil, err
-		}
-	}
-
+	io.WriteString(body, collectBodyAttrs(cntx.BodyAttrsArray))
 	io.WriteString(body, ">\n    ")
 
 	startFragmentName := ""
@@ -178,7 +202,12 @@ func (cntx *ContentMerge) GetBodyFragmentByName(name string) (Fragment, bool) {
 
 func (cntx *ContentMerge) AddContent(c Content, priority int) {
 	cntx.addHead(c.Head())
-	cntx.addBodyAttributes(c.BodyAttributes())
+	contentV2, ok := c.(ContentV2)
+	if ok {
+		cntx.addBodyAttributesArray(contentV2.BodyAttributesArray())
+	} else {
+		logging.Logger.Warnf("This body-content will not be rendered. Change type of c to ContentV2")
+	}
 	cntx.addBody(c)
 	cntx.addTail(c.Tail())
 	if priority > 0 {
@@ -192,9 +221,9 @@ func (cntx *ContentMerge) addHead(f Fragment) {
 	}
 }
 
-func (cntx *ContentMerge) addBodyAttributes(f Fragment) {
-	if f != nil {
-		cntx.BodyAttrs = append(cntx.BodyAttrs, f)
+func (cntx *ContentMerge) addBodyAttributesArray(a []html.Attribute) {
+	if a != nil {
+		cntx.BodyAttrsArray = append(cntx.BodyAttrsArray, a)
 	}
 }
 

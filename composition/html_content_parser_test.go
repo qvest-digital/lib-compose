@@ -299,7 +299,7 @@ func Test_HtmlContentParser_parseHead_withMultipleMetaTags_and_Titles_and_Canoni
 	err := parser.parseHead(z, c)
 	a.NoError(err)
 
-        containsFragment(t, "<title>navigationservice</title>", c.Head())
+	containsFragment(t, "<title>navigationservice</title>", c.Head())
 }
 
 func Test_HtmlContentParser_parseHead(t *testing.T) {
@@ -449,6 +449,9 @@ func Test_HtmlContentParser_parseBody(t *testing.T) {
 		`§[> local]§`, c.Body()["content"])
 	eqFragment(t, "<!-- tail -->§[> example.com/tail]§", c.Tail())
 
+	a.Equal(`some="attribute"`, joinAttrs(c.BodyAttributesArray()))
+
+	// check deprecated BodyAttributes() method
 	eqFragment(t, `some="attribute"`, c.BodyAttributes())
 
 	a.Equal(5, len(c.Dependencies()))
@@ -746,7 +749,6 @@ func containsFragment(t *testing.T, contained string, f Fragment) {
 	}
 }
 
-
 func Test_ParseHeadFragment_Filter_Title(t *testing.T) {
 	a := assert.New(t)
 
@@ -942,7 +944,7 @@ func Test_ParseHeadFragment_Filter_Meta_Tag(t *testing.T) {
 func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 	a := assert.New(t)
 
-        // GIVEN
+	// GIVEN
 	originalHeadString := `<meta charset="utf-8">
 
 	<link rel="canonical" href="/navigationservice">
@@ -1011,10 +1013,10 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 	headMetaPropertyMap["canonical"] = "/baumarkt/suche"
 
 	headFragment := NewStringFragment(originalHeadString)
-        // WHEN
+	// WHEN
 	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
-        // THEN
+	// THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
 	resultString := removeTabsAndNewLines(headFragment.Content())
 
@@ -1022,7 +1024,7 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag(t *testing.T) {
 }
 
 func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *testing.T) {
-        // GIVEN
+	// GIVEN
 	a := assert.New(t)
 
 	originalHeadString := `
@@ -1049,10 +1051,10 @@ func Test_ParseHeadFragment_Filter_Link_Canonical_Tag_without_existing_Map(t *te
 	headMetaPropertyMap := make(map[string]string)
 
 	headFragment := NewStringFragment(originalHeadString)
-        // WHEN
+	// WHEN
 	ParseHeadFragment(headFragment, headMetaPropertyMap)
 
-        // THEN
+	// THEN
 	expectedParsedHead = removeTabsAndNewLines(expectedParsedHead)
 	resultString := removeTabsAndNewLines(headFragment.Content())
 

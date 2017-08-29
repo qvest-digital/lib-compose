@@ -52,7 +52,7 @@ type CacheStrategy interface {
 // Params is a value type for a parameter map
 type Params map[string]string
 
-// Vontent is the abstration over includable data.
+// Content is the abstraction over includable data.
 // Content may be parsed of it may contain a stream represented by a non nil Reader(), not both.
 type Content interface {
 
@@ -82,7 +82,7 @@ type Content interface {
 	// e.g. a script to load after rendering.
 	Tail() Fragment
 
-	// The attributes for the body element
+	// Deprecated: Return the attributes for the body element as Fragment.
 	BodyAttributes() Fragment
 
 	// Reader returns the stream with the content, of any.
@@ -97,6 +97,13 @@ type Content interface {
 
 	// MemorySize return the estimated size in bytes, for this object in memory
 	MemorySize() int
+}
+
+type ContentV2 interface {
+	Content
+
+	// Return the attributes for the body element as array.
+	BodyAttributesArray() []html.Attribute
 }
 
 type ContentMerger interface {
