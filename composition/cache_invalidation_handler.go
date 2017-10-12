@@ -1,7 +1,7 @@
 package composition
 
 import (
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/logging"
 	"net/http"
 	"strings"
 )

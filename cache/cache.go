@@ -3,7 +3,7 @@ package cache
 import (
 	"github.com/tarent/logrus"
 	"github.com/hashicorp/golang-lru/simplelru"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/logging"
 	"sync"
 	"time"
 )

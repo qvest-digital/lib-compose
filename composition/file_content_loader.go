@@ -3,7 +3,7 @@ package composition
 import (
 	"errors"
 	"fmt"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/logging"
 	"os"
 	"path/filepath"
 	"strings"

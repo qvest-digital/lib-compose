@@ -2,7 +2,7 @@ package composition
 
 import (
 	"bytes"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/logging"
 	"io"
 	"io/ioutil"
 	"strings"
