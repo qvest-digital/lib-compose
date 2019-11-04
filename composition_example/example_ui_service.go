@@ -6,7 +6,7 @@ import (
 	"os"
 
 	gorilla "github.com/gorilla/handlers"
-	"github.com/tarent/lib-compose/composition"
+	"github.com/tarent/lib-compose/v2/composition"
 )
 
 var host = "127.0.0.1:8080"

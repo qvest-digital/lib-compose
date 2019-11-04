@@ -3,7 +3,7 @@ package util
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	mockHttp "github.com/tarent/lib-compose/composition/mocks/net/http"
+	mockHttp "github.com/tarent/lib-compose/v2/composition/mocks/net/http"
 	"net/http"
 	"net/http/httptest"
 	"testing"

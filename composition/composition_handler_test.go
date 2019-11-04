@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/tarent/lib-compose/cache"
+	"github.com/tarent/lib-compose/v2/cache"
 	"golang.org/x/net/html"
 )
 

@@ -2,7 +2,7 @@ package composition
 
 import (
 	"github.com/golang/mock/gomock"
-	mockhttp "github.com/tarent/lib-compose/composition/mocks/net/http"
+	mockhttp "github.com/tarent/lib-compose/v2/composition/mocks/net/http"
 	"net/http"
 	"testing"
 )

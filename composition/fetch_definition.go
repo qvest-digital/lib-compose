@@ -1,7 +1,7 @@
 package composition
 
 import (
-	"github.com/tarent/lib-compose/cache"
+	"github.com/tarent/lib-compose/v2/cache"
 	"github.com/tarent/lib-servicediscovery/servicediscovery"
 	"io"
 	"net/http"

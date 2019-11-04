@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/tarent/go-log-middleware/v2/logging"
-	"github.com/tarent/lib-compose/util"
+	"github.com/tarent/lib-compose/v2/util"
 	"net/http"
 )
 

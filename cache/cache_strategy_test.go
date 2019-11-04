@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/stretchr/testify/assert"
-	"github.com/tarent/lib-compose/util"
+	"github.com/tarent/lib-compose/v2/util"
 	"net/http"
 	"testing"
 )

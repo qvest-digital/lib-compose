@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/tarent/lib-compose/composition"
+	"github.com/tarent/lib-compose/v2/composition"
 	"net/http"
 )
 
