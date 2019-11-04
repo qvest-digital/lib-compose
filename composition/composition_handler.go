@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/v2/logging"
 )
 
 // A ContentFetcherFactory returns a configured fetch job for a request

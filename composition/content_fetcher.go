@@ -2,7 +2,7 @@ package composition
 
 import (
 	"errors"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/v2/logging"
 	"sort"
 	"sync"
 )

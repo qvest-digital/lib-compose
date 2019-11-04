@@ -1,9 +1,9 @@
 package cache
 
 import (
-	"github.com/tarent/logrus"
 	"github.com/hashicorp/golang-lru/simplelru"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/sirupsen/logrus"
+	"github.com/tarent/go-log-middleware/v2/logging"
 	"sync"
 	"time"
 )
@@ -195,7 +195,7 @@ func (c *Cache) PurgedKeysAsString(keys []string) string {
 		} else {
 			keyString += key
 		}
-		count ++
+		count++
 	}
 	return keyString
 }

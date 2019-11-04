@@ -11,13 +11,13 @@ func Test_MemoryContent_MemorySize(t *testing.T) {
 
 	m := MemoryContent{
 		meta: map[string]interface{}{"foo": "bar"}, // 20
-		head: NewStringFragment("0123456789"),         // 10
+		head: NewStringFragment("0123456789"),      // 10
 		body: map[string]Fragment{
 			"a": NewStringFragment("0123456789"), // 10
 			"b": NewStringFragment("0123456789"), // 10
 		},
 		tail:       NewStringFragment("0123456789"), // 10
-		httpHeader: http.Header{"foo": {"bar"}},  // 20
+		httpHeader: http.Header{"foo": {"bar"}},     // 20
 	}
 
 	a.Equal(80, m.MemorySize())

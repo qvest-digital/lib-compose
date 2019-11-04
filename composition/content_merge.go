@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/v2/logging"
 
 	"golang.org/x/net/html"
 )

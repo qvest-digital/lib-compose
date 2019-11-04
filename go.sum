@@ -1,3 +1,5 @@
+github.com/bshuster-repo/logrus-logstash-hook v0.0.0-20190911164539-b3d898b5138a h1:8sm9A8pin8aj3hYkQusQQxCJHIBNQsQ0dFKNTZ2MGmM=
+github.com/bshuster-repo/logrus-logstash-hook v0.0.0-20190911164539-b3d898b5138a/go.mod h1:zsTqEiSzDgAa/8GZR7E1qaXrhYNDKBYy5/dWPTIflbk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang/mock v1.3.1 h1:qGJ6qTW+x6xX/my+8YUVl4WNpX9B7+/l2tRsHGZ7f2s=
@@ -18,10 +20,11 @@ github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6Mwd
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/tarent/go-log-middleware v1.0.0 h1:zWbpdyWQ39sEUHZ5f8DPZG65UCT89zULz23j22WgXKA=
+github.com/tarent/go-log-middleware/v2 v2.1.0 h1:16EqdGR+UN8S22LG7hXZCJ1ZLcfOk05Ee5oC6QTh6lw=
+github.com/tarent/go-log-middleware/v2 v2.1.0/go.mod h1:vgSW4Agcpc9A714BuMLDzIRHYqOYkpg8gSDPM7TXaKM=
 github.com/tarent/lib-servicediscovery v0.0.0-20191104104245-399da27a1bf4 h1:Qt9BoNxkdtbuEb2iks/mAKT3RlDixRV7uE4wbM5ybcc=
 github.com/tarent/lib-servicediscovery v0.0.0-20191104104245-399da27a1bf4/go.mod h1:lycKH/UkRh6BoiCVnh6fVTunqiZaTDm3JhGaLeFrlQo=
-github.com/tarent/logrus v0.11.5 h1:6Ecuym2kpXpZURcyYKm7K5IQ1AZGK2hye7auueNyEtE=
-github.com/tarent/logrus v0.11.5/go.mod h1:ql8ihK/sxurTyP1LVhkGrMHhl0aXd/+hu4MBiAJDFN4=
 github.com/yosssi/gohtml v0.0.0-20190915184251-7ff6f235ecaf h1:VA200mPTYh9FWY8zKX5ctXCtNk78HUez8ecTdsQGhoo=
 github.com/yosssi/gohtml v0.0.0-20190915184251-7ff6f235ecaf/go.mod h1:+ccdNT0xMY1dtc5XBxumbYfOUhmduiGudqaDgD2rVRE=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=

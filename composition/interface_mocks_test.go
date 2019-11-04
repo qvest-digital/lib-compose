@@ -5,7 +5,7 @@ package composition
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	
+
 	html "golang.org/x/net/html"
 	io "io"
 	http "net/http"

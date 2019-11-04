@@ -1,8 +1,8 @@
 package composition
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func Test_FetchDefinition_DiscoveredBy(t *testing.T) {

@@ -3,7 +3,7 @@ package composition
 import (
 	"errors"
 	"fmt"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/v2/logging"
 	"github.com/tarent/lib-servicediscovery/servicediscovery"
 	"io/ioutil"
 	"net"

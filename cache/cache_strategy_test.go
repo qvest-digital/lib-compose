@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/stretchr/testify/assert"
+	"github.com/tarent/lib-compose/util"
 	"net/http"
 	"testing"
-	"github.com/tarent/lib-compose/util"
 )
 
 type hashCall struct {

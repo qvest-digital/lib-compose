@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"github.com/pquerna/cachecontrol/cacheobject"
-	"github.com/tarent/lib-compose/logging"
+	"github.com/tarent/go-log-middleware/v2/logging"
 	"github.com/tarent/lib-compose/util"
 	"net/http"
 )
